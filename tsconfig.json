@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "out": "built/out.js", 
+        "sourceMap": true, 
+        "target": "es5"
+    }, 
+    "files": [
+        "graphics.ts",
+        "tools.ts",
+        "physics.ts",
+        "worldbuilder.ts",
+        "inputs.ts",
+        "rungolf.ts"
+    ]
+}
