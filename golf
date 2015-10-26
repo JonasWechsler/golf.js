@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Demo</title>
+	</head>
+	<body>
+		<canvas id="draw" class="center">
+		</canvas>
+		<script src="./graphics.js">
+		</script>
+		<script src="./tools.js">
+		</script>
+		<script src="./physics.js">
+		</script>
+		<script src="./worldbuilder.js">
+		</script>
+		<script src="./inputs.js">
+		</script>
+		<script src="./rungolf.js">
+		</script>
+	</body>
+</html>
