@@ -341,8 +341,11 @@ module Physics{
     export class Material{
         constructor(public bounce: number, 
             public debugColor: any, 
-            public callback: () => void){
+            public callback: (vol) => void){
             
+        }
+        static defaultMaterial(){
+            return new Physics.Material(0,"black",(vol:number) => void {});
         }
     }
 

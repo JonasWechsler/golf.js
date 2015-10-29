@@ -1,76 +1,103 @@
-function Graphics() {
-}
-Graphics.Plant = function () {
-    var iterations = 5, diam = Math.random() * 1 + 1, len = (Math.random() * (screen.height / (iterations + 1)) + screen.height / (iterations + 1)) / 2, diam_coef = Math.random() * .5 + .5, len_coef = Math.random() * .7 + .3, branches = Math.random() * 2 + 3, twig_chance = Math.random() * .5 + .5, max_angle = Math.random() * Math.PI / 2;
-    this.setIterations = function (p) {
-        iterations = p;
-        return this;
-    };
-    this.setDiameter = function (p) {
-        diam = p;
-        return this;
-    };
-    this.setLength = function (p) {
-        len = p;
-        return this;
-    };
-    this.setDiameterCoefficient = function (p) {
-        diam_coef = p;
-        return this;
-    };
-    this.setLengthCoefficient = function (p) {
-        len_coef = p;
-        return this;
-    };
-    this.setBranches = function (p) {
-        branches = p;
-        return this;
-    };
-    this.setTwigChance = function (p) {
-        twig_chance = p;
-        return this;
-    };
-    this.setMaxAngle = function (p) {
-        max_angle = p;
-        return this;
-    };
-    this.generate = function (x0, y0, ctx) {
-        var bases_x = [x0], bases_y = [y0], angles = [3 * Math.PI / 2];
-        var len_initial = len;
-        var diam_initial = diam;
-        for (var i = 0; i < iterations; i++) {
-            ctx.lineWidth = diam_initial;
-            var new_bases_x = [], new_bases_y = [], new_angles = [];
-            for (var a = 0; a < bases_x.length; a++) {
-                for (var b = 0; b < branches; b++) {
-                    if (Math.random() > twig_chance) {
-                        continue;
-                    }
-                    var angle = (b / branches) * max_angle + Math.random() - .5, angle_adjusted0 = angles[a] + angle + Math.random() - .5, angle_adjusted1 = angles[a] - angle + Math.random() - .5;
-                    ctx.beginPath();
-                    ctx.moveTo(bases_x[a], bases_y[a]);
-                    ctx.lineTo(bases_x[a] + Math.cos(angle_adjusted0) * len_initial, bases_y[a] + Math.sin(angle_adjusted0) * len_initial);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(bases_x[a], bases_y[a]);
-                    ctx.lineTo(bases_x[a] + Math.cos(angle_adjusted1) * len_initial, bases_y[a] + Math.sin(angle_adjusted1) * len_initial);
-                    ctx.stroke();
-                    new_bases_x.push(bases_x[a] + Math.cos(angle_adjusted0) * len_initial);
-                    new_bases_y.push(bases_y[a] + Math.sin(angle_adjusted0) * len_initial);
-                    new_angles.push(angle_adjusted0);
-                    new_bases_x.push(bases_x[a] + Math.cos(angle_adjusted1) * len_initial);
-                    new_bases_y.push(bases_y[a] + Math.sin(angle_adjusted1) * len_initial);
-                    new_angles.push(angle_adjusted1);
-                }
-            }
-            bases_x = new_bases_x;
-            bases_y = new_bases_y;
-            angles = new_angles;
-            diam_initial *= diam_coef;
-            len_initial *= len_coef;
+var Graphics;
+(function (Graphics) {
+    var GraphicsRenderer = (function () {
+        function GraphicsRenderer(world) {
+            this.world = world;
         }
-    };
-};
+        GraphicsRenderer.prototype.drawAll = function (ctx) {
+            this.world.getSurfaces().forEach(function (val) {
+                val.draw(ctx);
+            });
+            this.world.getObjects().forEach(function (val) {
+                val.draw(ctx);
+            });
+        };
+        return GraphicsRenderer;
+    })();
+    Graphics.GraphicsRenderer = GraphicsRenderer;
+    var Plant = (function () {
+        function Plant() {
+            this.iterations = 5;
+            this.diam = Math.random() * 1 + 1;
+            this.len = (Math.random() * (screen.height / (this.iterations + 1)) + screen.height / (this.iterations + 1)) / 2;
+            this.diam_coef = Math.random() * .5 + .5;
+            this.len_coef = Math.random() * .7 + .3;
+            this.branches = Math.random() * 2 + 3;
+            this.twig_chance = Math.random() * .5 + .5;
+            this.max_angle = Math.random() * Math.PI / 2;
+        }
+        Plant.prototype.setIterations = function (p) {
+            this.iterations = p;
+            return this;
+        };
+        Plant.prototype.setDiameter = function (p) {
+            this.diam = p;
+            return this;
+        };
+        Plant.prototype.setLength = function (p) {
+            this.len = p;
+            return this;
+        };
+        Plant.prototype.setDiameterCoefficient = function (p) {
+            this.diam_coef = p;
+            return this;
+        };
+        Plant.prototype.setLengthCoefficient = function (p) {
+            this.len_coef = p;
+            return this;
+        };
+        Plant.prototype.setBranches = function (p) {
+            this.branches = p;
+            return this;
+        };
+        Plant.prototype.setTwigChance = function (p) {
+            this.twig_chance = p;
+            return this;
+        };
+        Plant.prototype.setMaxAngle = function (p) {
+            this.max_angle = p;
+            return this;
+        };
+        Plant.prototype.generate = function (x0, y0, ctx) {
+            var bases_x = [x0], bases_y = [y0], angles = [3 * Math.PI / 2];
+            var len_initial = this.len;
+            var diam_initial = this.diam;
+            for (var i = 0; i < this.iterations; i++) {
+                ctx.lineWidth = diam_initial;
+                var new_bases_x = [], new_bases_y = [], new_angles = [];
+                for (var a = 0; a < bases_x.length; a++) {
+                    for (var b = 0; b < this.branches; b++) {
+                        if (Math.random() > this.twig_chance) {
+                            continue;
+                        }
+                        var angle = (b / this.branches) * this.max_angle + Math.random() - .5, angle_adjusted0 = angles[a] + angle + Math.random() - .5, angle_adjusted1 = angles[a] - angle + Math.random() - .5;
+                        ctx.beginPath();
+                        ctx.moveTo(bases_x[a], bases_y[a]);
+                        ctx.lineTo(bases_x[a] + Math.cos(angle_adjusted0) * len_initial, bases_y[a] + Math.sin(angle_adjusted0) * len_initial);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(bases_x[a], bases_y[a]);
+                        ctx.lineTo(bases_x[a] + Math.cos(angle_adjusted1) * len_initial, bases_y[a] + Math.sin(angle_adjusted1) * len_initial);
+                        ctx.stroke();
+                        new_bases_x.push(bases_x[a] + Math.cos(angle_adjusted0) * len_initial);
+                        new_bases_y.push(bases_y[a] + Math.sin(angle_adjusted0) * len_initial);
+                        new_angles.push(angle_adjusted0);
+                        new_bases_x.push(bases_x[a] + Math.cos(angle_adjusted1) * len_initial);
+                        new_bases_y.push(bases_y[a] + Math.sin(angle_adjusted1) * len_initial);
+                        new_angles.push(angle_adjusted1);
+                    }
+                }
+                bases_x = new_bases_x;
+                bases_y = new_bases_y;
+                angles = new_angles;
+                diam_initial *= this.diam_coef;
+                len_initial *= this.len_coef;
+            }
+        };
+        return Plant;
+    })();
+    Graphics.Plant = Plant;
+})(Graphics || (Graphics = {}));
 var Point = (function () {
     function Point() {
     }
@@ -86,7 +113,7 @@ var Vector = (function () {
         return new Vector(this.x, this.y);
     };
     Vector.prototype.equals = function (v) {
-        return (this.x - v.x) < .0001 && (this.y - v.y) < .0001;
+        return Math.abs(this.x - v.x) < .0001 && Math.abs(this.y - v.y) < .0001;
     };
     Vector.prototype.length = function () {
         return Math.sqrt(this.x * this.x + this.y * this.y);
@@ -464,6 +491,9 @@ var Physics;
             this.debugColor = debugColor;
             this.callback = callback;
         }
+        Material.defaultMaterial = function () {
+            return new Physics.Material(0, "black", function (vol) { return void {}; });
+        };
         return Material;
     })();
     Physics.Material = Material;
@@ -600,233 +630,289 @@ var Physics;
     })();
     Physics.TriggerLineSegment = TriggerLineSegment;
 })(Physics || (Physics = {}));
-function WorldBuilder() {
-}
-WorldBuilder.Screen = function () {
-};
-WorldBuilder.PerlinGenerator = function (height) {
-    var heights = {
-        '-1': height / 2,
-        '0': height / 2,
-        '1': height / 2
-    };
-    var x = 0;
-    var max_x = -1;
-    var min_x = 1;
-    var perlin_resolution = 15;
-    var left_perlin_subgraph = [];
-    var right_perlin_subgraph = [];
-    var perlin_smoothness = .9965; //0<smooth<1
-    var seed = new Date().getTime();
-    this.setSeed = function (s) {
-        seed = s;
-    };
-    var random = function () {
-        var x = Math.sin(seed++) * 10000;
-        return x - Math.floor(x);
-    };
-    var generate_perlin_at = function (x) {
-        var active_subgraphs = [];
-        var last_y = 0;
-        if (x < min_x) {
-            min_x = x;
-            last_y = heights[x + 1];
-            active_subgraphs = left_perlin_subgraph;
+var WorldBuilder;
+(function (WorldBuilder) {
+    var Surface = (function () {
+        function Surface(material, border, drawFunction) {
+            this.material = material;
+            this.border = border;
+            this.drawFunction = drawFunction;
         }
-        else if (x > max_x) {
-            max_x = x;
-            last_y = heights[x - 1];
-            active_subgraphs = right_perlin_subgraph;
+        Surface.prototype.setMaterial = function (material) {
+            this.material = material;
+            return this;
+        };
+        Surface.prototype.getMaterial = function () {
+            return this.material;
+        };
+        Surface.prototype.setBorder = function (border) {
+            this.border = border;
+            return this;
+        };
+        Surface.prototype.getBorder = function () {
+            return this.border;
+        };
+        Surface.prototype.setDrawFunction = function (fun) {
+            this.drawFunction = fun;
+            return this;
+        };
+        Surface.prototype.getDrawFunction = function () {
+            return this.drawFunction;
+        };
+        Surface.prototype.draw = function (ctx) {
+            this.drawFunction(ctx, this.getMaterial(), this.getBorder());
+        };
+        Surface.defaultSurface = function () {
+            var defaultMaterial = Physics.Material.defaultMaterial();
+            var defaultBorder = [];
+            var defaultDrawFunction = function (ctx, material, border) {
+                if (border.length === 0)
+                    return;
+                ctx.beginPath();
+                ctx.strokeStyle = material.debugColor;
+                ctx.moveTo(border[0].x, border[0].y);
+                border.forEach(function (val) {
+                    ctx.lineTo(val.x, val.y);
+                });
+                ctx.stroke();
+            };
+            return new Surface(defaultMaterial, defaultBorder, defaultDrawFunction);
+        };
+        return Surface;
+    })();
+    WorldBuilder.Surface = Surface;
+    var PerlinGenerator = (function () {
+        function PerlinGenerator(height) {
+            this.height = height;
+            this.heights = {
+                '-1': height / 2,
+                '0': height / 2,
+                '1': height / 2
+            };
+            this.x = 0;
+            this.max_x = -1;
+            this.min_x = 1;
+            this.perlin_resolution = 15;
+            this.left_perlin_subgraph = [];
+            this.right_perlin_subgraph = [];
+            this.perlin_smoothness = .9965; //0<smooth<1
+            this.seed = new Date().getTime();
         }
-        else {
-            return heights[x];
-        }
-        var new_point = false;
-        for (var idx = 1; idx < perlin_resolution; idx++) {
-            var frequency = Math.pow(2, idx), wavelength = Math.floor(200 / frequency);
-            if (x % wavelength == 0) {
-                var persistance = 1 / 2, amplitude = Math.pow(persistance, idx) * height;
-                active_subgraphs[idx] = amplitude * random();
-                new_point = true;
+        PerlinGenerator.prototype.setSeed = function (seed) {
+            this.seed = seed;
+        };
+        PerlinGenerator.prototype.random = function () {
+            var x = Math.sin(this.seed++) * 10000;
+            return x - Math.floor(x);
+        };
+        PerlinGenerator.prototype.generate_perlin_at = function (x) {
+            var active_subgraphs = [];
+            var last_y = 0;
+            if (x < this.min_x) {
+                this.min_x = x;
+                last_y = this.heights[x + 1];
+                active_subgraphs = this.left_perlin_subgraph;
             }
-        }
-        var y = 0;
-        if (new_point) {
-            active_subgraphs.forEach(function (val) {
-                if (val)
-                    y += val;
+            else if (x > this.max_x) {
+                this.max_x = x;
+                last_y = this.heights[x - 1];
+                active_subgraphs = this.right_perlin_subgraph;
+            }
+            else {
+                return this.heights[x];
+            }
+            var new_point = false;
+            for (var idx = 1; idx < this.perlin_resolution; idx++) {
+                var frequency = Math.pow(2, idx), wavelength = Math.floor(200 / frequency);
+                if (x % wavelength == 0) {
+                    var persistance = 1 / 2, amplitude = Math.pow(persistance, idx) * this.height;
+                    active_subgraphs[idx] = amplitude * this.random();
+                    new_point = true;
+                }
+            }
+            var y = 0;
+            if (new_point) {
+                active_subgraphs.forEach(function (val) {
+                    if (val)
+                        y += val;
+                });
+                y = last_y * this.perlin_smoothness + y * (1 - this.perlin_smoothness);
+            }
+            else {
+                y = last_y;
+            }
+            this.heights[x] = y;
+            return y;
+        };
+        PerlinGenerator.prototype.getHeightAt = function (x) {
+            return this.generate_perlin_at(x);
+        };
+        return PerlinGenerator;
+    })();
+    WorldBuilder.PerlinGenerator = PerlinGenerator;
+    var Build1 = (function () {
+        function Build1(physics) {
+            this.physics = physics;
+            this.physics.setAcceleration(function (x, y) {
+                //return new Vector(-1*(x-canvas.width/2),-1*(y-canvas.width/2)).divided(1000);
+                return new Vector(0, .02);
             });
-            y = last_y * perlin_smoothness + y * (1 - perlin_smoothness);
+            this.sounds = [];
+            this.build();
         }
-        else {
-            y = last_y;
-        }
-        heights[x] = y;
-        return y;
-    };
-    this.getHeightAt = function (x) {
-        return generate_perlin_at(x);
-    };
-};
-WorldBuilder.Build1 = function (physics) {
-    physics.setAcceleration(function (x, y) {
-        //return new Vector(-1*(x-canvas.width/2),-1*(y-canvas.width/2)).divided(1000);
-        return new Vector(0, .02);
-    });
-    var sounds = [];
-    var playSound = function (sound, vol) {
-        if (!sounds[sound]) {
-            sounds[sound] = new Audio('sounds/' + sound);
-        }
-        sounds[sound].volume = vol;
-        sounds[sound].play();
-    };
-    var build = function () {
-        physics.clearAll();
-        var stat = function (x0, y0, x1, y1) {
-            physics.addStatic(new Physics.LineSegment(new Vector(x0, y0), new Vector(x1, y1)));
+        Build1.prototype.playSound = function (sound, vol) {
+            if (!this.sounds[sound]) {
+                this.sounds[sound] = new Audio('sounds/' + sound);
+            }
+            this.sounds[sound].volume = vol;
+            this.sounds[sound].play();
         };
-        var lastStroke = new Vector(0, 0);
-        var moveTo = function (x, y) {
-            lastStroke = new Vector(x, y);
+        Build1.prototype.build = function () {
+            var self = this;
+            self.physics.clearAll();
+            var stat = function (x0, y0, x1, y1) {
+                self.physics.addStatic(new Physics.LineSegment(new Vector(x0, y0), new Vector(x1, y1)));
+            };
+            var lastStroke = new Vector(0, 0);
+            var moveTo = function (x, y) {
+                lastStroke = new Vector(x, y);
+            };
+            var strokeTo = function (x, y) {
+                var vec = new Vector(x, y);
+                self.physics.addStatic(new Physics.LineSegment(lastStroke, vec));
+                lastStroke = vec;
+            };
+            var glass = new Physics.Material(0, "black", function (vol) {
+                if (vol < .05)
+                    vol *= vol;
+                vol = Math.min(vol, 1);
+                var sounds = ["Percussive Elements-06.wav",
+                    "Percussive Elements-04.wav",
+                    "Percussive Elements-05.wav"
+                ];
+                var i = Math.floor(Math.random() * sounds.length);
+                self.playSound(sounds[i], vol);
+            });
+            self.physics.setMaterial(glass);
+            var world = new WorldBuilder.PerlinGenerator(1080);
+            moveTo(0, 0);
+            for (var x = 0; x < 1280; x++) {
+                strokeTo(x, 1080 - world.getHeightAt(x));
+            }
+            strokeTo(1280 - 1, 0);
+            self.physics.addDynamic(new Physics.DynamicBall(new Vector(413, 370), 10, new Vector(0, 0)));
         };
-        var strokeTo = function (x, y) {
-            var vec = new Vector(x, y);
-            physics.addStatic(new Physics.LineSegment(lastStroke, vec));
-            lastStroke = vec;
-        };
-        var glass = new Physics.Material(0, "black", function (vol) {
-            if (vol < .05)
-                vol *= vol;
-            vol = Math.min(vol, 1);
-            var sounds = ["Percussive Elements-06.wav",
-                "Percussive Elements-04.wav",
-                "Percussive Elements-05.wav"
-            ], i = Math.floor(Math.random() * sounds.length);
-            playSound(sounds[i], vol);
-        });
-        physics.setMaterial(glass);
-        var world = new WorldBuilder.PerlinGenerator(1080);
-        moveTo(0, 0);
-        for (var x = 0; x < 1280; x++) {
-            strokeTo(x, 1080 - world.getHeightAt(x));
-        }
-        strokeTo(1280 - 1, 0);
-        physics.addDynamic(new Physics.DynamicBall(new Vector(413, 370), 10, new Vector(0, 0)));
-    };
-    build();
-};
+        return Build1;
+    })();
+    WorldBuilder.Build1 = Build1;
+})(WorldBuilder || (WorldBuilder = {}));
 /*Running*/
 var canvas = document.getElementById("draw");
-function MouseHandler(element) {
-    function relMouseCoords(event) {
-        var rect = element.getBoundingClientRect();
+var MouseHandler = (function () {
+    function MouseHandler(element) {
+        this.element = element;
+        var self = this;
+        element.addEventListener('mousedown', function (e) {
+            self.mouseDown = true;
+            var point = self.relMouseCoords(e);
+            self.mouseXOnDown = point.x;
+            self.mouseYOnDown = point.y;
+        });
+        element.addEventListener('mousemove', function (e) {
+            var point = self.relMouseCoords(e);
+            self.mouseX = Math.floor(point.x);
+            self.mouseY = Math.floor(point.y);
+        });
+        element.addEventListener('mouseup', function (e) {
+            self.mouseDown = false;
+        });
+    }
+    MouseHandler.prototype.relMouseCoords = function (event) {
+        var rect = this.element.getBoundingClientRect();
         var x = event.clientX - rect.left;
         var y = event.clientY - rect.top;
         return { x: x, y: y };
-    }
-    var mouseXOnDown = 0;
-    var mouseYOnDown = 0;
-    var mouseX = 0;
-    var mouseY = 0;
-    var mouseDown = false;
-    element.addEventListener('mousedown', function (e) {
-        mouseDown = true;
-        var point = relMouseCoords(e);
-        mouseXOnDown = point.x;
-        mouseYOnDown = point.y;
-    });
-    element.addEventListener('mousemove', function (e) {
-        var point = relMouseCoords(e);
-        mouseX = Math.floor(point.x);
-        mouseY = Math.floor(point.y);
-    });
-    element.addEventListener('mouseup', function (e) {
-        mouseDown = false;
-    });
-    this.getX = function () {
-        return mouseX;
     };
-    this.getY = function () {
-        return mouseY;
+    MouseHandler.prototype.getX = function () {
+        return this.mouseX;
     };
-    this.getXOnDown = function () {
-        return mouseXOnDown;
+    MouseHandler.prototype.getY = function () {
+        return this.mouseY;
     };
-    this.getYOnDown = function () {
-        return mouseYOnDown;
+    MouseHandler.prototype.getXOnDown = function () {
+        return this.mouseXOnDown;
     };
-    this.down = function () {
-        return mouseDown;
+    MouseHandler.prototype.getYOnDown = function () {
+        return this.mouseYOnDown;
     };
-}
-var mouse = new MouseHandler(canvas);
-document.addEventListener('keydown', function (e) {
-    var char = String.fromCharCode(e.keyCode);
-    switch (char) {
-        case 'A':
-            physics.setAcceleration(function (x, y) { return new Vector(-.03, .02); });
-            break;
-        case 'D':
-            physics.setAcceleration(function (x, y) { return new Vector(.03, .02); });
-            break;
-    }
-}, false);
-document.addEventListener('keyup', function (e) {
-    var char = String.fromCharCode(e.keyCode);
-    switch (char) {
-        case 'A':
-        case 'D':
-            physics.setAcceleration(function (x, y) { return new Vector(0, .02); });
-            break;
-    }
-}, false);
-function checkInputs() {
-    ctx.strokeStyle = "black";
-    if (mouse.down()) {
-        ctx.beginPath();
-        ctx.moveTo(Math.floor(mouse.getXOnDown()), Math.floor(mouse.getYOnDown()));
-        ctx.lineTo(Math.floor(mouse.getX()), Math.floor(mouse.getY()));
-        ctx.stroke();
-    }
-}
+    MouseHandler.prototype.down = function () {
+        return this.mouseDown;
+    };
+    return MouseHandler;
+})();
 /*Running*/
-var canvas = document.getElementById("draw");
-var ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-canvas.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-canvas.width = 450;
-canvas.height = 900;
-canvas.width = screen.width;
-canvas.height = screen.height;
-var world = new WorldBuilder.PerlinGenerator(canvas.height);
-var plants = new Graphics.Plant();
-var physics = new Physics();
-var builder = new WorldBuilder.Build1(physics);
-plants.setLength(25).setIterations(3);
-function runPhysics() {
-    physics.stepPhysics();
-    setTimeout(runPhysics, 10);
-}
-function draw() {
-    physics.drawPhysics(ctx);
-    checkInputs();
-    window.requestAnimationFrame(draw);
-}
-window.requestAnimationFrame(draw);
-runPhysics();
-/*
- *
- *               (Vector Tools)
- *                    |
- *               (Physics Engine)
- *                    |
- *  (Save Data)  (Game World)-+
- *        \           |       |
- *    (Back end)-(Game Rules)-|-(Inputs)
- *         |                  |
- *      (Game)-(Front End)-(Graphics)
- *
- *
- */
+var Runner = (function () {
+    function Runner(id) {
+        var _this = this;
+        this.canvasDOM = document.getElementById(id);
+        this.ctx = this.canvasDOM.getContext("2d");
+        this.canvasDOM.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+        this.canvasDOM.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+        this.canvasDOM.width = 450;
+        this.canvasDOM.height = 900;
+        this.canvasDOM.width = screen.width;
+        this.canvasDOM.height = screen.height;
+        this.world = new WorldBuilder.PerlinGenerator(this.canvasDOM.height);
+        this.plants = new Graphics.Plant();
+        this.physics = new Physics();
+        this.builder = new WorldBuilder.Build1(this.physics);
+        this.plants.setLength(25).setIterations(3);
+        this.mouse = new MouseHandler(canvas);
+        this.setUpInputs();
+        var self = this;
+        var draw = function () {
+            self.physics.drawPhysics(self.ctx);
+            self.checkInputs();
+            window.requestAnimationFrame(draw);
+        };
+        draw();
+        setInterval(function () {
+            _this.physics.stepPhysics();
+        }, 10);
+    }
+    Runner.prototype.setUpInputs = function () {
+        var self = this;
+        document.addEventListener('keydown', function (e) {
+            var char = String.fromCharCode(e.keyCode);
+            switch (char) {
+                case 'A':
+                    self.physics.setAcceleration(function (x, y) { return new Vector(-.03, .02); });
+                    break;
+                case 'D':
+                    self.physics.setAcceleration(function (x, y) { return new Vector(.03, .02); });
+                    break;
+            }
+        }, false);
+        document.addEventListener('keyup', function (e) {
+            var char = String.fromCharCode(e.keyCode);
+            switch (char) {
+                case 'A':
+                case 'D':
+                    self.physics.setAcceleration(function (x, y) { return new Vector(0, .02); });
+                    break;
+            }
+        }, false);
+    };
+    Runner.prototype.checkInputs = function () {
+        this.ctx.strokeStyle = "black";
+        if (this.mouse.down()) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(Math.floor(this.mouse.getXOnDown()), Math.floor(this.mouse.getYOnDown()));
+            this.ctx.lineTo(Math.floor(this.mouse.getX()), Math.floor(this.mouse.getY()));
+            this.ctx.stroke();
+        }
+    };
+    return Runner;
+})();
+new Runner("draw");
 //# sourceMappingURL=out.js.map

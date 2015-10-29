@@ -1,46 +1,89 @@
-
 /*Running*/
-var canvas = document.getElementById("draw");
-var ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-canvas.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-canvas.width = 450;
-canvas.height = 900;
-canvas.width = screen.width;
-canvas.height = screen.height;
+class Runner {
+	private canvasDOM: HTMLCanvasElement;
+	private ctx: CanvasRenderingContext2D;
 
-var world = new WorldBuilder.PerlinGenerator(canvas.height);
-var plants = new Graphics.Plant();
-var physics = new Physics();
-var builder = new WorldBuilder.Build1(physics);
+	private world: WorldBuilder.PerlinGenerator;
+	private plants: Graphics.Plant;
+	private physics: Physics;
+	private builder: WorldBuilder.Build1;
 
-plants.setLength(25).setIterations(3);
+	private mouse: MouseHandler;
+	private self: Runner;
 
-function runPhysics() {
-  physics.stepPhysics();
-  setTimeout(runPhysics,10);
+	constructor(id) {
+
+		this.canvasDOM = <HTMLCanvasElement>document.getElementById(id);
+		this.ctx = this.canvasDOM.getContext("2d");
+
+		this.canvasDOM.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+		this.canvasDOM.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+		this.canvasDOM.width = 450;
+		this.canvasDOM.height = 900;
+		this.canvasDOM.width = screen.width;
+		this.canvasDOM.height = screen.height;
+
+		this.world = new WorldBuilder.PerlinGenerator(this.canvasDOM.height);
+		this.plants = new Graphics.Plant();
+		this.physics = new Physics();
+		this.builder = new WorldBuilder.Build1(this.physics);
+
+		this.plants.setLength(25).setIterations(3);
+
+		this.mouse = new MouseHandler(canvas);
+
+		this.setUpInputs();
+
+		var self = this;
+
+		var draw = function() {
+			self.physics.drawPhysics(self.ctx);
+			self.checkInputs();
+			window.requestAnimationFrame(draw);
+		}
+
+		draw();
+
+		setInterval(() => {
+			this.physics.stepPhysics();
+		}, 10);
+	}
+
+	setUpInputs() {
+		var self = this;
+
+		document.addEventListener('keydown', function(e) {
+			var char = String.fromCharCode(e.keyCode);
+			switch (char) {
+				case 'A':
+					self.physics.setAcceleration(function(x, y) { return new Vector(-.03, .02) });
+					break;
+				case 'D':
+					self.physics.setAcceleration(function(x, y) { return new Vector(.03, .02) });
+					break;
+			}
+		}, false);
+
+		document.addEventListener('keyup', function(e) {
+			var char = String.fromCharCode(e.keyCode);
+			switch (char) {
+				case 'A':
+				case 'D':
+					self.physics.setAcceleration(function(x, y) { return new Vector(0, .02) });
+					break;
+			}
+		}, false);
+	}
+
+	checkInputs() {
+		this.ctx.strokeStyle = "black";
+		if (this.mouse.down()) {
+			this.ctx.beginPath();
+			this.ctx.moveTo(Math.floor(this.mouse.getXOnDown()), Math.floor(this.mouse.getYOnDown()));
+			this.ctx.lineTo(Math.floor(this.mouse.getX()), Math.floor(this.mouse.getY()));
+			this.ctx.stroke();
+		}
+	}
 }
 
-function draw() {
-  physics.drawPhysics(ctx);
-  checkInputs();
-  window.requestAnimationFrame(draw);
-}
-
-window.requestAnimationFrame(draw);
-runPhysics();
-
-/*                            
- *                                           
- *               (Vector Tools)              
- *                    |                      
- *               (Physics Engine)            
- *                    |                      
- *  (Save Data)  (Game World)-+              
- *        \           |       |              
- *    (Back end)-(Game Rules)-|-(Inputs)     
- *         |                  |              
- *      (Game)-(Front End)-(Graphics)        
- *                                           
- *                                           
- */
+new Runner("draw");

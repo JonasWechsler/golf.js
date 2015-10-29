@@ -23,7 +23,7 @@ class Vector {
     return new Vector(this.x, this.y);
   }
   equals(v: Vector) {
-    return (this.x - v.x) < .0001 && (this.y - v.y) < .0001;
+    return Math.abs(this.x - v.x) < .0001 && Math.abs(this.y - v.y) < .0001;
   }
   length() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
