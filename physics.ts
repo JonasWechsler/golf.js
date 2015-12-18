@@ -78,6 +78,7 @@ class Physics{
 
     addDynamic(dynamic: Physics.Dynamic) {
         this.dynamics.push(dynamic);
+        return dynamic;
     }
 
     addFixed(fixed: Physics.Fixed) {
@@ -104,10 +105,10 @@ class Physics{
          */
         self.triggers.forEach(function(trigger) {
             self.dynamics.forEach(function(dynamic) {
-                if (trigger.type === "LineSegment" && Physics.intersectSegBall(trigger, dynamic)) {
+                if (trigger instanceof Physics.TriggerLineSegment && Physics.intersectSegBall(trigger, dynamic)) {
                     trigger.effect();
                 }
-                if (trigger.type === "Ball" && VectorMath.intersectBallBall(trigger, dynamic)) {
+                if (trigger instanceof Physics.TriggerBall && VectorMath.intersectBallBall(trigger, dynamic)) {
                     trigger.effect();
                 }
             });
@@ -285,6 +286,14 @@ class Physics{
                 this.dynamics[i].position.y + this.dynamics[i].speed.y * this.debugVectorScalar);
             ctx.stroke();
         }
+        ctx.strokeStyle = "orange";
+        ctx.fillStyle = "orange";
+        for (var i = 0; i < this.triggers.length;i++){
+            ctx.beginPath();
+            ctx.moveTo(this.triggers[i].v0.x, this.triggers[i].v0.y);
+            ctx.lineTo(this.triggers[i].v1.x, this.triggers[i].v1.y);
+            ctx.stroke();
+        }
     }
 
 
@@ -332,6 +341,8 @@ module Physics{
         position: Vector;
         move: () => void;
         accelerate: (vector: Vector) => void;
+        width: () => number;
+        height: () => number;
     }
 
     export interface Trigger{
@@ -373,10 +384,10 @@ module Physics{
     }
 
     export class DynamicBall{
-        position: Vector;
-        r: number;
-        speed: Vector;
-        maxSpeed: number;
+        public position: Vector;
+        public r: number;
+        public speed: Vector;
+        public maxSpeed: number;
 
         constructor(position: Vector, r: number, speed: Vector){
             if (!r) {
@@ -396,6 +407,12 @@ module Physics{
             }
             this.position = this.position.plus(this.speed);
 
+        }
+        width() {
+            return this.r * 2;
+        }
+        height() {
+            return this.r * 2;
         }
     }
 
@@ -490,6 +507,6 @@ module Physics{
     }
 
     export class TriggerLineSegment{
-        constructor(public v0:Vector, public v1:Vector, public effect:any){}
+        constructor(public v0:Vector, public v1:Vector, public effect: () => void){}
     }
 }

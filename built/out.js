@@ -284,6 +284,7 @@ var Physics = (function () {
     };
     Physics.prototype.addDynamic = function (dynamic) {
         this.dynamics.push(dynamic);
+        return dynamic;
     };
     Physics.prototype.addFixed = function (fixed) {
         fixed.material = this.currentMaterial;
@@ -306,10 +307,10 @@ var Physics = (function () {
          */
         self.triggers.forEach(function (trigger) {
             self.dynamics.forEach(function (dynamic) {
-                if (trigger.type === "LineSegment" && Physics.intersectSegBall(trigger, dynamic)) {
+                if (trigger instanceof Physics.TriggerLineSegment && Physics.intersectSegBall(trigger, dynamic)) {
                     trigger.effect();
                 }
-                if (trigger.type === "Ball" && VectorMath.intersectBallBall(trigger, dynamic)) {
+                if (trigger instanceof Physics.TriggerBall && VectorMath.intersectBallBall(trigger, dynamic)) {
                     trigger.effect();
                 }
             });
@@ -462,6 +463,14 @@ var Physics = (function () {
             ctx.lineTo(this.dynamics[i].position.x + this.dynamics[i].speed.x * this.debugVectorScalar, this.dynamics[i].position.y + this.dynamics[i].speed.y * this.debugVectorScalar);
             ctx.stroke();
         }
+        ctx.strokeStyle = "orange";
+        ctx.fillStyle = "orange";
+        for (var i = 0; i < this.triggers.length; i++) {
+            ctx.beginPath();
+            ctx.moveTo(this.triggers[i].v0.x, this.triggers[i].v0.y);
+            ctx.lineTo(this.triggers[i].v1.x, this.triggers[i].v1.y);
+            ctx.stroke();
+        }
     };
     Physics.intersectSegBall = function (seg, ball) {
         //http://stackoverflow.com/questions/1073336/circle-line-segment-collision-detection-algorithm
@@ -534,6 +543,12 @@ var Physics;
                 this.speed = this.speed.unit().times(this.r);
             }
             this.position = this.position.plus(this.speed);
+        };
+        DynamicBall.prototype.width = function () {
+            return this.r * 2;
+        };
+        DynamicBall.prototype.height = function () {
+            return this.r * 2;
         };
         return DynamicBall;
     })();
@@ -684,6 +699,14 @@ var WorldBuilder;
     var PerlinGenerator = (function () {
         function PerlinGenerator(height) {
             this.height = height;
+            this.DEFAULT_SEED = 5;
+            this.init(height);
+            this.maximum_resolution = 15;
+            this.minimum_resolution = 2;
+            this.perlin_smoothness = .997; //0<smooth<1 .9965 is alright
+            this.seed = this.DEFAULT_SEED;
+        }
+        PerlinGenerator.prototype.init = function (height) {
             this.heights = {
                 '-1': height / 2,
                 '0': height / 2,
@@ -692,20 +715,30 @@ var WorldBuilder;
             this.x = 0;
             this.max_x = -1;
             this.min_x = 1;
-            this.perlin_resolution = 15;
             this.left_perlin_subgraph = [];
             this.right_perlin_subgraph = [];
-            this.perlin_smoothness = .9965; //0<smooth<1
-            this.seed = new Date().getTime();
-        }
+        };
         PerlinGenerator.prototype.setSeed = function (seed) {
+            if (seed < 0) {
+                seed = Math.pow(2, 30) + seed;
+            }
             this.seed = seed;
+            this.init(this.height);
+        };
+        PerlinGenerator.prototype.getSeed = function () {
+            return this.seed;
         };
         PerlinGenerator.prototype.random = function () {
             var x = Math.sin(this.seed++) * 10000;
             return x - Math.floor(x);
         };
         PerlinGenerator.prototype.generate_perlin_at = function (x) {
+            if (x < this.min_x - 1) {
+                this.generate_perlin_at(x + 1);
+            }
+            if (x > this.max_x + 1) {
+                this.generate_perlin_at(x - 1);
+            }
             var active_subgraphs = [];
             var last_y = 0;
             if (x < this.min_x) {
@@ -722,10 +755,10 @@ var WorldBuilder;
                 return this.heights[x];
             }
             var new_point = false;
-            for (var idx = 1; idx < this.perlin_resolution; idx++) {
+            for (var idx = this.minimum_resolution; idx < this.maximum_resolution; idx++) {
                 var frequency = Math.pow(2, idx), wavelength = Math.floor(200 / frequency);
                 if (x % wavelength == 0) {
-                    var persistance = 1 / 2, amplitude = Math.pow(persistance, idx) * this.height;
+                    var persistance = 1 / Math.sqrt(2), amplitude = Math.pow(persistance, idx) * this.height;
                     active_subgraphs[idx] = amplitude * this.random();
                     new_point = true;
                 }
@@ -752,20 +785,48 @@ var WorldBuilder;
     WorldBuilder.PerlinGenerator = PerlinGenerator;
     var Build1 = (function () {
         function Build1(physics) {
+            this.xoffset = 0;
             this.physics = physics;
             this.physics.setAcceleration(function (x, y) {
                 //return new Vector(-1*(x-canvas.width/2),-1*(y-canvas.width/2)).divided(1000);
                 return new Vector(0, .02);
             });
             this.sounds = [];
+            this.perlin = new WorldBuilder.PerlinGenerator(1080);
+            this.x = 0;
+            this.y = 0;
             this.build();
         }
+        Build1.prototype.setPhysics = function (physics) {
+            this.physics = physics;
+        };
+        Build1.prototype.getSurfaces = function () {
+            return [];
+        };
+        Build1.prototype.getObjects = function () {
+            return [];
+        };
+        Build1.prototype.setLevel = function (x, y) {
+            var self = this;
+            //self.perlin.setSeed((x >> 32) + y);
+            if (self.x > x)
+                self.xoffset += 1280;
+            else
+                self.xoffset -= 1280;
+            self.build();
+            self.x = x;
+            self.y = y;
+            return self;
+        };
         Build1.prototype.playSound = function (sound, vol) {
             if (!this.sounds[sound]) {
                 this.sounds[sound] = new Audio('sounds/' + sound);
             }
             this.sounds[sound].volume = vol;
             this.sounds[sound].play();
+        };
+        Build1.prototype.getHeightAt = function (x) {
+            return this.perlin.getHeightAt(x + this.xoffset);
         };
         Build1.prototype.build = function () {
             var self = this;
@@ -791,16 +852,25 @@ var WorldBuilder;
                     "Percussive Elements-05.wav"
                 ];
                 var i = Math.floor(Math.random() * sounds.length);
-                self.playSound(sounds[i], vol);
+                //self.playSound(sounds[i], vol);
             });
             self.physics.setMaterial(glass);
-            var world = new WorldBuilder.PerlinGenerator(1080);
             moveTo(0, 0);
             for (var x = 0; x < 1280; x++) {
-                strokeTo(x, 1080 - world.getHeightAt(x));
+                strokeTo(x, 1080 - this.getHeightAt(x));
             }
             strokeTo(1280 - 1, 0);
-            self.physics.addDynamic(new Physics.DynamicBall(new Vector(413, 370), 10, new Vector(0, 0)));
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(10, 0), new Vector(10, 1080), function () {
+                self.setLevel(self.x - 1, 0);
+                var newY = self.getHeightAt(1280 - self.player.width() * 2);
+                self.player.position = new Vector(1280 - self.player.width() - 1, 1080 - newY - self.player.height());
+            }));
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1270, 0), new Vector(1270, 1080), function () {
+                self.setLevel(self.x + 1, 0);
+                var newY = self.getHeightAt(self.player.width() * 2);
+                self.player.position = new Vector(self.player.width() + 1, 1080 - newY - self.player.height());
+            }));
+            this.player = self.physics.addDynamic(new Physics.DynamicBall(new Vector(413, 100), 10, new Vector(0, 0)));
         };
         return Build1;
     })();
