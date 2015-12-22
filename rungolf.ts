@@ -85,5 +85,3 @@ class Runner {
 		}
 	}
 }
-
-new Runner("draw");

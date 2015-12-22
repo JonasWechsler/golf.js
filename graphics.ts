@@ -3,9 +3,12 @@ module Graphics {
         constructor(private world:WorldBuilder.World){}
 
         drawAll(ctx: CanvasRenderingContext2D){
+            ctx.beginPath();
             this.world.getSurfaces().forEach((val) => {
                 val.draw(ctx);
             });
+            ctx.stroke();
+
             this.world.getObjects().forEach((val) => {
                 val.draw(ctx);
             });

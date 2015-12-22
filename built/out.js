@@ -5,9 +5,11 @@ var Graphics;
             this.world = world;
         }
         GraphicsRenderer.prototype.drawAll = function (ctx) {
+            ctx.beginPath();
             this.world.getSurfaces().forEach(function (val) {
                 val.draw(ctx);
             });
+            ctx.stroke();
             this.world.getObjects().forEach(function (val) {
                 val.draw(ctx);
             });
@@ -683,13 +685,11 @@ var WorldBuilder;
             var defaultDrawFunction = function (ctx, material, border) {
                 if (border.length === 0)
                     return;
-                ctx.beginPath();
                 ctx.strokeStyle = material.debugColor;
                 ctx.moveTo(border[0].x, border[0].y);
                 border.forEach(function (val) {
                     ctx.lineTo(val.x, val.y);
                 });
-                ctx.stroke();
             };
             return new Surface(defaultMaterial, defaultBorder, defaultDrawFunction);
         };
@@ -699,12 +699,16 @@ var WorldBuilder;
     var PerlinGenerator = (function () {
         function PerlinGenerator(height) {
             this.height = height;
-            this.DEFAULT_SEED = 5;
-            this.init(height);
             this.maximum_resolution = 15;
-            this.minimum_resolution = 2;
-            this.perlin_smoothness = .997; //0<smooth<1 .9965 is alright
+            this.minimum_resolution = 1;
+            this.perlin_smoothness = .99;
+            this.persistance = 1 / 4;
+            this.interpolate = .3;
+            this.max_wavelength = 500;
+            this.DEFAULT_SEED = 3;
             this.seed = this.DEFAULT_SEED;
+            this.initial_seed = this.seed;
+            this.init(height);
         }
         PerlinGenerator.prototype.init = function (height) {
             this.heights = {
@@ -718,13 +722,6 @@ var WorldBuilder;
             this.left_perlin_subgraph = [];
             this.right_perlin_subgraph = [];
         };
-        PerlinGenerator.prototype.setSeed = function (seed) {
-            if (seed < 0) {
-                seed = Math.pow(2, 30) + seed;
-            }
-            this.seed = seed;
-            this.init(this.height);
-        };
         PerlinGenerator.prototype.getSeed = function () {
             return this.seed;
         };
@@ -732,53 +729,120 @@ var WorldBuilder;
             var x = Math.sin(this.seed++) * 10000;
             return x - Math.floor(x);
         };
-        PerlinGenerator.prototype.generate_perlin_at = function (x) {
+        PerlinGenerator.prototype.no_interpolate = function (a, b, x) {
+            return a;
+        };
+        PerlinGenerator.prototype.linear_interpolate = function (a, b, x) {
+            return a * (1 - x) + b * x;
+        };
+        PerlinGenerator.prototype.cosine_interpolate = function (a, b, x) {
+            var pi = x * Math.PI;
+            var f = (1 - Math.cos(pi)) * .5;
+            return a * (1 - f) + b * f;
+        };
+        PerlinGenerator.prototype.smooth = function (a, b, c) {
+            return ((a + c) / 2 * this.perlin_smoothness) + (b * (1 - this.perlin_smoothness));
+        };
+        PerlinGenerator.prototype.generate_perlin_with_parameters = function (x, minimum_resolution, maximum_resolution, max_wavelength, persistance, height) {
             if (x < this.min_x - 1) {
-                this.generate_perlin_at(x + 1);
+                this.generate_perlin_with_parameters(x + 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
             }
             if (x > this.max_x + 1) {
-                this.generate_perlin_at(x - 1);
+                this.generate_perlin_with_parameters(x - 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
             }
             var active_subgraphs = [];
-            var last_y = 0;
+            var dx = 0;
             if (x < this.min_x) {
                 this.min_x = x;
-                last_y = this.heights[x + 1];
+                dx = 1;
                 active_subgraphs = this.left_perlin_subgraph;
             }
             else if (x > this.max_x) {
                 this.max_x = x;
-                last_y = this.heights[x - 1];
+                dx = -1;
                 active_subgraphs = this.right_perlin_subgraph;
             }
             else {
                 return this.heights[x];
             }
-            var new_point = false;
-            for (var idx = this.minimum_resolution; idx < this.maximum_resolution; idx++) {
-                var frequency = Math.pow(2, idx), wavelength = Math.floor(200 / frequency);
+            for (var idx = this.minimum_resolution; idx < maximum_resolution; idx++) {
+                var frequency = Math.pow(2, idx), wavelength = Math.floor(max_wavelength / frequency);
                 if (x % wavelength == 0) {
-                    var persistance = 1 / Math.sqrt(2), amplitude = Math.pow(persistance, idx) * this.height;
-                    active_subgraphs[idx] = amplitude * this.random();
-                    new_point = true;
+                    var amplitude = Math.pow(persistance, idx);
+                    if (!active_subgraphs[idx])
+                        active_subgraphs[idx] = {};
+                    active_subgraphs[idx].last_value = active_subgraphs[idx].value;
+                    active_subgraphs[idx].value = amplitude * this.random();
+                    active_subgraphs[idx].wavelength = wavelength;
                 }
             }
             var y = 0;
-            if (new_point) {
-                active_subgraphs.forEach(function (val) {
-                    if (val)
-                        y += val;
-                });
-                y = last_y * this.perlin_smoothness + y * (1 - this.perlin_smoothness);
-            }
-            else {
-                y = last_y;
+            var self = this;
+            active_subgraphs.forEach(function (val) {
+                if (val) {
+                    var a = val.last_value;
+                    var b = val.value;
+                    var i = (x % val.wavelength) / val.wavelength;
+                    if (x < 0)
+                        i *= -1;
+                    if (!a)
+                        a = b;
+                    y += self.cosine_interpolate(a, b, i) * self.interpolate + self.linear_interpolate(a, b, i) * (1 - self.interpolate);
+                }
+            });
+            if (y < 0 || y > 1) {
+                console.log(persistance);
+                console.log(y);
             }
             this.heights[x] = y;
-            return y;
+            return this.heights[x] * height;
+        };
+        PerlinGenerator.prototype.generate_perlin_at = function (x) {
+            return this.generate_perlin_with_parameters(x, this.minimum_resolution, this.maximum_resolution, this.max_wavelength, this.persistance, this.height);
         };
         PerlinGenerator.prototype.getHeightAt = function (x) {
             return this.generate_perlin_at(x);
+        };
+        PerlinGenerator.prototype.setSeed = function (seed) {
+            if (seed < 0) {
+                seed = Math.pow(2, 30) + seed;
+            }
+            this.seed = seed;
+            this.initial_seed = seed;
+            this.init(this.height);
+        };
+        PerlinGenerator.prototype.resetSeed = function () {
+            this.seed = this.initial_seed;
+        };
+        PerlinGenerator.prototype.setMaximumResolution = function (val) {
+            this.maximum_resolution = val;
+            this.resetSeed();
+            this.init(this.height);
+        };
+        PerlinGenerator.prototype.setMinimumResolution = function (val) {
+            this.minimum_resolution = val;
+            this.resetSeed();
+            this.init(this.height);
+        };
+        PerlinGenerator.prototype.setPerlinSmoothness = function (val) {
+            this.perlin_smoothness = val;
+            this.resetSeed();
+            this.init(this.height);
+        };
+        PerlinGenerator.prototype.setPersistance = function (val) {
+            this.persistance = val;
+            this.resetSeed();
+            this.init(this.height);
+        };
+        PerlinGenerator.prototype.setInterpolation = function (val) {
+            this.interpolate = val;
+            this.resetSeed();
+            this.init(this.height);
+        };
+        PerlinGenerator.prototype.setMaxWavelength = function (val) {
+            this.max_wavelength = val;
+            this.resetSeed();
+            this.init(this.height);
         };
         return PerlinGenerator;
     })();
@@ -810,9 +874,9 @@ var WorldBuilder;
             var self = this;
             //self.perlin.setSeed((x >> 32) + y);
             if (self.x > x)
-                self.xoffset += 1280;
-            else
                 self.xoffset -= 1280;
+            else
+                self.xoffset += 1280;
             self.build();
             self.x = x;
             self.y = y;
@@ -984,5 +1048,4 @@ var Runner = (function () {
     };
     return Runner;
 })();
-new Runner("draw");
 //# sourceMappingURL=out.js.map
