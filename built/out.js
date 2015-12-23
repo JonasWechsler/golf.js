@@ -763,7 +763,7 @@ var WorldBuilder;
                 active_subgraphs = this.right_perlin_subgraph;
             }
             else {
-                return this.heights[x];
+                return this.heights[x] * height;
             }
             for (var idx = this.minimum_resolution; idx < maximum_resolution; idx++) {
                 var frequency = Math.pow(2, idx), wavelength = Math.floor(max_wavelength / frequency);
@@ -927,11 +927,13 @@ var WorldBuilder;
             self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(10, 0), new Vector(10, 1080), function () {
                 self.setLevel(self.x - 1, 0);
                 var newY = self.getHeightAt(1280 - self.player.width() * 2);
+                console.log(newY);
                 self.player.position = new Vector(1280 - self.player.width() - 1, 1080 - newY - self.player.height());
             }));
             self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1270, 0), new Vector(1270, 1080), function () {
                 self.setLevel(self.x + 1, 0);
                 var newY = self.getHeightAt(self.player.width() * 2);
+                console.log(newY);
                 self.player.position = new Vector(self.player.width() + 1, 1080 - newY - self.player.height());
             }));
             this.player = self.physics.addDynamic(new Physics.DynamicBall(new Vector(413, 100), 10, new Vector(0, 0)));

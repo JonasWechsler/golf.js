@@ -6,7 +6,7 @@
 	<body>
         <input type="range" id="maximum_resolution" oninput="regenerate()" onchange = "regenerate()" value="15" min="1" max="20" step="1"><span class="label"></span>
         <input type="range" id="minimum_resolution" oninput="regenerate()" onchange = "regenerate()" value="1" min="1" max = "20" step="1"><span class="label"></span>
-        <input type="range" id="perlin_smoothness" oninput="regenerate()" onchange = "regenerate()" value=".99" min=".00001" max = ".99999" step=".00001"><span class="label"></span>
+        <input type="range" id="seed" oninput="regenerate()" onchange = "regenerate()" value="5" min="1" max = "1000" step="1"><span class="label"></span>
         <input type="range" id="persistance" oninput="regenerate()" onchange = "regenerate()" value=".25" min=".00001" max = ".99999" step=".00001"><span class="label"></span>
         <input type="range" id="max_wavelength" oninput="regenerate()" onchange = "regenerate()" value="500" min="100" max = "500" step="1"><span class="label"></span>
         <input type="range" id="interpolate" oninput="regenerate()" onchange = "regenerate()" value=".3" min=".00001" max = ".99999" step=".00001"><span class="label"></span>
@@ -22,21 +22,21 @@
 			function regenerate() {
 	    		var max = document.getElementById("maximum_resolution").value;
 	    		var min = document.getElementById("minimum_resolution").value;
-	    		var smooth = document.getElementById("perlin_smoothness").value;
+	    		var seed = document.getElementById("seed").value;
 	    		var persistance = document.getElementById("persistance").value;
 	    		var max_wavelength = document.getElementById("max_wavelength").value;
 	    		var interpolate = document.getElementById("interpolate").value;
 
 	    		perlin.setMaximumResolution(max);
 	    		perlin.setMinimumResolution(min);
-	    		perlin.setPerlinSmoothness(smooth);
+	    		perlin.setSeed(seed);
 	    		perlin.setPersistance(persistance);
 	    		perlin.setMaxWavelength(max_wavelength);
 	    		perlin.setInterpolation(interpolate);
 
 	    		document.getElementsByClassName("label")[0].innerHTML=max;
 	    		document.getElementsByClassName("label")[1].innerHTML=min;
-	    		document.getElementsByClassName("label")[2].innerHTML=smooth;
+	    		document.getElementsByClassName("label")[2].innerHTML=seed;
 	    		document.getElementsByClassName("label")[3].innerHTML=persistance;
 	    		document.getElementsByClassName("label")[4].innerHTML=max_wavelength;
 	    		document.getElementsByClassName("label")[5].innerHTML=interpolate;
