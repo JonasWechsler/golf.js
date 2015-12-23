@@ -339,6 +339,7 @@ module Physics{
 
     export interface Dynamic{
         position: Vector;
+        speed: Vector;
         move: () => void;
         accelerate: (vector: Vector) => void;
         width: () => number;

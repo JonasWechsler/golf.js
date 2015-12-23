@@ -89,22 +89,44 @@ module WorldBuilder {
         }
 
         init(height: number) {
-            this.heights = {
-                '-1': height / 2,
-                '0': height / 2,
-                '1': height / 2
-            };
+            this.heights = {};
 
             this.x = 0;
-            this.max_x = -1;
-            this.min_x = 1;
+            this.max_x = 1;
+            this.min_x = -1;
 
             this.left_perlin_subgraph = [];
             this.right_perlin_subgraph = [];
+
+            var y = 0;
+            for (var idx = this.minimum_resolution; idx < this.maximum_resolution; idx++) {
+                var frequency = Math.pow(2, idx),
+                    wavelength = Math.floor(this.max_wavelength / frequency);
+
+                if (wavelength == 0)
+                    continue;
+
+                var amplitude = Math.pow(this.persistance, idx);
+                this.left_perlin_subgraph[idx] = {};
+                this.left_perlin_subgraph[idx].value = amplitude/2;
+                this.left_perlin_subgraph[idx].wavelength = wavelength;
+                this.right_perlin_subgraph[idx] = {};
+                this.right_perlin_subgraph[idx].value = amplitude / 2;
+                this.right_perlin_subgraph[idx].wavelength = wavelength;
+                
+                y += amplitude / 2;
+            }
+            this.heights[-1] = y;
+            this.heights[0] = y;
+            this.heights[1] = y;
         }
 
         getSeed(): number {
             return this.seed;
+        }
+
+        getInitialSeed(): number {
+            return this.initial_seed;
         }
 
         random() {
@@ -313,26 +335,33 @@ module WorldBuilder {
                 var i = Math.floor(Math.random() * sounds.length);
                 //self.playSound(sounds[i], vol);
             });
+
+            if (!this.player)
+                this.player = new Physics.DynamicBall(new Vector(413, 0), 10, new Vector(0, 0));
+
             self.physics.setMaterial(glass);
 
-            moveTo(0, 0);
-            for (var x = 0; x < 1280; x++) {
+            moveTo(-1 * self.player.width(), this.getHeightAt(-1 * self.player.width()));
+            for (var x = -1 * self.player.width(); x <= 1280 + self.player.width(); x++) {
                 strokeTo(x, this.getHeightAt(x));
             }
-            strokeTo(1280 - 1, 0);
 
 
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(10, 0), new Vector(10, 1080), function() {
-                self.setLevel(self.x - 1, 0);
-                self.player.position.x = 1280 - self.player.width() - 1;
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(0, 0), new Vector(0, 1080), function() {
+                if (self.player.speed.x < 0) {
+                    self.setLevel(self.x - 1, 0);
+                    self.player.position.x = 1280 + self.player.width();
+                }
             }));
 
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1270, 0), new Vector(1270, 1080), function() {
-                self.setLevel(self.x + 1, 0);
-                self.player.position.x = self.player.width() + 1;
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1280, 0), new Vector(1280, 1080), function() {
+                if (self.player.speed.x > 0) {
+                    self.setLevel(self.x + 1, 0);
+                    self.player.position.x = -1 * self.player.width();
+                }
             }));
 
-            this.player = self.physics.addDynamic(new Physics.DynamicBall(new Vector(413, 100), 10, new Vector(0, 0)));
+            self.physics.addDynamic(this.player);
         }
     }
 }
