@@ -751,15 +751,12 @@ var WorldBuilder;
                 this.generate_perlin_with_parameters(x - 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
             }
             var active_subgraphs = [];
-            var dx = 0;
             if (x < this.min_x) {
                 this.min_x = x;
-                dx = 1;
                 active_subgraphs = this.left_perlin_subgraph;
             }
             else if (x > this.max_x) {
                 this.max_x = x;
-                dx = -1;
                 active_subgraphs = this.right_perlin_subgraph;
             }
             else {
@@ -790,10 +787,6 @@ var WorldBuilder;
                     y += self.cosine_interpolate(a, b, i) * self.interpolate + self.linear_interpolate(a, b, i) * (1 - self.interpolate);
                 }
             });
-            if (y < 0 || y > 1) {
-                console.log(persistance);
-                console.log(y);
-            }
             this.heights[x] = y;
             return this.heights[x] * height;
         };
@@ -921,20 +914,16 @@ var WorldBuilder;
             self.physics.setMaterial(glass);
             moveTo(0, 0);
             for (var x = 0; x < 1280; x++) {
-                strokeTo(x, 1080 - this.getHeightAt(x));
+                strokeTo(x, this.getHeightAt(x));
             }
             strokeTo(1280 - 1, 0);
             self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(10, 0), new Vector(10, 1080), function () {
                 self.setLevel(self.x - 1, 0);
-                var newY = self.getHeightAt(1280 - self.player.width() * 2);
-                console.log(newY);
-                self.player.position = new Vector(1280 - self.player.width() - 1, 1080 - newY - self.player.height());
+                self.player.position.x = 1280 - self.player.width() - 1;
             }));
             self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1270, 0), new Vector(1270, 1080), function () {
                 self.setLevel(self.x + 1, 0);
-                var newY = self.getHeightAt(self.player.width() * 2);
-                console.log(newY);
-                self.player.position = new Vector(self.player.width() + 1, 1080 - newY - self.player.height());
+                self.player.position.x = self.player.width() + 1;
             }));
             this.player = self.physics.addDynamic(new Physics.DynamicBall(new Vector(413, 100), 10, new Vector(0, 0)));
         };

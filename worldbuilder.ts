@@ -1,72 +1,72 @@
 module WorldBuilder {
-    export interface World{
-        setPhysics:(physics: Physics) => void;
-        getSurfaces:() => WorldBuilder.Surface[];
-        getObjects:() => Graphics.Object[];
+    export interface World {
+        setPhysics: (physics: Physics) => void;
+        getSurfaces: () => WorldBuilder.Surface[];
+        getObjects: () => Graphics.Object[];
     }
 
-    export module Surface{
+    export module Surface {
         export interface DrawCallback {
-            (ctx:CanvasRenderingContext2D,
-            material: Physics.Material,
-            border:Point[]): void;
+            (ctx: CanvasRenderingContext2D,
+                material: Physics.Material,
+                border: Point[]): void;
         }
     }
-    
-    export class Surface{
+
+    export class Surface {
         constructor(private material: Physics.Material,
-            private border:Point[],
-            private drawFunction:WorldBuilder.Surface.DrawCallback){
+            private border: Point[],
+            private drawFunction: WorldBuilder.Surface.DrawCallback) {
         }
-        setMaterial(material: Physics.Material){
+        setMaterial(material: Physics.Material) {
             this.material = material;
             return this;
         }
-        getMaterial(){
+        getMaterial() {
             return this.material;
         }
-        setBorder(border: Point[]){
+        setBorder(border: Point[]) {
             this.border = border;
             return this;
         }
-        getBorder(){
+        getBorder() {
             return this.border;
         }
-        setDrawFunction(fun:WorldBuilder.Surface.DrawCallback){
+        setDrawFunction(fun: WorldBuilder.Surface.DrawCallback) {
             this.drawFunction = fun;
             return this;
         }
-        getDrawFunction(){
+        getDrawFunction() {
             return this.drawFunction;
         }
-        draw(ctx:CanvasRenderingContext2D){
-            this.drawFunction(ctx,this.getMaterial(),this.getBorder());
+        draw(ctx: CanvasRenderingContext2D) {
+            this.drawFunction(ctx, this.getMaterial(), this.getBorder());
         }
-        static defaultSurface() : WorldBuilder.Surface{
-            var defaultMaterial =  Physics.Material.defaultMaterial();
+        static defaultSurface(): WorldBuilder.Surface {
+            var defaultMaterial = Physics.Material.defaultMaterial();
             var defaultBorder = [];
             var defaultDrawFunction = (ctx: CanvasRenderingContext2D,
                 material: Physics.Material,
                 border: Point[]) => {
-                    if(border.length === 0)
-                        return;
+                if (border.length === 0)
+                    return;
 
-                    ctx.strokeStyle = material.debugColor;
-                    ctx.moveTo(border[0].x,border[0].y);
-                    border.forEach(function(val){
-                        ctx.lineTo(val.x,val.y);
-                    });
+                ctx.strokeStyle = material.debugColor;
+                ctx.moveTo(border[0].x, border[0].y);
+                border.forEach(function(val) {
+                    ctx.lineTo(val.x, val.y);
+                });
             };
             return new Surface(defaultMaterial,
                 defaultBorder,
                 defaultDrawFunction);
-        }    
+        }
     }
 
 
 
     export class PerlinGenerator {
-        private heights: {[key: number]: number};
+        private heights: { [key: number]: number };
         private x: number;
         private max_x: number;
         private min_x: number;
@@ -78,7 +78,7 @@ module WorldBuilder {
         private perlin_smoothness: number = .99;
         private persistance: number = 1 / 4;
         private interpolate: number = .3;
-        private max_wavelength:number = 500;
+        private max_wavelength: number = 500;
 
         private DEFAULT_SEED: number = 3;
         private seed: number = this.DEFAULT_SEED;
@@ -88,7 +88,7 @@ module WorldBuilder {
             this.init(height);
         }
 
-        init(height: number){
+        init(height: number) {
             this.heights = {
                 '-1': height / 2,
                 '0': height / 2,
@@ -103,7 +103,7 @@ module WorldBuilder {
             this.right_perlin_subgraph = [];
         }
 
-        getSeed():number {
+        getSeed(): number {
             return this.seed;
         }
 
@@ -112,40 +112,37 @@ module WorldBuilder {
             return x - Math.floor(x);
         }
 
-        no_interpolate(a, b, x){
+        no_interpolate(a, b, x) {
             return a;
         }
 
-        linear_interpolate(a, b, x){
-            return a*(1-x) + b*x;
+        linear_interpolate(a, b, x) {
+            return a * (1 - x) + b * x;
         }
 
-        cosine_interpolate(a, b, x){
+        cosine_interpolate(a, b, x) {
             var pi = x * Math.PI;
             var f = (1 - Math.cos(pi)) * .5;
-            return a*(1-f) + b*f;
+            return a * (1 - f) + b * f;
         }
 
-        smooth(a, b, c){
+        smooth(a, b, c) {
             return ((a + c) / 2 * this.perlin_smoothness) + (b * (1 - this.perlin_smoothness));
         }
 
-        generate_perlin_with_parameters(x, minimum_resolution, maximum_resolution, max_wavelength, persistance, height):number {
-            if (x < this.min_x - 1){
-                this.generate_perlin_with_parameters(x+1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
+        generate_perlin_with_parameters(x, minimum_resolution, maximum_resolution, max_wavelength, persistance, height): number {
+            if (x < this.min_x - 1) {
+                this.generate_perlin_with_parameters(x + 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
             }
-            if (x > this.max_x + 1){
-                this.generate_perlin_with_parameters(x-1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
+            if (x > this.max_x + 1) {
+                this.generate_perlin_with_parameters(x - 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
             }
             var active_subgraphs = [];
-            var dx = 0;
             if (x < this.min_x) {
                 this.min_x = x;
-                dx = 1;
                 active_subgraphs = this.left_perlin_subgraph;
             } else if (x > this.max_x) {
                 this.max_x = x;
-                dx = -1;
                 active_subgraphs = this.right_perlin_subgraph;
             } else {
                 return this.heights[x] * height;
@@ -157,7 +154,7 @@ module WorldBuilder {
 
                 if (x % wavelength == 0) {
                     var amplitude = Math.pow(persistance, idx);
-                    if(!active_subgraphs[idx]) active_subgraphs[idx] = {};
+                    if (!active_subgraphs[idx]) active_subgraphs[idx] = {};
                     active_subgraphs[idx].last_value = active_subgraphs[idx].value;
                     active_subgraphs[idx].value = amplitude * this.random();
                     active_subgraphs[idx].wavelength = wavelength;
@@ -167,26 +164,22 @@ module WorldBuilder {
             var y = 0;
             var self = this;
             active_subgraphs.forEach(function(val) {
-                if (val){
+                if (val) {
                     var a = val.last_value;
                     var b = val.value;
                     var i = (x % val.wavelength) / val.wavelength;
-                   
-                    if(x < 0)i *= -1;
-                    if(!a)a = b;
-                    y += self.cosine_interpolate(a, b, i)*self.interpolate + self.linear_interpolate(a, b, i)*(1-self.interpolate);
+
+                    if (x < 0) i *= -1;
+                    if (!a) a = b;
+                    y += self.cosine_interpolate(a, b, i) * self.interpolate + self.linear_interpolate(a, b, i) * (1 - self.interpolate);
                 }
             });
 
-            if(y < 0 || y > 1){
-                console.log(persistance);
-                console.log(y);
-            }
             this.heights[x] = y;
             return this.heights[x] * height;
         }
 
-        generate_perlin_at(x):number {
+        generate_perlin_at(x): number {
             return this.generate_perlin_with_parameters(x, this.minimum_resolution, this.maximum_resolution, this.max_wavelength, this.persistance, this.height);
         }
 
@@ -195,50 +188,50 @@ module WorldBuilder {
         }
 
         setSeed(seed: number) {
-            if(seed < 0){
-                seed = Math.pow(2,30) + seed;
+            if (seed < 0) {
+                seed = Math.pow(2, 30) + seed;
             }
             this.seed = seed;
             this.initial_seed = seed;
             this.init(this.height);
         }
 
-        resetSeed(){
+        resetSeed() {
             this.seed = this.initial_seed;
         }
 
-        setMaximumResolution(val){
+        setMaximumResolution(val) {
             this.maximum_resolution = val;
             this.resetSeed();
             this.init(this.height);
         }
-            setMinimumResolution(val){
+        setMinimumResolution(val) {
             this.minimum_resolution = val;
             this.resetSeed();
             this.init(this.height);
         }
-            setPerlinSmoothness(val){
+        setPerlinSmoothness(val) {
             this.perlin_smoothness = val;
             this.resetSeed();
             this.init(this.height);
         }
-            setPersistance(val){
+        setPersistance(val) {
             this.persistance = val;
             this.resetSeed();
             this.init(this.height);
         }
-            setInterpolation(val){
+        setInterpolation(val) {
             this.interpolate = val;
             this.resetSeed();
             this.init(this.height);
         }
-            setMaxWavelength(val){
+        setMaxWavelength(val) {
             this.max_wavelength = val;
             this.resetSeed();
             this.init(this.height);
         }
     }
-    export class Build1 implements WorldBuilder.World{
+    export class Build1 implements WorldBuilder.World {
         sounds: any[];
         private physics: Physics;
         private perlin: WorldBuilder.PerlinGenerator;
@@ -258,14 +251,14 @@ module WorldBuilder {
             this.y = 0;
             this.build();
         }
-        setPhysics(physics: Physics){
+        setPhysics(physics: Physics) {
             this.physics = physics;
         }
-        getSurfaces() : WorldBuilder.Surface[]{
+        getSurfaces(): WorldBuilder.Surface[] {
             return [];
         }
 
-        getObjects() : Graphics.Object[]{
+        getObjects(): Graphics.Object[] {
             return [];
         }
 
@@ -290,7 +283,7 @@ module WorldBuilder {
             this.sounds[sound].play();
         }
 
-        getHeightAt(x:number):number{
+        getHeightAt(x: number): number {
             return this.perlin.getHeightAt(x + this.xoffset);
         }
 
@@ -321,26 +314,22 @@ module WorldBuilder {
                 //self.playSound(sounds[i], vol);
             });
             self.physics.setMaterial(glass);
-            
+
             moveTo(0, 0);
             for (var x = 0; x < 1280; x++) {
-                strokeTo(x, 1080 - this.getHeightAt(x));
+                strokeTo(x, this.getHeightAt(x));
             }
             strokeTo(1280 - 1, 0);
 
 
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(10, 0), new Vector(10, 1080), function(){
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(10, 0), new Vector(10, 1080), function() {
                 self.setLevel(self.x - 1, 0);
-                var newY = self.getHeightAt(1280 - self.player.width()*2);
-                console.log(newY);
-                self.player.position = new Vector(1280 - self.player.width() - 1, 1080 - newY - self.player.height());
+                self.player.position.x = 1280 - self.player.width() - 1;
             }));
 
             self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1270, 0), new Vector(1270, 1080), function() {
                 self.setLevel(self.x + 1, 0);
-                var newY = self.getHeightAt(self.player.width() * 2);
-                console.log(newY);
-                self.player.position = new Vector(self.player.width() + 1, 1080 - newY - self.player.height());
+                self.player.position.x = self.player.width() + 1;
             }));
 
             this.player = self.physics.addDynamic(new Physics.DynamicBall(new Vector(413, 100), 10, new Vector(0, 0)));
