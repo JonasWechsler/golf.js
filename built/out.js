@@ -17,6 +17,53 @@ var Graphics;
         return GraphicsRenderer;
     })();
     Graphics.GraphicsRenderer = GraphicsRenderer;
+    var Surface = (function () {
+        function Surface(material, border, drawFunction) {
+            this.material = material;
+            this.border = border;
+            this.drawFunction = drawFunction;
+        }
+        Surface.prototype.setMaterial = function (material) {
+            this.material = material;
+            return this;
+        };
+        Surface.prototype.getMaterial = function () {
+            return this.material;
+        };
+        Surface.prototype.setBorder = function (border) {
+            this.border = border;
+            return this;
+        };
+        Surface.prototype.getBorder = function () {
+            return this.border;
+        };
+        Surface.prototype.setDrawFunction = function (fun) {
+            this.drawFunction = fun;
+            return this;
+        };
+        Surface.prototype.getDrawFunction = function () {
+            return this.drawFunction;
+        };
+        Surface.prototype.draw = function (ctx) {
+            this.drawFunction(ctx, this.getMaterial(), this.getBorder());
+        };
+        Surface.defaultSurface = function () {
+            var defaultMaterial = Physics.Material.defaultMaterial();
+            var defaultBorder = [];
+            var defaultDrawFunction = function (ctx, material, border) {
+                if (border.length === 0)
+                    return;
+                ctx.strokeStyle = material.debugColor;
+                ctx.moveTo(border[0].x, border[0].y);
+                border.forEach(function (val) {
+                    ctx.lineTo(val.x, val.y);
+                });
+            };
+            return new Surface(defaultMaterial, defaultBorder, defaultDrawFunction);
+        };
+        return Surface;
+    })();
+    Graphics.Surface = Surface;
     var Plant = (function () {
         function Plant() {
             this.iterations = 5;
@@ -106,6 +153,9 @@ var Point = (function () {
     return Point;
 })();
 var Vector = (function () {
+    /**
+    *
+    */
     function Vector(x, y) {
         this.x = x;
         this.y = y;
@@ -223,15 +273,15 @@ var VectorMath = (function () {
         }
         return false;
     };
-    VectorMath.project = function (a, b) {
+    VectorMath.projectScalar = function (a, b) {
         return a.dot(b.unit());
     };
     VectorMath.projectVector = function (a, b) {
-        return b.unit().timesEquals(VectorMath.project(a, b));
+        return b.unit().timesEquals(VectorMath.projectScalar(a, b));
     };
     return VectorMath;
 })();
-function rint(max) {
+function randomInt(max) {
     return Math.floor(max * Math.random());
 }
 /*Game time*/
@@ -266,7 +316,7 @@ var Physics = (function () {
     Physics.prototype.setMaterial = function (material) {
         this.currentMaterial = material;
     };
-    Physics.prototype.polygon = function (x, y, r, numSides) {
+    Physics.polygon = function (x, y, r, numSides) {
         var sides = [];
         var last_theta = (1 - 1 / numSides) * Math.PI * 2, last_x0 = Math.cos(last_theta) * r, last_y0 = Math.sin(last_theta) * r;
         for (var i = 0; i < numSides; i++) {
@@ -333,13 +383,13 @@ var Physics = (function () {
         var v1 = stat.v1;
         var originStatic = v1.minus(v0);
         var originDynamic = dynamic.position.minus(v0);
-        var projectedScalar = VectorMath.project(originDynamic, originStatic);
+        var projectedScalar = VectorMath.projectScalar(originDynamic, originStatic);
         var projectedVector = v0.plus(originStatic.unit().times(projectedScalar));
         var overlap = dynamic.r - dynamic.position.distanceTo(projectedVector);
         if (overlap > dynamic.r)
             return;
         var overlapVector = projectedVector.minus(dynamic.position).unitTimes(overlap);
-        var projectedSpeed = VectorMath.project(dynamic.speed, originStatic);
+        var projectedSpeed = VectorMath.projectScalar(dynamic.speed, originStatic);
         var projectedSpeedVector = VectorMath.projectVector(dynamic.speed, originStatic);
         var rejectedSpeedVector = dynamic.speed.minus(projectedSpeedVector);
         if (!overlapVector.unit().equals(rejectedSpeedVector.unit()))
@@ -667,59 +717,12 @@ var Physics;
     })();
     Physics.TriggerLineSegment = TriggerLineSegment;
 })(Physics || (Physics = {}));
-var WorldBuilder;
-(function (WorldBuilder) {
-    var Surface = (function () {
-        function Surface(material, border, drawFunction) {
-            this.material = material;
-            this.border = border;
-            this.drawFunction = drawFunction;
-        }
-        Surface.prototype.setMaterial = function (material) {
-            this.material = material;
-            return this;
-        };
-        Surface.prototype.getMaterial = function () {
-            return this.material;
-        };
-        Surface.prototype.setBorder = function (border) {
-            this.border = border;
-            return this;
-        };
-        Surface.prototype.getBorder = function () {
-            return this.border;
-        };
-        Surface.prototype.setDrawFunction = function (fun) {
-            this.drawFunction = fun;
-            return this;
-        };
-        Surface.prototype.getDrawFunction = function () {
-            return this.drawFunction;
-        };
-        Surface.prototype.draw = function (ctx) {
-            this.drawFunction(ctx, this.getMaterial(), this.getBorder());
-        };
-        Surface.defaultSurface = function () {
-            var defaultMaterial = Physics.Material.defaultMaterial();
-            var defaultBorder = [];
-            var defaultDrawFunction = function (ctx, material, border) {
-                if (border.length === 0)
-                    return;
-                ctx.strokeStyle = material.debugColor;
-                ctx.moveTo(border[0].x, border[0].y);
-                border.forEach(function (val) {
-                    ctx.lineTo(val.x, val.y);
-                });
-            };
-            return new Surface(defaultMaterial, defaultBorder, defaultDrawFunction);
-        };
-        return Surface;
-    })();
-    WorldBuilder.Surface = Surface;
+var WorldGenerators;
+(function (WorldGenerators) {
     var PerlinGenerator = (function () {
         function PerlinGenerator(height) {
             this.height = height;
-            this.maximum_resolution = 15;
+            this.maximum_resolution = 4;
             this.minimum_resolution = 1;
             this.perlin_smoothness = .99;
             this.persistance = 1 / 4;
@@ -875,7 +878,10 @@ var WorldBuilder;
         };
         return PerlinGenerator;
     })();
-    WorldBuilder.PerlinGenerator = PerlinGenerator;
+    WorldGenerators.PerlinGenerator = PerlinGenerator;
+})(WorldGenerators || (WorldGenerators = {}));
+var WorldBuilder;
+(function (WorldBuilder) {
     var Build1 = (function () {
         function Build1(physics) {
             this.xoffset = 0;
@@ -885,7 +891,7 @@ var WorldBuilder;
                 return new Vector(0, .02);
             });
             this.sounds = [];
-            this.perlin = new WorldBuilder.PerlinGenerator(1080);
+            this.perlin = new WorldGenerators.PerlinGenerator(1080);
             this.x = 0;
             this.y = 0;
             this.build();
@@ -921,12 +927,8 @@ var WorldBuilder;
         Build1.prototype.getHeightAt = function (x) {
             return this.perlin.getHeightAt(x + this.xoffset);
         };
-        Build1.prototype.build = function () {
+        Build1.prototype.drawLevel = function () {
             var self = this;
-            self.physics.clearAll();
-            var stat = function (x0, y0, x1, y1) {
-                self.physics.addStatic(new Physics.LineSegment(new Vector(x0, y0), new Vector(x1, y1)));
-            };
             var lastStroke = new Vector(0, 0);
             var moveTo = function (x, y) {
                 lastStroke = new Vector(x, y);
@@ -936,7 +938,7 @@ var WorldBuilder;
                 self.physics.addStatic(new Physics.LineSegment(lastStroke, vec));
                 lastStroke = vec;
             };
-            var glass = new Physics.Material(0, "black", function (vol) {
+            var dirt = new Physics.Material(0, "black", function (vol) {
                 if (vol < .05)
                     vol *= vol;
                 vol = Math.min(vol, 1);
@@ -944,16 +946,20 @@ var WorldBuilder;
                     "Percussive Elements-04.wav",
                     "Percussive Elements-05.wav"
                 ];
-                var i = Math.floor(Math.random() * sounds.length);
-                //self.playSound(sounds[i], vol);
+                var i = Math.floor(Math.random() * Math.random() * Math.random() * sounds.length);
+                // self.playSound(sounds[i], vol);
             });
-            if (!this.player)
-                this.player = new Physics.DynamicBall(new Vector(413, 0), 10, new Vector(0, 0));
-            self.physics.setMaterial(glass);
-            moveTo(-1 * self.player.width(), this.getHeightAt(-1 * self.player.width()));
-            for (var x = -1 * self.player.width(); x <= 1280 + self.player.width(); x++) {
-                strokeTo(x, this.getHeightAt(x));
+            if (!self.player) {
+                self.player = new Physics.DynamicBall(new Vector(413, 0), 10, new Vector(0, 0));
             }
+            self.physics.setMaterial(dirt);
+            moveTo(-1 * self.player.width(), self.getHeightAt(-1 * self.player.width()));
+            for (var x = -1 * self.player.width(); x <= 1280 + self.player.width(); x++) {
+                strokeTo(x, self.getHeightAt(x));
+            }
+        };
+        Build1.prototype.drawTriggers = function () {
+            var self = this;
             self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(0, 0), new Vector(0, 1080), function () {
                 if (self.player.speed.x < 0) {
                     self.setLevel(self.x - 1, 0);
@@ -966,7 +972,12 @@ var WorldBuilder;
                     self.player.position.x = -1 * self.player.width();
                 }
             }));
-            self.physics.addDynamic(this.player);
+        };
+        Build1.prototype.build = function () {
+            this.physics.clearAll();
+            this.drawLevel();
+            this.drawTriggers();
+            this.physics.addDynamic(this.player);
         };
         return Build1;
     })();
@@ -1028,7 +1039,7 @@ var Runner = (function () {
         this.canvasDOM.height = 900;
         this.canvasDOM.width = screen.width;
         this.canvasDOM.height = screen.height;
-        this.world = new WorldBuilder.PerlinGenerator(this.canvasDOM.height);
+        this.world = new WorldGenerators.PerlinGenerator(this.canvasDOM.height);
         this.plants = new Graphics.Plant();
         this.physics = new Physics();
         this.builder = new WorldBuilder.Build1(this.physics);

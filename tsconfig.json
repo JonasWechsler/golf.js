@@ -8,6 +8,7 @@
         "graphics.ts",
         "tools.ts",
         "physics.ts",
+        "generators.ts",
         "worldbuilder.ts",
         "inputs.ts",
         "rungolf.ts"

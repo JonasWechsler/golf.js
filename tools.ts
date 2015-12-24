@@ -14,6 +14,9 @@ class Vector {
   x: number;
   y: number;
   vector: boolean;
+  /**
+  * 
+  */
   constructor(x, y) {
     this.x = x;
     this.y = y;
@@ -133,15 +136,15 @@ class VectorMath {
     return false;
   }
 
-  static project(a:Vector, b:Vector) {
+  static projectScalar(a:Vector, b:Vector) {
     return a.dot(b.unit());
   }
 
   static projectVector(a:Vector, b:Vector) {
-    return b.unit().timesEquals(VectorMath.project(a, b));
+    return b.unit().timesEquals(VectorMath.projectScalar(a, b));
   }
 }
 
-function rint(max: number) {
+function randomInt(max: number) {
   return Math.floor(max * Math.random());
 }

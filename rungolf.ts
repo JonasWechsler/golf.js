@@ -3,7 +3,7 @@ class Runner {
 	private canvasDOM: HTMLCanvasElement;
 	private ctx: CanvasRenderingContext2D;
 
-	private world: WorldBuilder.PerlinGenerator;
+	private world: WorldGenerators.PerlinGenerator;
 	private plants: Graphics.Plant;
 	private physics: Physics;
 	private builder: WorldBuilder.Build1;
@@ -23,7 +23,7 @@ class Runner {
 		this.canvasDOM.width = screen.width;
 		this.canvasDOM.height = screen.height;
 
-		this.world = new WorldBuilder.PerlinGenerator(this.canvasDOM.height);
+		this.world = new WorldGenerators.PerlinGenerator(this.canvasDOM.height);
 		this.plants = new Graphics.Plant();
 		this.physics = new Physics();
 		this.builder = new WorldBuilder.Build1(this.physics);

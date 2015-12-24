@@ -18,6 +18,69 @@ module Graphics {
         generate:(x:number, y:number, ctx:CanvasRenderingContext2D) => void;
         draw:(ctx: CanvasRenderingContext2D) => void;
     }
+
+    export module Surface {
+        /**
+        *Function that takes in three parameters: a 2d context to draw on, a material to draw, and an array of points to draw
+        */
+        export interface DrawCallback {
+            (ctx: CanvasRenderingContext2D,
+                material: Physics.Material,
+                border: Point[]): void;
+        }
+    }
+    
+    export class Surface {
+        constructor(private material: Physics.Material,
+            private border: Point[],
+            private drawFunction: Graphics.Surface.DrawCallback) {
+        }
+        setMaterial(material: Physics.Material) {
+            this.material = material;
+            return this;
+        }
+        getMaterial() {
+            return this.material;
+        }
+        setBorder(border: Point[]) {
+            this.border = border;
+            return this;
+        }
+        getBorder() {
+            return this.border;
+        }
+        setDrawFunction(fun: Graphics.Surface.DrawCallback) {
+            this.drawFunction = fun;
+            return this;
+        }
+        getDrawFunction() {
+            return this.drawFunction;
+        }
+        draw(ctx: CanvasRenderingContext2D) {
+            this.drawFunction(ctx, this.getMaterial(), this.getBorder());
+        }
+        static defaultSurface(): Graphics.Surface {
+            var defaultMaterial = Physics.Material.defaultMaterial();
+            var defaultBorder = [];
+            var defaultDrawFunction = (ctx: CanvasRenderingContext2D,
+                material: Physics.Material,
+                border: Point[]) => {
+                if (border.length === 0)
+                    return;
+
+                ctx.strokeStyle = material.debugColor;
+                ctx.moveTo(border[0].x, border[0].y);
+                border.forEach(function(val) {
+                    ctx.lineTo(val.x, val.y);
+                });
+            };
+            return new Surface(defaultMaterial,
+                defaultBorder,
+                defaultDrawFunction);
+        }
+    }
+
+
     export class Plant {
         private iterations: number;
         private diam: number;

@@ -52,7 +52,7 @@ class Physics {
         this.currentMaterial = material;
     }
 
-    polygon(x: number, y: number, r: number, numSides: number) {
+    static polygon(x: number, y: number, r: number, numSides: number) {
         var sides = [];
 
         var last_theta = (1 - 1 / numSides) * Math.PI * 2,
@@ -136,7 +136,7 @@ class Physics {
         var originStatic = v1.minus(v0);
         var originDynamic = dynamic.position.minus(v0);
 
-        var projectedScalar = VectorMath.project(originDynamic, originStatic);
+        var projectedScalar = VectorMath.projectScalar(originDynamic, originStatic);
         var projectedVector = v0.plus(originStatic.unit().times(projectedScalar));
 
         var overlap = dynamic.r - dynamic.position.distanceTo(projectedVector);
@@ -146,7 +146,7 @@ class Physics {
 
         var overlapVector = projectedVector.minus(dynamic.position).unitTimes(overlap);
 
-        var projectedSpeed = VectorMath.project(dynamic.speed, originStatic);
+        var projectedSpeed = VectorMath.projectScalar(dynamic.speed, originStatic);
         var projectedSpeedVector = VectorMath.projectVector(dynamic.speed, originStatic);
         var rejectedSpeedVector = dynamic.speed.minus(projectedSpeedVector);
 
