@@ -300,13 +300,8 @@ var Physics = (function () {
     Physics.prototype.setAcceleration = function (fn) {
         this.acceleration = fn;
     };
-    Physics.prototype.stepPhysics = function () {
+    Physics.prototype.processTriggers = function () {
         var self = this;
-        /**
-         * 1 move all dynamics according to level rules. This includes momentum, friction, and other forces
-         * 2 check for dynamic on static collisions
-         * 3 move all fixeds according to their specific rules.
-         */
         self.triggers.forEach(function (trigger) {
             self.dynamics.forEach(function (dynamic) {
                 if (trigger instanceof Physics.TriggerLineSegment && Physics.intersectSegBall(trigger, dynamic)) {
@@ -317,60 +312,70 @@ var Physics = (function () {
                 }
             });
         });
+    };
+    Physics.prototype.stepDynamics = function () {
+        var self = this;
         self.dynamics.forEach(function (dynamic) {
             dynamic.move();
             dynamic.accelerate(self.acceleration(dynamic.position.x, dynamic.position.y));
             dynamic.speed.timesEquals(self.friction(dynamic.position.x, dynamic.position.y));
         });
+    };
+    Physics.prototype.stepFixeds = function () {
+        var self = this;
         self.fixeds.forEach(function (fixed) {
             fixed.move();
         });
-        var resolveCollision = function (dynamic, stat) {
-            var v0 = stat.v0;
-            var v1 = stat.v1;
-            var originStatic = v1.minus(v0);
-            var originDynamic = dynamic.position.minus(v0);
-            var projectedScalar = VectorMath.project(originDynamic, originStatic);
-            var projectedVector = v0.plus(originStatic.unit().times(projectedScalar));
-            var overlap = dynamic.r - dynamic.position.distanceTo(projectedVector);
-            if (overlap > dynamic.r)
-                return;
-            var overlapVector = projectedVector.minus(dynamic.position).unitTimes(overlap);
-            var projectedSpeed = VectorMath.project(dynamic.speed, originStatic);
-            var projectedSpeedVector = VectorMath.projectVector(dynamic.speed, originStatic);
-            var rejectedSpeedVector = dynamic.speed.minus(projectedSpeedVector);
-            if (!overlapVector.unit().equals(rejectedSpeedVector.unit()))
-                return;
-            var perpendicularComponent = Math.sqrt(dynamic.speed.length() * dynamic.speed.length() - projectedSpeed * projectedSpeed);
-            if (this.debug) {
-                this.debugLines.push({
-                    x0: dynamic.position.x,
-                    y0: dynamic.position.y,
-                    x1: overlapVector.times(100).plus(dynamic.position).x,
-                    y1: overlapVector.times(100).plus(dynamic.position).y,
-                    color: "rgba(0,0,255,.5)"
-                });
-                this.debugLines.push({
-                    x0: dynamic.position.x,
-                    y0: dynamic.position.y,
-                    x1: rejectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
-                    y1: rejectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
-                    color: "rgba(255,0,0,.5)"
-                });
-                this.debugLines.push({
-                    x0: dynamic.position.x,
-                    y0: dynamic.position.y,
-                    x1: projectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
-                    y1: projectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
-                    color: "rgba(0,255,0,.5)"
-                });
-            }
-            if (dynamic.speed.length() > 1 || stat.material.bounce >= 1) {
-                dynamic.speed = projectedSpeedVector.plus(rejectedSpeedVector.timesEquals(-1 * stat.material.bounce));
-            }
-            stat.material.callback(dynamic.speed.length() / dynamic.maxSpeed);
-            dynamic.position = dynamic.position.minus(overlapVector);
-        };
+    };
+    Physics.prototype.resolveCollision = function (dynamic, stat) {
+        var self = this;
+        var v0 = stat.v0;
+        var v1 = stat.v1;
+        var originStatic = v1.minus(v0);
+        var originDynamic = dynamic.position.minus(v0);
+        var projectedScalar = VectorMath.project(originDynamic, originStatic);
+        var projectedVector = v0.plus(originStatic.unit().times(projectedScalar));
+        var overlap = dynamic.r - dynamic.position.distanceTo(projectedVector);
+        if (overlap > dynamic.r)
+            return;
+        var overlapVector = projectedVector.minus(dynamic.position).unitTimes(overlap);
+        var projectedSpeed = VectorMath.project(dynamic.speed, originStatic);
+        var projectedSpeedVector = VectorMath.projectVector(dynamic.speed, originStatic);
+        var rejectedSpeedVector = dynamic.speed.minus(projectedSpeedVector);
+        if (!overlapVector.unit().equals(rejectedSpeedVector.unit()))
+            return;
+        var perpendicularComponent = Math.sqrt(dynamic.speed.length() * dynamic.speed.length() - projectedSpeed * projectedSpeed);
+        if (this.debug) {
+            this.debugLines.push({
+                x0: dynamic.position.x,
+                y0: dynamic.position.y,
+                x1: overlapVector.times(100).plus(dynamic.position).x,
+                y1: overlapVector.times(100).plus(dynamic.position).y,
+                color: "rgba(0,0,255,.5)"
+            });
+            this.debugLines.push({
+                x0: dynamic.position.x,
+                y0: dynamic.position.y,
+                x1: rejectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
+                y1: rejectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
+                color: "rgba(255,0,0,.5)"
+            });
+            this.debugLines.push({
+                x0: dynamic.position.x,
+                y0: dynamic.position.y,
+                x1: projectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
+                y1: projectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
+                color: "rgba(0,255,0,.5)"
+            });
+        }
+        if (dynamic.speed.length() > 1 || stat.material.bounce >= 1) {
+            dynamic.speed = projectedSpeedVector.plus(rejectedSpeedVector.timesEquals(-1 * stat.material.bounce));
+        }
+        stat.material.callback(dynamic.speed.length() / dynamic.maxSpeed);
+        dynamic.position = dynamic.position.minus(overlapVector);
+    };
+    Physics.prototype.processDynamics = function () {
+        var self = this;
         self.dynamics.forEach(function (dynamic) {
             var deepest_collision = {
                 overlap: Math.pow(2, 32) - 1
@@ -378,7 +383,7 @@ var Physics = (function () {
             self.statics.forEach(function (stat) {
                 var collision = Physics.intersectSegBall(stat, dynamic);
                 if (collision) {
-                    resolveCollision(dynamic, stat);
+                    self.resolveCollision(dynamic, stat);
                 }
             });
             self.fixeds.forEach(function (fixed) {
@@ -398,15 +403,28 @@ var Physics = (function () {
                     collision = Physics.intersectSegBall(fixed, dynamic);
                 }
                 if (collision) {
-                    resolveCollision(dynamic, collided);
+                    self.resolveCollision(dynamic, collided);
                     dynamic.speed = dynamic.speed.plus(fixed.getSpeedAt(dynamic.position));
                 }
             });
         });
+    };
+    Physics.prototype.stepPhysics = function () {
+        var self = this;
+        /**
+         * 1 move all dynamics according to level rules. This includes momentum, friction, and other forces
+         * 2 check for dynamic on static collisions
+         * 3 move all fixeds according to their specific rules.
+         */
+        this.processTriggers();
+        this.stepDynamics();
+        this.stepFixeds();
+        this.processDynamics();
         //TODO Fix "sticky" back collisions
         self.timestamp++;
     };
     Physics.prototype.drawPhysics = function (ctx) {
+        var self = this;
         var canvas = ctx.canvas;
         ctx.fillStyle = "rgba(255,255,255,.01)";
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -445,16 +463,18 @@ var Physics = (function () {
                 ctx.stroke();
             }
         }
-        if (this.debug)
+        if (this.debug) {
             this.debugLines.forEach(function (val) {
                 ctx.strokeStyle = val.color;
                 ctx.beginPath();
                 ctx.moveTo(val.x0, val.y0);
                 ctx.lineTo(val.x1, val.y1);
                 ctx.stroke();
-                if (this.debugLines.length > 10)
-                    this.debugLines.shift();
+                if (self.debugLines.length > 10) {
+                    self.debugLines.shift();
+                }
             });
+        }
         ctx.strokeStyle = "blue";
         ctx.fillStyle = "blue";
         for (var i = 0; i < this.dynamics.length; i++) {

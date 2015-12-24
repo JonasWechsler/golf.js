@@ -1,22 +1,22 @@
 /*Game time*/
 
-class Physics{
+class Physics {
     private dynamics: any;
     private statics: any;
     private fixeds: any;
     private triggers: any;
     private timestamp: any;
 
-    private currentMaterial:Physics.Material; 
+    private currentMaterial: Physics.Material;
     private debug: boolean;
     private debugCtx: any;
     private debugVectorScalar: number;
     private debugLines: any;
-    private friction: (x:number, y:number) => number;
-    private acceleration: (x:number, y:number) => Vector;
+    private friction: (x: number, y: number) => number;
+    private acceleration: (x: number, y: number) => Vector;
 
-    constructor(){
-        this.currentMaterial = new Physics.Material(1, "red", function() {});
+    constructor() {
+        this.currentMaterial = new Physics.Material(1, "red", function() { });
 
         this.dynamics = [];
         this.statics = [];
@@ -25,15 +25,15 @@ class Physics{
         this.timestamp = [];
 
         this.debug = true;
-        var canvas = <HTMLCanvasElement> document.getElementById("draw");
+        var canvas = <HTMLCanvasElement>document.getElementById("draw");
         this.debugCtx = canvas.getContext("2d");
         this.debugVectorScalar = 100;
         this.debugLines = [];
 
-        this.acceleration = function(x, y){
+        this.acceleration = function(x, y) {
             return new Vector(0, .05);
         }
-        this.friction = function(x, y){
+        this.friction = function(x, y) {
             return .99;
         }
 
@@ -45,7 +45,7 @@ class Physics{
         this.fixeds = [];
         this.triggers = [];
         this.timestamp = [];
-        this.currentMaterial = new Physics.Material(1, "red", function() {});
+        this.currentMaterial = new Physics.Material(1, "red", function() { });
     }
 
     setMaterial(material: Physics.Material) {
@@ -96,13 +96,8 @@ class Physics{
         this.acceleration = fn;
     }
 
-    stepPhysics() {
+    private processTriggers() {
         var self = this;
-        /**
-         * 1 move all dynamics according to level rules. This includes momentum, friction, and other forces
-         * 2 check for dynamic on static collisions
-         * 3 move all fixeds according to their specific rules.
-         */
         self.triggers.forEach(function(trigger) {
             self.dynamics.forEach(function(dynamic) {
                 if (trigger instanceof Physics.TriggerLineSegment && Physics.intersectSegBall(trigger, dynamic)) {
@@ -113,75 +108,87 @@ class Physics{
                 }
             });
         });
+    }
 
+    private stepDynamics() {
+        var self = this;
         self.dynamics.forEach(function(dynamic) {
             dynamic.move();
             dynamic.accelerate(self.acceleration(dynamic.position.x, dynamic.position.y));
             dynamic.speed.timesEquals(self.friction(dynamic.position.x, dynamic.position.y));
         });
 
+    }
+
+    private stepFixeds() {
+        var self = this;
         self.fixeds.forEach(function(fixed) {
             fixed.move();
         });
+    }
 
-        var resolveCollision = function(dynamic, stat){
-            var v0 = stat.v0;
-            var v1 = stat.v1;
+    private resolveCollision(dynamic, stat){
+        var self = this;
 
-            var originStatic = v1.minus(v0);
-            var originDynamic = dynamic.position.minus(v0);
+        var v0 = stat.v0;
+        var v1 = stat.v1;
 
-            var projectedScalar = VectorMath.project(originDynamic, originStatic);
-            var projectedVector = v0.plus(originStatic.unit().times(projectedScalar));
+        var originStatic = v1.minus(v0);
+        var originDynamic = dynamic.position.minus(v0);
 
-            var overlap = dynamic.r - dynamic.position.distanceTo(projectedVector);
+        var projectedScalar = VectorMath.project(originDynamic, originStatic);
+        var projectedVector = v0.plus(originStatic.unit().times(projectedScalar));
 
-            if (overlap > dynamic.r)
-                return;
+        var overlap = dynamic.r - dynamic.position.distanceTo(projectedVector);
 
-            var overlapVector = projectedVector.minus(dynamic.position).unitTimes(overlap);
+        if (overlap > dynamic.r)
+            return;
 
-            var projectedSpeed = VectorMath.project(dynamic.speed, originStatic);
-            var projectedSpeedVector = VectorMath.projectVector(dynamic.speed, originStatic);
-            var rejectedSpeedVector = dynamic.speed.minus(projectedSpeedVector);
+        var overlapVector = projectedVector.minus(dynamic.position).unitTimes(overlap);
 
-            if (!overlapVector.unit().equals(rejectedSpeedVector.unit()))
-                return;
+        var projectedSpeed = VectorMath.project(dynamic.speed, originStatic);
+        var projectedSpeedVector = VectorMath.projectVector(dynamic.speed, originStatic);
+        var rejectedSpeedVector = dynamic.speed.minus(projectedSpeedVector);
 
-            var perpendicularComponent = Math.sqrt(dynamic.speed.length() * dynamic.speed.length() - projectedSpeed * projectedSpeed);
+        if (!overlapVector.unit().equals(rejectedSpeedVector.unit()))
+            return;
 
-            if (this.debug) {
+        var perpendicularComponent = Math.sqrt(dynamic.speed.length() * dynamic.speed.length() - projectedSpeed * projectedSpeed);
 
-                this.debugLines.push({
-                    x0: dynamic.position.x,
-                    y0: dynamic.position.y,
-                    x1: overlapVector.times(100).plus(dynamic.position).x,
-                    y1: overlapVector.times(100).plus(dynamic.position).y,
-                    color: "rgba(0,0,255,.5)"
-                });
-                this.debugLines.push({
-                    x0: dynamic.position.x,
-                    y0: dynamic.position.y,
-                    x1: rejectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
-                    y1: rejectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
-                    color: "rgba(255,0,0,.5)"
-                });
-                this.debugLines.push({
-                    x0: dynamic.position.x,
-                    y0: dynamic.position.y,
-                    x1: projectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
-                    y1: projectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
-                    color: "rgba(0,255,0,.5)"
-                });
-            }
+        if (this.debug) {
 
-            if (dynamic.speed.length() > 1 || stat.material.bounce >= 1) {
-                dynamic.speed = projectedSpeedVector.plus(rejectedSpeedVector.timesEquals(-1 * stat.material.bounce));
-            }
-            stat.material.callback(dynamic.speed.length() / dynamic.maxSpeed);
-            dynamic.position = dynamic.position.minus(overlapVector);
+            this.debugLines.push({
+                x0: dynamic.position.x,
+                y0: dynamic.position.y,
+                x1: overlapVector.times(100).plus(dynamic.position).x,
+                y1: overlapVector.times(100).plus(dynamic.position).y,
+                color: "rgba(0,0,255,.5)"
+            });
+            this.debugLines.push({
+                x0: dynamic.position.x,
+                y0: dynamic.position.y,
+                x1: rejectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
+                y1: rejectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
+                color: "rgba(255,0,0,.5)"
+            });
+            this.debugLines.push({
+                x0: dynamic.position.x,
+                y0: dynamic.position.y,
+                x1: projectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
+                y1: projectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
+                color: "rgba(0,255,0,.5)"
+            });
         }
 
+        if (dynamic.speed.length() > 1 || stat.material.bounce >= 1) {
+            dynamic.speed = projectedSpeedVector.plus(rejectedSpeedVector.timesEquals(-1 * stat.material.bounce));
+        }
+        stat.material.callback(dynamic.speed.length() / dynamic.maxSpeed);
+        dynamic.position = dynamic.position.minus(overlapVector);
+    }
+
+    private processDynamics(){
+        var self = this;
 
         self.dynamics.forEach(function(dynamic) {
             var deepest_collision = {
@@ -190,7 +197,7 @@ class Physics{
             self.statics.forEach(function(stat) {
                 var collision = Physics.intersectSegBall(stat, dynamic);
                 if (collision) {
-                    resolveCollision(dynamic, stat);
+                    self.resolveCollision(dynamic, stat);
                 }
             });
             self.fixeds.forEach(function(fixed) {
@@ -210,17 +217,33 @@ class Physics{
                     collision = Physics.intersectSegBall(fixed, dynamic);
                 }
                 if (collision) {
-                    resolveCollision(dynamic, collided);
+                    self.resolveCollision(dynamic, collided);
                     dynamic.speed = dynamic.speed.plus(fixed.getSpeedAt(dynamic.position));
                 }
             });
         });
+    }
+
+    stepPhysics() {
+        var self = this;
+        /**
+         * 1 move all dynamics according to level rules. This includes momentum, friction, and other forces
+         * 2 check for dynamic on static collisions
+         * 3 move all fixeds according to their specific rules.
+         */
+        this.processTriggers();
+        this.stepDynamics();
+        this.stepFixeds();
+        this.processDynamics();
+        
         //TODO Fix "sticky" back collisions
         self.timestamp++;
     }
 
     drawPhysics(ctx) {
-        var canvas = <HTMLCanvasElement> ctx.canvas;
+        var self = this;
+
+        var canvas = <HTMLCanvasElement>ctx.canvas;
         ctx.fillStyle = "rgba(255,255,255,.01)";
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -264,16 +287,18 @@ class Physics{
             }
         }
 
-        if (this.debug)
+        if (this.debug){
             this.debugLines.forEach(function(val) {
                 ctx.strokeStyle = val.color;
                 ctx.beginPath();
                 ctx.moveTo(val.x0, val.y0);
                 ctx.lineTo(val.x1, val.y1);
                 ctx.stroke();
-                if (this.debugLines.length > 10)
-                    this.debugLines.shift();
+                if (self.debugLines.length > 10){
+                    self.debugLines.shift();
+                }
             });
+        }
 
         ctx.strokeStyle = "blue";
         ctx.fillStyle = "blue";
@@ -288,7 +313,7 @@ class Physics{
         }
         ctx.strokeStyle = "orange";
         ctx.fillStyle = "orange";
-        for (var i = 0; i < this.triggers.length;i++){
+        for (var i = 0; i < this.triggers.length; i++) {
             ctx.beginPath();
             ctx.moveTo(this.triggers[i].v0.x, this.triggers[i].v0.y);
             ctx.lineTo(this.triggers[i].v1.x, this.triggers[i].v1.y);
@@ -297,47 +322,47 @@ class Physics{
     }
 
 
-  static intersectSegBall(seg, ball) {
-    //http://stackoverflow.com/questions/1073336/circle-line-segment-collision-detection-algorithm
-    var d = seg.v1.minus(seg.v0),
-      f = seg.v0.minus(ball.position),
-      a = d.dot(d),
-      b = 2 * f.dot(d),
-      c = f.dot(f) - ball.r * ball.r;
+    static intersectSegBall(seg, ball) {
+        //http://stackoverflow.com/questions/1073336/circle-line-segment-collision-detection-algorithm
+        var d = seg.v1.minus(seg.v0),
+            f = seg.v0.minus(ball.position),
+            a = d.dot(d),
+            b = 2 * f.dot(d),
+            c = f.dot(f) - ball.r * ball.r;
 
-    var discriminant = b * b - 4 * a * c;
+        var discriminant = b * b - 4 * a * c;
 
-    if (discriminant < 0) {
-      // no intersection
-    } else {
-      discriminant = Math.sqrt(discriminant);
-      var t1 = (-b - discriminant) / (2 * a),
-        t2 = (-b + discriminant) / (2 * a);
-      if (t1 >= 0 && t1 <= 1) {
-        return true;
-      }
-      if (t2 >= 0 && t2 <= 1) {
-        return true;
-      }
-      return false;
+        if (discriminant < 0) {
+            // no intersection
+        } else {
+            discriminant = Math.sqrt(discriminant);
+            var t1 = (-b - discriminant) / (2 * a),
+                t2 = (-b + discriminant) / (2 * a);
+            if (t1 >= 0 && t1 <= 1) {
+                return true;
+            }
+            if (t2 >= 0 && t2 <= 1) {
+                return true;
+            }
+            return false;
+        }
     }
-  }
 }
-module Physics{
-    export interface Static{
+module Physics {
+    export interface Static {
         v0: Vector;
         v1: Vector;
         material: Physics.Material;
     }
-    
-    export interface Fixed{
+
+    export interface Fixed {
         move: () => void;
         position: Vector;
         getSpeedAt: (v: Vector) => number;
         material: Physics.Material;
     }
 
-    export interface Dynamic{
+    export interface Dynamic {
         position: Vector;
         speed: Vector;
         move: () => void;
@@ -346,51 +371,51 @@ module Physics{
         height: () => number;
     }
 
-    export interface Trigger{
+    export interface Trigger {
         trigger: (any: any) => void;
     }
 
-    export class Material{
-        constructor(public bounce: number, 
-            public debugColor: any, 
-            public callback: (vol) => void){
-            
+    export class Material {
+        constructor(public bounce: number,
+            public debugColor: any,
+            public callback: (vol) => void) {
+
         }
-        static defaultMaterial(){
-            return new Physics.Material(0,"black",(vol:number) => void {});
+        static defaultMaterial() {
+            return new Physics.Material(0, "black", (vol: number) => void {});
         }
     }
 
-    export class LineSegment{
+    export class LineSegment {
         v0: Vector;
         v1: Vector;
         material: Physics.Material;
-        constructor(v0: Vector, v1: Vector){
+        constructor(v0: Vector, v1: Vector) {
             this.v0 = v0;
             this.v1 = v1;
-       } 
+        }
     }
 
-    export class Ball{
+    export class Ball {
         position: any;
         r: any;
 
-        constructor(position: Vector, r: number){
-        if (!r) {
-            throw "Radius should be number > 0";
-        }
-        this.position = position;
-        this.r = r;
+        constructor(position: Vector, r: number) {
+            if (!r) {
+                throw "Radius should be number > 0";
+            }
+            this.position = position;
+            this.r = r;
         }
     }
 
-    export class DynamicBall{
+    export class DynamicBall {
         public position: Vector;
         public r: number;
         public speed: Vector;
         public maxSpeed: number;
 
-        constructor(position: Vector, r: number, speed: Vector){
+        constructor(position: Vector, r: number, speed: Vector) {
             if (!r) {
                 throw "Radius should be number > 0";
             }
@@ -417,7 +442,7 @@ module Physics{
         }
     }
 
-    export class Flapper{
+    export class Flapper {
         position: Vector;
         up: boolean;
         moving: boolean;
@@ -430,7 +455,7 @@ module Physics{
         segments: any;
         private structure: any;
 
-        constructor(position: Vector, angleSpeed: number, upAngle: number, downAngle: number){
+        constructor(position: Vector, angleSpeed: number, upAngle: number, downAngle: number) {
             if (!position.vector) {
                 throw "Center should be a vector";
             }
@@ -459,9 +484,9 @@ module Physics{
             }
         }
 
-        getSpeedAt(position: Vector) : Vector{
+        getSpeedAt(position: Vector): Vector {
             if (!this.moving)
-                return new Vector(0,0);
+                return new Vector(0, 0);
 
             var speed = 2 * Math.PI * this.position.distanceTo(position) * this.angleSpeed * Math.PI;
             var translated = this.segments[2].v1.minus(this.position);
@@ -503,11 +528,11 @@ module Physics{
         }
     }
 
-    export class TriggerBall{
-        constructor(public position: Vector, public r:number, public effect:any){}
+    export class TriggerBall {
+        constructor(public position: Vector, public r: number, public effect: any) { }
     }
 
-    export class TriggerLineSegment{
-        constructor(public v0:Vector, public v1:Vector, public effect: () => void){}
+    export class TriggerLineSegment {
+        constructor(public v0: Vector, public v1: Vector, public effect: () => void) { }
     }
 }
