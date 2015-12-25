@@ -1,6 +1,8 @@
-module WorldGenerators{
-	
-    export class PerlinGenerator {
+module WorldGenerators {
+	export interface LinearGenerator {
+		getHeightAt: (x: number) => number;
+	}
+    export class PerlinGenerator implements LinearGenerator {
         private heights: { [key: number]: number };
         private x: number;
         private max_x: number;
@@ -23,7 +25,7 @@ module WorldGenerators{
             this.init(height);
         }
 
-        init(height: number) {
+        public init(height: number): void {
             this.heights = {};
 
             this.x = 0;
@@ -43,12 +45,12 @@ module WorldGenerators{
 
                 var amplitude = Math.pow(this.persistance, idx);
                 this.left_perlin_subgraph[idx] = {};
-                this.left_perlin_subgraph[idx].value = amplitude/2;
+                this.left_perlin_subgraph[idx].value = amplitude / 2;
                 this.left_perlin_subgraph[idx].wavelength = wavelength;
                 this.right_perlin_subgraph[idx] = {};
                 this.right_perlin_subgraph[idx].value = amplitude / 2;
                 this.right_perlin_subgraph[idx].wavelength = wavelength;
-                
+
                 y += amplitude / 2;
             }
             this.heights[-1] = y;
@@ -56,38 +58,38 @@ module WorldGenerators{
             this.heights[1] = y;
         }
 
-        getSeed(): number {
+        public getSeed(): number {
             return this.seed;
         }
 
-        getInitialSeed(): number {
+        public getInitialSeed(): number {
             return this.initial_seed;
         }
 
-        random() {
+        public random(): number {
             var x = Math.sin(this.seed++) * 10000;
             return x - Math.floor(x);
         }
 
-        no_interpolate(a, b, x) {
+        public no_interpolate(a: number, b: number, x: number): number {
             return a;
         }
 
-        linear_interpolate(a, b, x) {
+        public linear_interpolate(a: number, b: number, x: number): number {
             return a * (1 - x) + b * x;
         }
 
-        cosine_interpolate(a, b, x) {
+        public cosine_interpolate(a: number, b: number, x: number): number {
             var pi = x * Math.PI;
             var f = (1 - Math.cos(pi)) * .5;
             return a * (1 - f) + b * f;
         }
 
-        smooth(a, b, c) {
+        public smooth(a: number, b: number, c: number): number {
             return ((a + c) / 2 * this.perlin_smoothness) + (b * (1 - this.perlin_smoothness));
         }
 
-        generate_perlin_with_parameters(x, minimum_resolution, maximum_resolution, max_wavelength, persistance, height): number {
+        public generate_perlin_with_parameters(x: number, minimum_resolution: number, maximum_resolution: number, max_wavelength: number, persistance: number, height: number): number {
             if (x < this.min_x - 1) {
                 this.generate_perlin_with_parameters(x + 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
             }
@@ -136,15 +138,15 @@ module WorldGenerators{
             return this.heights[x] * height;
         }
 
-        generate_perlin_at(x): number {
+        public generate_perlin_at(x: number): number {
             return this.generate_perlin_with_parameters(x, this.minimum_resolution, this.maximum_resolution, this.max_wavelength, this.persistance, this.height);
         }
 
-        getHeightAt(x) {
+        public getHeightAt(x: number): number {
             return this.generate_perlin_at(x);
         }
 
-        setSeed(seed: number) {
+        public setSeed(seed: number): void {
             if (seed < 0) {
                 seed = Math.pow(2, 30) + seed;
             }
@@ -153,41 +155,41 @@ module WorldGenerators{
             this.init(this.height);
         }
 
-        resetSeed() {
+        public resetSeed(): void {
             this.seed = this.initial_seed;
         }
 
-        setMaximumResolution(val) {
+        public setMaximumResolution(val: number): void {
             this.maximum_resolution = val;
             this.resetSeed();
             this.init(this.height);
         }
 
-        setMinimumResolution(val) {
+        public setMinimumResolution(val: number): void {
             this.minimum_resolution = val;
             this.resetSeed();
             this.init(this.height);
         }
 
-        setPerlinSmoothness(val) {
+        public setPerlinSmoothness(val: number): void {
             this.perlin_smoothness = val;
             this.resetSeed();
             this.init(this.height);
         }
 
-        setPersistance(val) {
+        public setPersistance(val: number): void {
             this.persistance = val;
             this.resetSeed();
             this.init(this.height);
         }
 
-        setInterpolation(val) {
+        public setInterpolation(val: number): void {
             this.interpolate = val;
             this.resetSeed();
             this.init(this.height);
         }
 
-        setMaxWavelength(val) {
+        public setMaxWavelength(val: number): void {
             this.max_wavelength = val;
             this.resetSeed();
             this.init(this.height);
