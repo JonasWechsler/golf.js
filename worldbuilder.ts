@@ -3,29 +3,34 @@ module WorldBuilder {
         setPhysics: (physics: Physics) => void;
         getSurfaces: () => Graphics.Surface[];
         getObjects: () => Graphics.Object[];
+        step: () => void;
     }
 
     export class Build1 implements WorldBuilder.World {
         sounds: any[];
         private physics: Physics;
-        private perlin: WorldGenerators.PerlinGenerator;
+        private perlin: WorldGenerators.LinearGenerator;
         private x: number;
         private y: number;
         private xoffset: number = 0;
-        public player: Physics.Dynamic;
+        private keyHandler: KeyHandler;
+        private mouseHandler: MouseHandler;
+        public player: Entity.Player;
         constructor(physics: Physics) {
             this.physics = physics;
             this.physics.setAcceleration(function(x, y) {
                 //return new Vector(-1*(x-canvas.width/2),-1*(y-canvas.width/2)).divided(1000);
                 return new Vector(0, .02);
             });
+            this.keyHandler = new KeyHandler(document);
+            this.mouseHandler = new MouseHandler(document);
             this.sounds = [];
-            this.perlin = new WorldGenerators.PerlinGenerator(1080);
+            this.perlin = new WorldGenerators.PerlinPerlinGenerator(1080);
             this.x = 0;
             this.y = 0;
             this.build();
         }
-        setPhysics(physics: Physics) {
+        setPhysics(physics: Physics):void {
             this.physics = physics;
         }
         getSurfaces(): Graphics.Surface[] {
@@ -49,7 +54,7 @@ module WorldBuilder {
             return self;
         }
 
-        playSound(sound, vol) {
+        playSound(sound, vol):void {
             if (!this.sounds[sound]) {
                 this.sounds[sound] = new Audio('sounds/' + sound);
             }
@@ -61,7 +66,7 @@ module WorldBuilder {
             return this.perlin.getHeightAt(x + this.xoffset);
         }
 
-        drawLevel(){
+        drawLevel():void {
             var self = this;
             var lastStroke = new Vector(0, 0);
             var moveTo = function(x, y) {
@@ -84,40 +89,64 @@ module WorldBuilder {
             });
 
             if (!self.player) {
-                self.player = new Physics.DynamicBall(new Vector(413, 0), 10, new Vector(0, 0));
+                self.player = new Entity.Player(new Vector(413, 0), 10, new Vector(0, 0));
             }
 
             self.physics.setMaterial(dirt);
 
-            moveTo(-1 * self.player.width(), self.getHeightAt(-1 * self.player.width()));
+            moveTo(-1 * self.player.width(), 1080 - self.getHeightAt(-1 * self.player.width()));
             for (var x = -1 * self.player.width(); x <= 1280 + self.player.width(); x++) {
-                strokeTo(x, self.getHeightAt(x));
+                strokeTo(x, 1080 - self.getHeightAt(x));
             }
         }
 
-        drawTriggers(){
+        drawTriggers():void {
             var self = this;
 
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(0, 0), new Vector(0, 1080), function() {
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(0, -10000), new Vector(0, 10000), function() {
                 if (self.player.speed.x < 0) {
                     self.setLevel(self.x - 1, 0);
-                    self.player.position.x = 1280 + self.player.width();
+                    self.player.position.x = 1280 + 0.5*self.player.width();
                 }
-            }));
+            })); 
 
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1280, 0), new Vector(1280, 1080), function() {
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1280, -10000), new Vector(1280, 10000), function() {
                 if (self.player.speed.x > 0) {
                     self.setLevel(self.x + 1, 0);
-                    self.player.position.x = -1 * self.player.width();
+                    self.player.position.x = -.5 * self.player.width();
                 }
             }));
         }
 
-        build() {
+        build():void {
             this.physics.clearAll();
             this.drawLevel();
             this.drawTriggers();
             this.physics.addDynamic(this.player);
+            this.physics.setAcceleration(function(x,y){
+                return new Vector(0, .02);
+            });
+        }
+
+        step(): void{
+            var ddx = 0,
+                ddy = 0;
+            if(this.keyHandler.isDown('A')){
+                ddx -= 0.03;
+            }
+            if(this.keyHandler.isDown('D')){
+                ddx += 0.03;
+            }
+            if (this.keyHandler.isDown('S')) {
+                ddy += 0.03;
+            }
+            if (this.keyHandler.isDown('W')) {
+                ddy -= 0.01;
+            }
+            this.player.setAcceleration(function(x, y) {
+                return new Vector(ddx, ddy);
+            });
+            
         }
     }
 }

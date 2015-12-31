@@ -31,12 +31,12 @@ class Vector {
   length() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
   }
-  distanceTo(v: Vector) {
+  distanceTo(v: Vector):number {
     var dx = v.x - this.x;
     var dy = v.y - this.y;
     return Math.sqrt(dx * dx + dy * dy);
   }
-  plus(v: Quantity) {
+  plus(v: Quantity):Vector {
     var x = this.x;
     var y = this.y;
     if (v instanceof Vector) {
@@ -52,7 +52,7 @@ class Vector {
     }
     return new Vector(x, y);
   }
-  plusEquals(v: Quantity) {
+  plusEquals(v: Quantity):Vector {
     if (v instanceof Vector) {
       this.x += v.x;
       this.y += v.y;
@@ -109,7 +109,12 @@ class Vector {
     }
     return this.dividedEquals(this.length()).timesEquals(scalar);
   }
-
+  clampTo(max: number): Vector{
+    if(this.length() > max){
+      return this.unit().times(max);
+    }
+    return this;
+  }
   rotate(angle: number, pivot: Vector) {
     var s = Math.sin(angle),
       c = Math.cos(angle),

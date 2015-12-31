@@ -252,6 +252,12 @@ var Vector = (function () {
         }
         return this.dividedEquals(this.length()).timesEquals(scalar);
     };
+    Vector.prototype.clampTo = function (max) {
+        if (this.length() > max) {
+            return this.unit().times(max);
+        }
+        return this;
+    };
     Vector.prototype.rotate = function (angle, pivot) {
         var s = Math.sin(angle), c = Math.cos(angle), v = this.clone(), p = pivot.clone();
         v.x -= p.x;
@@ -302,7 +308,7 @@ var Physics = (function () {
             return new Vector(0, .05);
         };
         this.friction = function (x, y) {
-            return .99;
+            return 0;
         };
     }
     Physics.prototype.clearAll = function () {
@@ -366,9 +372,11 @@ var Physics = (function () {
     Physics.prototype.stepDynamics = function () {
         var self = this;
         self.dynamics.forEach(function (dynamic) {
+            dynamic.speed = dynamic.speed.clampTo(Math.min(dynamic.width(), dynamic.height()) / 2);
             dynamic.move();
             dynamic.accelerate(self.acceleration(dynamic.position.x, dynamic.position.y));
-            dynamic.speed.timesEquals(self.friction(dynamic.position.x, dynamic.position.y));
+            dynamic.accelerate(dynamic.getAcceleration());
+            dynamic.speed.timesEquals(1 - self.friction(dynamic.position.x, dynamic.position.y));
         });
     };
     Physics.prototype.stepFixeds = function () {
@@ -606,9 +614,18 @@ var Physics;
             this.r = r;
             this.maxSpeed = this.r;
             this.speed = speed;
+            this.acceleration = function (x, y) {
+                return new Vector(0, 0);
+            };
         }
         DynamicBall.prototype.accelerate = function (v) {
             this.speed = this.speed.plus(v);
+        };
+        DynamicBall.prototype.setAcceleration = function (func) {
+            this.acceleration = func;
+        };
+        DynamicBall.prototype.getAcceleration = function () {
+            return this.acceleration(this.position.x, this.position.y);
         };
         DynamicBall.prototype.move = function () {
             if (this.speed.length() > this.maxSpeed) {
@@ -717,18 +734,76 @@ var Physics;
     })();
     Physics.TriggerLineSegment = TriggerLineSegment;
 })(Physics || (Physics = {}));
+var __extends = this.__extends || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    __.prototype = b.prototype;
+    d.prototype = new __();
+};
+var Entity;
+(function (Entity) {
+    var Player = (function (_super) {
+        __extends(Player, _super);
+        function Player(position, radius, speed) {
+            _super.call(this, position, radius, speed);
+        }
+        return Player;
+    })(Physics.DynamicBall);
+    Entity.Player = Player;
+})(Entity || (Entity = {}));
 var WorldGenerators;
 (function (WorldGenerators) {
+    var PerlinPerlinGenerator = (function () {
+        function PerlinPerlinGenerator(height) {
+            this.height = height;
+            this.maximum_resolution = 6;
+            this.minimum_resolution = 1;
+            this.low_wavelength = 1000;
+            this.high_wavelength = 1500;
+            this.DEFAULT_SEED = 1;
+            this.seed = this.DEFAULT_SEED;
+            this.initial_seed = this.seed;
+            this.interpolate = new WorldGenerators.PerlinGenerator(1);
+            this.persistance = new WorldGenerators.PerlinGenerator(.2);
+            this.wavelength = new WorldGenerators.PerlinGenerator(1);
+            this.perlin = new WorldGenerators.PerlinGenerator(height);
+            this.interpolate.setMaxWavelength(4000);
+            this.interpolate.setMaximumResolution(4);
+            this.interpolate.setPersistance(.4);
+            this.interpolate.setInterpolation(1);
+            this.persistance.setMaxWavelength(4000);
+            this.persistance.setMaximumResolution(4);
+            this.persistance.setPersistance(.4);
+            this.persistance.setInterpolation(1);
+            this.wavelength.setMaxWavelength(4000);
+            this.wavelength.setMaximumResolution(4);
+            this.wavelength.setPersistance(.4);
+            this.wavelength.setInterpolation(1);
+            this.interpolate.setSeed(new Date().getHours());
+            this.persistance.setSeed(new Date().getSeconds());
+            this.wavelength.setSeed(new Date().getMinutes());
+        }
+        PerlinPerlinGenerator.prototype.getHeightAt = function (x) {
+            var persistance = .3 + Math.abs(this.persistance.getHeightAt(x));
+            var interpolate = Math.abs(this.interpolate.getHeightAt(x));
+            var low_wavelength_value = this.perlin.generate_perlin_with_parameters(x, this.minimum_resolution, this.maximum_resolution, this.low_wavelength, persistance, interpolate, this.height);
+            var high_wavelength_value = this.perlin.generate_perlin_with_parameters(x, this.minimum_resolution, this.maximum_resolution, this.high_wavelength, persistance, interpolate, this.height);
+            var wavelength_coef = Math.abs(this.wavelength.getHeightAt(x));
+            return low_wavelength_value * (1 - wavelength_coef) + high_wavelength_value * wavelength_coef;
+        };
+        return PerlinPerlinGenerator;
+    })();
+    WorldGenerators.PerlinPerlinGenerator = PerlinPerlinGenerator;
     var PerlinGenerator = (function () {
         function PerlinGenerator(height) {
             this.height = height;
-            this.maximum_resolution = 4;
+            this.maximum_resolution = 6;
             this.minimum_resolution = 1;
             this.perlin_smoothness = .99;
-            this.persistance = 1 / 4;
-            this.interpolate = .3;
-            this.max_wavelength = 500;
-            this.DEFAULT_SEED = 3;
+            this.persistance = .45;
+            this.interpolate = 1;
+            this.max_wavelength = 1000;
+            this.DEFAULT_SEED = 1;
             this.seed = this.DEFAULT_SEED;
             this.initial_seed = this.seed;
             this.init(height);
@@ -782,12 +857,12 @@ var WorldGenerators;
         PerlinGenerator.prototype.smooth = function (a, b, c) {
             return ((a + c) / 2 * this.perlin_smoothness) + (b * (1 - this.perlin_smoothness));
         };
-        PerlinGenerator.prototype.generate_perlin_with_parameters = function (x, minimum_resolution, maximum_resolution, max_wavelength, persistance, height) {
+        PerlinGenerator.prototype.generate_perlin_with_parameters = function (x, minimum_resolution, maximum_resolution, max_wavelength, persistance, interpolate, height) {
             if (x < this.min_x - 1) {
-                this.generate_perlin_with_parameters(x + 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
+                this.generate_perlin_with_parameters(x + 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, interpolate, height);
             }
             if (x > this.max_x + 1) {
-                this.generate_perlin_with_parameters(x - 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
+                this.generate_perlin_with_parameters(x - 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, interpolate, height);
             }
             var active_subgraphs = [];
             if (x < this.min_x) {
@@ -823,14 +898,14 @@ var WorldGenerators;
                         i *= -1;
                     if (!a)
                         a = b;
-                    y += self.cosine_interpolate(a, b, i) * self.interpolate + self.linear_interpolate(a, b, i) * (1 - self.interpolate);
+                    y += self.cosine_interpolate(a, b, i) * interpolate + self.linear_interpolate(a, b, i) * (1 - interpolate);
                 }
             });
             this.heights[x] = y;
             return this.heights[x] * height;
         };
         PerlinGenerator.prototype.generate_perlin_at = function (x) {
-            return this.generate_perlin_with_parameters(x, this.minimum_resolution, this.maximum_resolution, this.max_wavelength, this.persistance, this.height);
+            return this.generate_perlin_with_parameters(x, this.minimum_resolution, this.maximum_resolution, this.max_wavelength, this.persistance, this.interpolate, this.height);
         };
         PerlinGenerator.prototype.getHeightAt = function (x) {
             return this.generate_perlin_at(x);
@@ -890,8 +965,10 @@ var WorldBuilder;
                 //return new Vector(-1*(x-canvas.width/2),-1*(y-canvas.width/2)).divided(1000);
                 return new Vector(0, .02);
             });
+            this.keyHandler = new KeyHandler(document);
+            this.mouseHandler = new MouseHandler(document);
             this.sounds = [];
-            this.perlin = new WorldGenerators.PerlinGenerator(1080);
+            this.perlin = new WorldGenerators.PerlinPerlinGenerator(1080);
             this.x = 0;
             this.y = 0;
             this.build();
@@ -950,26 +1027,26 @@ var WorldBuilder;
                 // self.playSound(sounds[i], vol);
             });
             if (!self.player) {
-                self.player = new Physics.DynamicBall(new Vector(413, 0), 10, new Vector(0, 0));
+                self.player = new Entity.Player(new Vector(413, 0), 10, new Vector(0, 0));
             }
             self.physics.setMaterial(dirt);
-            moveTo(-1 * self.player.width(), self.getHeightAt(-1 * self.player.width()));
+            moveTo(-1 * self.player.width(), 1080 - self.getHeightAt(-1 * self.player.width()));
             for (var x = -1 * self.player.width(); x <= 1280 + self.player.width(); x++) {
-                strokeTo(x, self.getHeightAt(x));
+                strokeTo(x, 1080 - self.getHeightAt(x));
             }
         };
         Build1.prototype.drawTriggers = function () {
             var self = this;
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(0, 0), new Vector(0, 1080), function () {
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(0, -10000), new Vector(0, 10000), function () {
                 if (self.player.speed.x < 0) {
                     self.setLevel(self.x - 1, 0);
-                    self.player.position.x = 1280 + self.player.width();
+                    self.player.position.x = 1280 + 0.5 * self.player.width();
                 }
             }));
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1280, 0), new Vector(1280, 1080), function () {
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1280, -10000), new Vector(1280, 10000), function () {
                 if (self.player.speed.x > 0) {
                     self.setLevel(self.x + 1, 0);
-                    self.player.position.x = -1 * self.player.width();
+                    self.player.position.x = -.5 * self.player.width();
                 }
             }));
         };
@@ -978,6 +1055,27 @@ var WorldBuilder;
             this.drawLevel();
             this.drawTriggers();
             this.physics.addDynamic(this.player);
+            this.physics.setAcceleration(function (x, y) {
+                return new Vector(0, .02);
+            });
+        };
+        Build1.prototype.step = function () {
+            var ddx = 0, ddy = 0;
+            if (this.keyHandler.isDown('A')) {
+                ddx -= 0.03;
+            }
+            if (this.keyHandler.isDown('D')) {
+                ddx += 0.03;
+            }
+            if (this.keyHandler.isDown('S')) {
+                ddy += 0.03;
+            }
+            if (this.keyHandler.isDown('W')) {
+                ddy -= 0.01;
+            }
+            this.player.setAcceleration(function (x, y) {
+                return new Vector(ddx, ddy);
+            });
         };
         return Build1;
     })();
@@ -1027,6 +1125,25 @@ var MouseHandler = (function () {
     };
     return MouseHandler;
 })();
+var KeyHandler = (function () {
+    function KeyHandler(element) {
+        this.element = element;
+        var self = this;
+        this.keysDown = [];
+        element.addEventListener('keydown', function (e) {
+            var char = String.fromCharCode(e.keyCode);
+            self.keysDown[char] = true;
+        }, false);
+        element.addEventListener('keyup', function (e) {
+            var char = String.fromCharCode(e.keyCode);
+            self.keysDown[char] = false;
+        }, false);
+    }
+    KeyHandler.prototype.isDown = function (char) {
+        return this.keysDown[char];
+    };
+    return KeyHandler;
+})();
 /*Running*/
 var Runner = (function () {
     function Runner(id) {
@@ -1035,21 +1152,20 @@ var Runner = (function () {
         this.ctx = this.canvasDOM.getContext("2d");
         this.canvasDOM.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
         this.canvasDOM.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-        this.canvasDOM.width = 450;
-        this.canvasDOM.height = 900;
-        this.canvasDOM.width = screen.width;
-        this.canvasDOM.height = screen.height;
+        this.canvasDOM.width = 1280;
+        this.canvasDOM.height = 1080;
+        // this.canvasDOM.width = screen.width;
+        // this.canvasDOM.height = screen.height;
         this.world = new WorldGenerators.PerlinGenerator(this.canvasDOM.height);
         this.plants = new Graphics.Plant();
         this.physics = new Physics();
         this.builder = new WorldBuilder.Build1(this.physics);
         this.plants.setLength(25).setIterations(3);
         this.mouse = new MouseHandler(canvas);
-        this.setUpInputs();
         var self = this;
         var draw = function () {
+            self.builder.step();
             self.physics.drawPhysics(self.ctx);
-            self.checkInputs();
             window.requestAnimationFrame(draw);
         };
         draw();
@@ -1057,38 +1173,6 @@ var Runner = (function () {
             _this.physics.stepPhysics();
         }, 10);
     }
-    Runner.prototype.setUpInputs = function () {
-        var self = this;
-        document.addEventListener('keydown', function (e) {
-            var char = String.fromCharCode(e.keyCode);
-            switch (char) {
-                case 'A':
-                    self.physics.setAcceleration(function (x, y) { return new Vector(-.03, .02); });
-                    break;
-                case 'D':
-                    self.physics.setAcceleration(function (x, y) { return new Vector(.03, .02); });
-                    break;
-            }
-        }, false);
-        document.addEventListener('keyup', function (e) {
-            var char = String.fromCharCode(e.keyCode);
-            switch (char) {
-                case 'A':
-                case 'D':
-                    self.physics.setAcceleration(function (x, y) { return new Vector(0, .02); });
-                    break;
-            }
-        }, false);
-    };
-    Runner.prototype.checkInputs = function () {
-        this.ctx.strokeStyle = "black";
-        if (this.mouse.down()) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(Math.floor(this.mouse.getXOnDown()), Math.floor(this.mouse.getYOnDown()));
-            this.ctx.lineTo(Math.floor(this.mouse.getX()), Math.floor(this.mouse.getY()));
-            this.ctx.stroke();
-        }
-    };
     return Runner;
 })();
 //# sourceMappingURL=out.js.map

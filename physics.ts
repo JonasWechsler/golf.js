@@ -1,10 +1,10 @@
 /*Game time*/
 
 class Physics {
-    private dynamics: any;
-    private statics: any;
-    private fixeds: any;
-    private triggers: any;
+    private dynamics: Array<any>;
+    private statics: Array<any>;
+    private fixeds: Array<any>;
+    private triggers: Array<any>;
     private timestamp: any;
 
     private currentMaterial: Physics.Material;
@@ -34,7 +34,7 @@ class Physics {
             return new Vector(0, .05);
         }
         this.friction = function(x, y) {
-            return .99;
+            return 0;
         }
 
     }
@@ -113,9 +113,11 @@ class Physics {
     private stepDynamics() {
         var self = this;
         self.dynamics.forEach(function(dynamic) {
+            dynamic.speed = dynamic.speed.clampTo(Math.min(dynamic.width(), dynamic.height()) / 2);
             dynamic.move();
             dynamic.accelerate(self.acceleration(dynamic.position.x, dynamic.position.y));
-            dynamic.speed.timesEquals(self.friction(dynamic.position.x, dynamic.position.y));
+            dynamic.accelerate(dynamic.getAcceleration());
+            dynamic.speed.timesEquals(1-self.friction(dynamic.position.x, dynamic.position.y));
         });
 
     }
@@ -358,7 +360,7 @@ module Physics {
     export interface Fixed {
         move: () => void;
         position: Vector;
-        getSpeedAt: (v: Vector) => number;
+        getSpeedAt: (v: Vector) => Vector;
         material: Physics.Material;
     }
 
@@ -367,12 +369,14 @@ module Physics {
         speed: Vector;
         move: () => void;
         accelerate: (vector: Vector) => void;
+        setAcceleration: (func:(x: number, y: number) => Vector) => void;
+        getAcceleration: () => Vector;
         width: () => number;
         height: () => number;
     }
 
     export interface Trigger {
-        trigger: (any: any) => void;
+        effect: (any: any) => void;
     }
 
     export class Material {
@@ -409,11 +413,12 @@ module Physics {
         }
     }
 
-    export class DynamicBall {
+    export class DynamicBall implements Physics.Dynamic{
         public position: Vector;
         public r: number;
         public speed: Vector;
         public maxSpeed: number;
+        private acceleration: (x: number, y: number) => Vector;
 
         constructor(position: Vector, r: number, speed: Vector) {
             if (!r) {
@@ -423,34 +428,43 @@ module Physics {
             this.r = r;
             this.maxSpeed = this.r;
             this.speed = speed;
+            this.acceleration = function(x, y){
+                return new Vector(0,0);
+            }
         }
-        accelerate(v) {
+        accelerate(v: Vector):void {
             this.speed = this.speed.plus(v);
         }
-        move() {
+        setAcceleration(func: (x: number, y: number) => Vector): void {
+            this.acceleration = func;
+        }
+        getAcceleration():Vector{
+            return this.acceleration(this.position.x, this.position.y);
+        }
+        move():void {
             if (this.speed.length() > this.maxSpeed) {
                 this.speed = this.speed.unit().times(this.r);
             }
             this.position = this.position.plus(this.speed);
 
         }
-        width() {
+        width():number {
             return this.r * 2;
         }
-        height() {
+        height():number {
             return this.r * 2;
         }
     }
 
-    export class Flapper {
-        position: Vector;
+    export class Flapper implements Physics.Fixed{
+        public position: Vector;
         up: boolean;
         moving: boolean;
         upAngle: number;
         downAngle: number;
         angle: number;
         angleSpeed: number;
-        material: Physics.Material;
+        public material: Physics.Material;
 
         segments: any;
         private structure: any;
@@ -495,7 +509,7 @@ module Physics {
             return perp;
         }
 
-        move() {
+        move() : void{
             if (this.angle / this.upAngle < 1 && this.up) {
                 if (1 - this.angle / this.upAngle < this.angleSpeed / this.upAngle) {
                     this.angle = this.upAngle;
@@ -528,11 +542,12 @@ module Physics {
         }
     }
 
-    export class TriggerBall {
+    export class TriggerBall implements Physics.Trigger{
         constructor(public position: Vector, public r: number, public effect: any) { }
     }
 
-    export class TriggerLineSegment {
+    export class TriggerLineSegment implements Physics.Trigger {
         constructor(public v0: Vector, public v1: Vector, public effect: () => void) { }
     }
+
 }

@@ -49,3 +49,23 @@ class MouseHandler {
     return this.mouseDown;
   }
 }
+
+class KeyHandler {
+  private keysDown: Array<boolean>;
+  constructor(private element: any){
+    var self = this;
+    this.keysDown = [];
+    element.addEventListener('keydown', function(e) {
+      var char = String.fromCharCode(e.keyCode);
+      self.keysDown[char] = true;
+    }, false);
+    element.addEventListener('keyup', function(e) {
+      var char = String.fromCharCode(e.keyCode);
+      self.keysDown[char] = false;
+    }, false);
+  }
+  isDown(char: string): boolean{
+    return this.keysDown[char];
+  }
+  
+}

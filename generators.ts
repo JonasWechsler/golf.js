@@ -2,6 +2,67 @@ module WorldGenerators {
 	export interface LinearGenerator {
 		getHeightAt: (x: number) => number;
 	}
+    export class PerlinPerlinGenerator implements LinearGenerator {
+        private maximum_resolution: number = 6;
+        private minimum_resolution: number = 1;
+        private low_wavelength: number = 1000;
+        private high_wavelength: number = 1500;
+        private interpolate: WorldGenerators.PerlinGenerator;
+        private persistance: WorldGenerators.PerlinGenerator;
+        private wavelength: WorldGenerators.PerlinGenerator;
+        private perlin: WorldGenerators.PerlinGenerator;
+
+        private DEFAULT_SEED: number = 1;
+        private seed: number = this.DEFAULT_SEED;
+        private initial_seed: number = this.seed;
+
+        constructor(private height: number){
+            this.interpolate = new WorldGenerators.PerlinGenerator(1);
+            this.persistance = new WorldGenerators.PerlinGenerator(.2);
+            this.wavelength = new WorldGenerators.PerlinGenerator(1);
+            this.perlin = new WorldGenerators.PerlinGenerator(height);
+            
+            this.interpolate.setMaxWavelength(4000);
+            this.interpolate.setMaximumResolution(4);
+            this.interpolate.setPersistance(.4);
+            this.interpolate.setInterpolation(1);
+
+            this.persistance.setMaxWavelength(4000);
+            this.persistance.setMaximumResolution(4);
+            this.persistance.setPersistance(.4);
+            this.persistance.setInterpolation(1);
+
+            this.wavelength.setMaxWavelength(4000);
+            this.wavelength.setMaximumResolution(4);
+            this.wavelength.setPersistance(.4);
+            this.wavelength.setInterpolation(1);
+
+            this.interpolate.setSeed(new Date().getHours());
+            this.persistance.setSeed(new Date().getSeconds());
+            this.wavelength.setSeed(new Date().getMinutes());
+        }
+
+        public getHeightAt(x: number): number {
+            var persistance = .3 + Math.abs(this.persistance.getHeightAt(x));
+            var interpolate = Math.abs(this.interpolate.getHeightAt(x));
+            var low_wavelength_value = this.perlin.generate_perlin_with_parameters(x,
+                this.minimum_resolution,
+                this.maximum_resolution,
+                this.low_wavelength,
+                persistance,
+                interpolate,
+                this.height);
+            var high_wavelength_value = this.perlin.generate_perlin_with_parameters(x,
+                this.minimum_resolution,
+                this.maximum_resolution,
+                this.high_wavelength,
+                persistance,
+                interpolate,
+                this.height);
+            var wavelength_coef = Math.abs(this.wavelength.getHeightAt(x));
+            return low_wavelength_value * (1 - wavelength_coef) + high_wavelength_value * wavelength_coef;
+        }
+    }
     export class PerlinGenerator implements LinearGenerator {
         private heights: { [key: number]: number };
         private x: number;
@@ -10,14 +71,14 @@ module WorldGenerators {
         private left_perlin_subgraph: any[];
         private right_perlin_subgraph: any[];
 
-        private maximum_resolution: number = 4;
+        private maximum_resolution: number = 6;
         private minimum_resolution: number = 1;
         private perlin_smoothness: number = .99;
-        private persistance: number = 1 / 4;
-        private interpolate: number = .3;
-        private max_wavelength: number = 500;
+        private persistance: number = .45;
+        private interpolate: number = 1;
+        private max_wavelength: number = 1000;
 
-        private DEFAULT_SEED: number = 3;
+        private DEFAULT_SEED: number = 1;
         private seed: number = this.DEFAULT_SEED;
         private initial_seed: number = this.seed;
 
@@ -89,12 +150,30 @@ module WorldGenerators {
             return ((a + c) / 2 * this.perlin_smoothness) + (b * (1 - this.perlin_smoothness));
         }
 
-        public generate_perlin_with_parameters(x: number, minimum_resolution: number, maximum_resolution: number, max_wavelength: number, persistance: number, height: number): number {
+        public generate_perlin_with_parameters(x: number, 
+            minimum_resolution: number,
+            maximum_resolution: number, 
+            max_wavelength: number, 
+            persistance: number, 
+            interpolate: number,
+            height: number): number {
             if (x < this.min_x - 1) {
-                this.generate_perlin_with_parameters(x + 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
+                this.generate_perlin_with_parameters(x + 1,
+                 minimum_resolution,
+                 maximum_resolution,
+                 max_wavelength,
+                 persistance,
+                 interpolate,
+                 height);
             }
             if (x > this.max_x + 1) {
-                this.generate_perlin_with_parameters(x - 1, minimum_resolution, maximum_resolution, max_wavelength, persistance, height);
+                this.generate_perlin_with_parameters(x - 1,
+                 minimum_resolution,
+                 maximum_resolution,
+                 max_wavelength,
+                 persistance,
+                 interpolate,
+                 height);
             }
             var active_subgraphs = [];
             if (x < this.min_x) {
@@ -130,7 +209,7 @@ module WorldGenerators {
 
                     if (x < 0) i *= -1;
                     if (!a) a = b;
-                    y += self.cosine_interpolate(a, b, i) * self.interpolate + self.linear_interpolate(a, b, i) * (1 - self.interpolate);
+                    y += self.cosine_interpolate(a, b, i) * interpolate + self.linear_interpolate(a, b, i) * (1 - interpolate);
                 }
             });
 
@@ -139,7 +218,13 @@ module WorldGenerators {
         }
 
         public generate_perlin_at(x: number): number {
-            return this.generate_perlin_with_parameters(x, this.minimum_resolution, this.maximum_resolution, this.max_wavelength, this.persistance, this.height);
+            return this.generate_perlin_with_parameters(x,
+             this.minimum_resolution,
+             this.maximum_resolution,
+             this.max_wavelength,
+             this.persistance,
+             this.interpolate,
+             this.height);
         }
 
         public getHeightAt(x: number): number {

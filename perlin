@@ -8,9 +8,9 @@
         <input type="range" id="minimum_resolution" oninput="regenerate()" onchange = "regenerate()" value="1" min="1" max = "20" step="1"><span class="label"></span>
         <input type="range" id="seed" oninput="regenerate()" onchange = "regenerate()" value="5" min="1" max = "1000" step="1"><span class="label"></span>
         <input type="range" id="persistance" oninput="regenerate()" onchange = "regenerate()" value=".25" min=".00001" max = ".99999" step=".00001"><span class="label"></span>
-        <input type="range" id="max_wavelength" oninput="regenerate()" onchange = "regenerate()" value="500" min="100" max = "500" step="1"><span class="label"></span>
+        <input type="range" id="max_wavelength" oninput="regenerate()" onchange = "regenerate()" value="500" min="100" max = "2000" step="1"><span class="label"></span>
         <input type="range" id="interpolate" oninput="regenerate()" onchange = "regenerate()" value=".3" min=".00001" max = ".99999" step=".00001"><span class="label"></span>
-        <input type="range" id="offset" oninput="redraw()" onchange = "redraw()" value="0" min="-1000" max = "1000" step="1"><span class="label"></span>
+        <input type="range" id="offset" oninput="redraw()" onchange = "redraw()" value="0" min="-3000" max = "3000" step="1"><span class="label"></span>
         
 		<canvas id="draw" class="center">
 		</canvas>
@@ -18,9 +18,9 @@
 		<script>
 			var canvas = document.getElementById("draw");
 			var ctx = canvas.getContext("2d");
-			canvas.width = screen.width;
-			canvas.height = screen.height;
-			var perlin = new WorldBuilder.PerlinGenerator(screen.height);
+			canvas.width = 1920;
+			canvas.height = 1280;
+			var perlin = new WorldGenerators.PerlinGenerator(screen.height);
 			function regenerate() {
 	    		var max = parseInt(document.getElementById("maximum_resolution").value);
 	    		var min = parseInt(document.getElementById("minimum_resolution").value);
