@@ -293,7 +293,9 @@ function randomInt(max) {
 /*Game time*/
 var Physics = (function () {
     function Physics() {
-        this.currentMaterial = new Physics.Material(1, "red", function () { });
+        this.currentMaterial = new Physics.Material(1, "red", function () { }, function (x, y) {
+            return 0.01;
+        });
         this.dynamics = [];
         this.statics = [];
         this.fixeds = [];
@@ -308,7 +310,7 @@ var Physics = (function () {
             return new Vector(0, .05);
         };
         this.friction = function (x, y) {
-            return 0;
+            return 0.01;
         };
     }
     Physics.prototype.clearAll = function () {
@@ -317,7 +319,9 @@ var Physics = (function () {
         this.fixeds = [];
         this.triggers = [];
         this.timestamp = [];
-        this.currentMaterial = new Physics.Material(1, "red", function () { });
+        this.currentMaterial = new Physics.Material(1, "red", function () { }, function (x, y) {
+            return 0.01;
+        });
     };
     Physics.prototype.setMaterial = function (material) {
         this.currentMaterial = material;
@@ -353,6 +357,18 @@ var Physics = (function () {
             throw "Triggers must have effects";
         this.triggers.push(trigger);
     };
+    Physics.prototype.getDynamics = function () {
+        return this.dynamics;
+    };
+    Physics.prototype.getStatics = function () {
+        return this.statics;
+    };
+    Physics.prototype.getFixeds = function () {
+        return this.fixeds;
+    };
+    Physics.prototype.getTriggers = function () {
+        return this.triggers;
+    };
     Physics.prototype.setAcceleration = function (fn) {
         this.acceleration = fn;
     };
@@ -376,7 +392,6 @@ var Physics = (function () {
             dynamic.move();
             dynamic.accelerate(self.acceleration(dynamic.position.x, dynamic.position.y));
             dynamic.accelerate(dynamic.getAcceleration());
-            dynamic.speed.timesEquals(1 - self.friction(dynamic.position.x, dynamic.position.y));
         });
     };
     Physics.prototype.stepFixeds = function () {
@@ -395,13 +410,13 @@ var Physics = (function () {
         var projectedVector = v0.plus(originStatic.unit().times(projectedScalar));
         var overlap = dynamic.r - dynamic.position.distanceTo(projectedVector);
         if (overlap > dynamic.r)
-            return;
+            return null;
         var overlapVector = projectedVector.minus(dynamic.position).unitTimes(overlap);
         var projectedSpeed = VectorMath.projectScalar(dynamic.speed, originStatic);
         var projectedSpeedVector = VectorMath.projectVector(dynamic.speed, originStatic);
         var rejectedSpeedVector = dynamic.speed.minus(projectedSpeedVector);
         if (!overlapVector.unit().equals(rejectedSpeedVector.unit()))
-            return;
+            return null;
         var perpendicularComponent = Math.sqrt(dynamic.speed.length() * dynamic.speed.length() - projectedSpeed * projectedSpeed);
         if (this.debug) {
             this.debugLines.push({
@@ -431,6 +446,7 @@ var Physics = (function () {
         }
         stat.material.callback(dynamic.speed.length() / dynamic.maxSpeed);
         dynamic.position = dynamic.position.minus(overlapVector);
+        dynamic.speed.timesEquals(1 - stat.material.friction(dynamic.position.x, dynamic.position.y));
     };
     Physics.prototype.processDynamics = function () {
         var self = this;
@@ -575,13 +591,16 @@ var Physics = (function () {
 var Physics;
 (function (Physics) {
     var Material = (function () {
-        function Material(bounce, debugColor, callback) {
+        function Material(bounce, debugColor, callback, friction) {
             this.bounce = bounce;
             this.debugColor = debugColor;
             this.callback = callback;
+            this.friction = friction;
         }
         Material.defaultMaterial = function () {
-            return new Physics.Material(0, "black", function (vol) { return void {}; });
+            return new Physics.Material(0, "black", function (vol) { return void {}; }, function (x, y) {
+                return 0.01;
+            });
         };
         return Material;
     })();
@@ -951,6 +970,11 @@ var WorldGenerators;
             this.resetSeed();
             this.init(this.height);
         };
+        PerlinGenerator.prototype.randomize = function () {
+            this.setInterpolation(Math.random());
+            this.setMaxWavelength(Math.random() * 1000 + 500);
+            this.setPersistance(Math.random() / 2);
+        };
         return PerlinGenerator;
     })();
     WorldGenerators.PerlinGenerator = PerlinGenerator;
@@ -960,6 +984,8 @@ var WorldBuilder;
     var Build1 = (function () {
         function Build1(physics) {
             this.xoffset = 0;
+            this.screenWidth = 1280;
+            this.screenHeight = 1080;
             this.physics = physics;
             this.physics.setAcceleration(function (x, y) {
                 //return new Vector(-1*(x-canvas.width/2),-1*(y-canvas.width/2)).divided(1000);
@@ -986,9 +1012,9 @@ var WorldBuilder;
             var self = this;
             //self.perlin.setSeed((x >> 32) + y);
             if (self.x > x)
-                self.xoffset -= 1280;
+                self.xoffset -= this.screenWidth;
             else
-                self.xoffset += 1280;
+                self.xoffset += this.screenWidth;
             self.build();
             self.x = x;
             self.y = y;
@@ -1025,14 +1051,16 @@ var WorldBuilder;
                 ];
                 var i = Math.floor(Math.random() * Math.random() * Math.random() * sounds.length);
                 // self.playSound(sounds[i], vol);
+            }, function (x, y) {
+                return 0.01;
             });
             if (!self.player) {
                 self.player = new Entity.Player(new Vector(413, 0), 10, new Vector(0, 0));
             }
             self.physics.setMaterial(dirt);
-            moveTo(-1 * self.player.width(), 1080 - self.getHeightAt(-1 * self.player.width()));
-            for (var x = -1 * self.player.width(); x <= 1280 + self.player.width(); x++) {
-                strokeTo(x, 1080 - self.getHeightAt(x));
+            moveTo(-1 * self.player.width(), this.screenHeight - self.getHeightAt(-1 * self.player.width()));
+            for (var x = -1 * self.player.width(); x <= this.screenWidth + self.player.width(); x++) {
+                strokeTo(x, this.screenHeight - self.getHeightAt(x));
             }
         };
         Build1.prototype.drawTriggers = function () {
@@ -1040,10 +1068,10 @@ var WorldBuilder;
             self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(0, -10000), new Vector(0, 10000), function () {
                 if (self.player.speed.x < 0) {
                     self.setLevel(self.x - 1, 0);
-                    self.player.position.x = 1280 + 0.5 * self.player.width();
+                    self.player.position.x = self.screenWidth;
                 }
             }));
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1280, -10000), new Vector(1280, 10000), function () {
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(this.screenWidth, -10000), new Vector(this.screenWidth, 10000), function () {
                 if (self.player.speed.x > 0) {
                     self.setLevel(self.x + 1, 0);
                     self.player.position.x = -.5 * self.player.width();
@@ -1061,10 +1089,10 @@ var WorldBuilder;
         };
         Build1.prototype.step = function () {
             var ddx = 0, ddy = 0;
-            if (this.keyHandler.isDown('A')) {
+            if (this.keyHandler.isDown('A') && this.player.speed.x > -4) {
                 ddx -= 0.03;
             }
-            if (this.keyHandler.isDown('D')) {
+            if (this.keyHandler.isDown('D') && this.player.speed.x < 4) {
                 ddx += 0.03;
             }
             if (this.keyHandler.isDown('S')) {

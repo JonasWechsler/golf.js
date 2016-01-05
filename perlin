@@ -10,7 +10,7 @@
         <input type="range" id="persistance" oninput="regenerate()" onchange = "regenerate()" value=".25" min=".00001" max = ".99999" step=".00001"><span class="label"></span>
         <input type="range" id="max_wavelength" oninput="regenerate()" onchange = "regenerate()" value="500" min="100" max = "2000" step="1"><span class="label"></span>
         <input type="range" id="interpolate" oninput="regenerate()" onchange = "regenerate()" value=".3" min=".00001" max = ".99999" step=".00001"><span class="label"></span>
-        <input type="range" id="offset" oninput="redraw()" onchange = "redraw()" value="0" min="-3000" max = "3000" step="1"><span class="label"></span>
+        <input type="range" id="offset" oninput="redraw()" onchange = "redraw()" value="0" min="-6000" max = "6000" step="1"><span class="label"></span>
         
 		<canvas id="draw" class="center">
 		</canvas>
@@ -21,6 +21,16 @@
 			canvas.width = 1920;
 			canvas.height = 1280;
 			var perlin = new WorldGenerators.PerlinGenerator(screen.height);
+			var a = new WorldGenerators.PerlinGenerator(3);
+			var b = new WorldGenerators.PerlinGenerator(3);
+			var c = new WorldGenerators.PerlinGenerator(3);
+			a.setSeed(new Date().getHours());
+			b.setSeed(new Date().getMinutes());
+			c.setSeed(new Date().getSeconds());
+			a.setMaxWavelength(6000);
+			b.setMaxWavelength(6000);
+			c.setMaxWavelength(6000);
+			
 			function regenerate() {
 	    		var max = parseInt(document.getElementById("maximum_resolution").value);
 	    		var min = parseInt(document.getElementById("minimum_resolution").value);
@@ -53,6 +63,10 @@
 				document.getElementsByClassName("label")[6].innerHTML=offset;
 	    		ctx.clearRect(0,0,canvas.width, canvas.height);
 	    		for(var x=0;x<canvas.width;x++){
+	    			ctx.fillStyle="rgb("
+	    			 + (100 + 50*Math.floor(a.getHeightAt(x + offset))) + ","
+	    			 + (100 + 50*Math.floor(b.getHeightAt(x + offset))) + ","
+	    			 + (100 + 50*Math.floor(c.getHeightAt(x + offset))) + ")";
 	    			ctx.fillRect(x,perlin.getHeightAt(x + offset),1,canvas.height);
 	    			// console.log(perlin.getHeightAt(x));
 	    		}

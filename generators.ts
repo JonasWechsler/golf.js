@@ -2,6 +2,9 @@ module WorldGenerators {
 	export interface LinearGenerator {
 		getHeightAt: (x: number) => number;
 	}
+    export interface BlockGenerator {
+        getSurfaces: (minimum: number, maximum:number) => Array<Vector>;
+    }
     export class PerlinPerlinGenerator implements LinearGenerator {
         private maximum_resolution: number = 6;
         private minimum_resolution: number = 1;
@@ -21,7 +24,7 @@ module WorldGenerators {
             this.persistance = new WorldGenerators.PerlinGenerator(.2);
             this.wavelength = new WorldGenerators.PerlinGenerator(1);
             this.perlin = new WorldGenerators.PerlinGenerator(height);
-            
+
             this.interpolate.setMaxWavelength(4000);
             this.interpolate.setMaximumResolution(4);
             this.interpolate.setPersistance(.4);
@@ -280,5 +283,10 @@ module WorldGenerators {
             this.init(this.height);
         }
 
+        public randomize(): void {
+            this.setInterpolation(Math.random());
+            this.setMaxWavelength(Math.random() * 1000 + 500);
+            this.setPersistance(Math.random() / 2);
+        }
     }
 }

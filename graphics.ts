@@ -30,7 +30,8 @@ module Graphics {
         }
     }
     
-    export class Surface {
+    export class Surface{
+
         constructor(private material: Physics.Material,
             private border: Point[],
             private drawFunction: Graphics.Surface.DrawCallback) {

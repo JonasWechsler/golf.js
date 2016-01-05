@@ -7,15 +7,19 @@ module WorldBuilder {
     }
 
     export class Build1 implements WorldBuilder.World {
-        sounds: any[];
+        private sounds: any[];
         private physics: Physics;
+        private surfaces: Array<Graphics.Surface>;
         private perlin: WorldGenerators.LinearGenerator;
         private x: number;
         private y: number;
         private xoffset: number = 0;
         private keyHandler: KeyHandler;
         private mouseHandler: MouseHandler;
+        private screenWidth: number = 1280;
+        private screenHeight: number = 1080;
         public player: Entity.Player;
+
         constructor(physics: Physics) {
             this.physics = physics;
             this.physics.setAcceleration(function(x, y) {
@@ -45,9 +49,9 @@ module WorldBuilder {
             var self = this;
             //self.perlin.setSeed((x >> 32) + y);
             if (self.x > x)
-                self.xoffset -= 1280;
+                self.xoffset -= this.screenWidth;
             else
-                self.xoffset += 1280;
+                self.xoffset += this.screenWidth;
             self.build();
             self.x = x;
             self.y = y;
@@ -86,6 +90,8 @@ module WorldBuilder {
                 ];
                 var i = Math.floor(Math.random() * Math.random() * Math.random() * sounds.length);
                 // self.playSound(sounds[i], vol);
+            }, function(x, y){
+                return 0.01;
             });
 
             if (!self.player) {
@@ -94,23 +100,29 @@ module WorldBuilder {
 
             self.physics.setMaterial(dirt);
 
-            moveTo(-1 * self.player.width(), 1080 - self.getHeightAt(-1 * self.player.width()));
-            for (var x = -1 * self.player.width(); x <= 1280 + self.player.width(); x++) {
-                strokeTo(x, 1080 - self.getHeightAt(x));
+            moveTo(-1 * self.player.width(), this.screenHeight - self.getHeightAt(-1 * self.player.width()));
+            for (var x = -1 * self.player.width(); x <= this.screenWidth + self.player.width(); x++) {
+                strokeTo(x, this.screenHeight - self.getHeightAt(x));
             }
         }
 
         drawTriggers():void {
             var self = this;
 
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(0, -10000), new Vector(0, 10000), function() {
+            self.physics.addTrigger(new Physics.TriggerLineSegment(
+                new Vector(0, -10000), 
+                new Vector(0, 10000), 
+                function() {
                 if (self.player.speed.x < 0) {
                     self.setLevel(self.x - 1, 0);
-                    self.player.position.x = 1280 + 0.5*self.player.width();
+                    self.player.position.x = self.screenWidth;
                 }
             })); 
 
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(1280, -10000), new Vector(1280, 10000), function() {
+            self.physics.addTrigger(new Physics.TriggerLineSegment(
+                new Vector(this.screenWidth, -10000),
+                new Vector(this.screenWidth, 10000),
+                function() {
                 if (self.player.speed.x > 0) {
                     self.setLevel(self.x + 1, 0);
                     self.player.position.x = -.5 * self.player.width();
@@ -131,10 +143,10 @@ module WorldBuilder {
         step(): void{
             var ddx = 0,
                 ddy = 0;
-            if(this.keyHandler.isDown('A')){
+            if(this.keyHandler.isDown('A') && this.player.speed.x > -4){
                 ddx -= 0.03;
             }
-            if(this.keyHandler.isDown('D')){
+            if (this.keyHandler.isDown('D') && this.player.speed.x < 4) {
                 ddx += 0.03;
             }
             if (this.keyHandler.isDown('S')) {
@@ -146,7 +158,6 @@ module WorldBuilder {
             this.player.setAcceleration(function(x, y) {
                 return new Vector(ddx, ddy);
             });
-            
         }
     }
 }

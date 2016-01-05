@@ -16,7 +16,9 @@ class Physics {
     private acceleration: (x: number, y: number) => Vector;
 
     constructor() {
-        this.currentMaterial = new Physics.Material(1, "red", function() { });
+        this.currentMaterial = new Physics.Material(1, "red", function() { }, function(x,y){
+            return 0.01;
+        });
 
         this.dynamics = [];
         this.statics = [];
@@ -34,25 +36,27 @@ class Physics {
             return new Vector(0, .05);
         }
         this.friction = function(x, y) {
-            return 0;
+            return 0.01;
         }
 
     }
 
-    clearAll() {
+    public clearAll() {
         this.dynamics = [];
         this.statics = [];
         this.fixeds = [];
         this.triggers = [];
         this.timestamp = [];
-        this.currentMaterial = new Physics.Material(1, "red", function() { });
+        this.currentMaterial = new Physics.Material(1, "red", function() { }, function(x, y) {
+            return 0.01;
+        });
     }
 
-    setMaterial(material: Physics.Material) {
+    public setMaterial(material: Physics.Material) {
         this.currentMaterial = material;
     }
 
-    static polygon(x: number, y: number, r: number, numSides: number) {
+    public static polygon(x: number, y: number, r: number, numSides: number) {
         var sides = [];
 
         var last_theta = (1 - 1 / numSides) * Math.PI * 2,
@@ -71,28 +75,44 @@ class Physics {
     }
 
 
-    addStatic(stat: Physics.Static) {
+    public addStatic(stat: Physics.Static) {
         stat.material = this.currentMaterial;
         this.statics.push(stat);
     }
 
-    addDynamic(dynamic: Physics.Dynamic) {
+    public addDynamic(dynamic: Physics.Dynamic) {
         this.dynamics.push(dynamic);
         return dynamic;
     }
 
-    addFixed(fixed: Physics.Fixed) {
+    public addFixed(fixed: Physics.Fixed) {
         fixed.material = this.currentMaterial;
         this.fixeds.push(fixed);
     }
 
-    addTrigger(trigger) {
+    public addTrigger(trigger) {
         if (!trigger.effect)
             throw "Triggers must have effects";
         this.triggers.push(trigger);
     }
 
-    setAcceleration(fn) {
+    public getDynamics():Array<any>{
+        return this.dynamics;
+    }
+
+    public getStatics():Array<any>{
+        return this.statics;
+    }
+
+    public getFixeds():Array<any>{
+        return this.fixeds;
+    }
+
+    public getTriggers():Array<any>{
+        return this.triggers;
+    }
+
+    public setAcceleration(fn) {
         this.acceleration = fn;
     }
 
@@ -117,7 +137,6 @@ class Physics {
             dynamic.move();
             dynamic.accelerate(self.acceleration(dynamic.position.x, dynamic.position.y));
             dynamic.accelerate(dynamic.getAcceleration());
-            dynamic.speed.timesEquals(1-self.friction(dynamic.position.x, dynamic.position.y));
         });
 
     }
@@ -144,7 +163,7 @@ class Physics {
         var overlap = dynamic.r - dynamic.position.distanceTo(projectedVector);
 
         if (overlap > dynamic.r)
-            return;
+            return null;
 
         var overlapVector = projectedVector.minus(dynamic.position).unitTimes(overlap);
 
@@ -153,7 +172,7 @@ class Physics {
         var rejectedSpeedVector = dynamic.speed.minus(projectedSpeedVector);
 
         if (!overlapVector.unit().equals(rejectedSpeedVector.unit()))
-            return;
+            return null;
 
         var perpendicularComponent = Math.sqrt(dynamic.speed.length() * dynamic.speed.length() - projectedSpeed * projectedSpeed);
 
@@ -187,6 +206,7 @@ class Physics {
         }
         stat.material.callback(dynamic.speed.length() / dynamic.maxSpeed);
         dynamic.position = dynamic.position.minus(overlapVector);
+        dynamic.speed.timesEquals(1 - stat.material.friction(dynamic.position.x, dynamic.position.y));
     }
 
     private processDynamics(){
@@ -197,6 +217,7 @@ class Physics {
                 overlap: Math.pow(2, 32) - 1
             };
             self.statics.forEach(function(stat) {
+                
                 var collision = Physics.intersectSegBall(stat, dynamic);
                 if (collision) {
                     self.resolveCollision(dynamic, stat);
@@ -226,8 +247,7 @@ class Physics {
         });
     }
 
-    stepPhysics() {
-        var self = this;
+    public stepPhysics() {
         /**
          * 1 move all dynamics according to level rules. This includes momentum, friction, and other forces
          * 2 check for dynamic on static collisions
@@ -239,10 +259,10 @@ class Physics {
         this.processDynamics();
         
         //TODO Fix "sticky" back collisions
-        self.timestamp++;
+        this.timestamp++;
     }
 
-    drawPhysics(ctx) {
+    public drawPhysics(ctx) {
         var self = this;
 
         var canvas = <HTMLCanvasElement>ctx.canvas;
@@ -324,7 +344,7 @@ class Physics {
     }
 
 
-    static intersectSegBall(seg, ball) {
+    public static intersectSegBall(seg, ball) {
         //http://stackoverflow.com/questions/1073336/circle-line-segment-collision-detection-algorithm
         var d = seg.v1.minus(seg.v0),
             f = seg.v0.minus(ball.position),
@@ -382,11 +402,14 @@ module Physics {
     export class Material {
         constructor(public bounce: number,
             public debugColor: any,
-            public callback: (vol) => void) {
+            public callback: (vol: number) => void,
+            public friction: (x: number, y: number) => number) {
 
         }
-        static defaultMaterial() {
-            return new Physics.Material(0, "black", (vol: number) => void {});
+        public static defaultMaterial() {
+            return new Physics.Material(0, "black", (vol: number) => void {}, function(x,y){
+                return 0.01;
+            });
         }
     }
 
@@ -432,28 +455,32 @@ module Physics {
                 return new Vector(0,0);
             }
         }
-        accelerate(v: Vector):void {
+        public accelerate(v: Vector):void {
             this.speed = this.speed.plus(v);
         }
-        setAcceleration(func: (x: number, y: number) => Vector): void {
+        public setAcceleration(func: (x: number, y: number) => Vector): void {
             this.acceleration = func;
         }
-        getAcceleration():Vector{
+        public getAcceleration():Vector{
             return this.acceleration(this.position.x, this.position.y);
         }
-        move():void {
+        public move():void {
             if (this.speed.length() > this.maxSpeed) {
                 this.speed = this.speed.unit().times(this.r);
             }
             this.position = this.position.plus(this.speed);
 
         }
-        width():number {
+        public width():number {
             return this.r * 2;
         }
-        height():number {
+        public height():number {
             return this.r * 2;
         }
+    }
+
+    export class Attractor implements Physics.Static{
+
     }
 
     export class Flapper implements Physics.Fixed{
@@ -498,7 +525,7 @@ module Physics {
             }
         }
 
-        getSpeedAt(position: Vector): Vector {
+        public getSpeedAt(position: Vector): Vector {
             if (!this.moving)
                 return new Vector(0, 0);
 
@@ -509,7 +536,7 @@ module Physics {
             return perp;
         }
 
-        move() : void{
+        public move() : void{
             if (this.angle / this.upAngle < 1 && this.up) {
                 if (1 - this.angle / this.upAngle < this.angleSpeed / this.upAngle) {
                     this.angle = this.upAngle;
