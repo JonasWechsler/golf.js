@@ -1,6 +1,4 @@
 /*Running*/
-var canvas = document.getElementById("draw");
-
 class MouseHandler {
   private mouseXOnDown: number;
   private mouseYOnDown: number;

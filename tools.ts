@@ -6,20 +6,17 @@ interface Error{
 type Quantity = Vector | Point | number;
 
 class Point {
-  x: number;
-  y: number;
+    constructor(public x:number,
+                public y:number){}
 }
 
-class Vector {
-  x: number;
-  y: number;
+class Vector extends Point{
   vector: boolean;
   /**
   * 
   */
   constructor(x, y) {
-    this.x = x;
-    this.y = y;
+      super(x,y)
     this.vector = true;
   }
   clone() {
@@ -31,10 +28,16 @@ class Vector {
   length() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
   }
-  distanceTo(v: Vector):number {
+  distanceToSquared(v: Vector):number {
     var dx = v.x - this.x;
     var dy = v.y - this.y;
-    return Math.sqrt(dx * dx + dy * dy);
+    return dx * dx + dy * dy;
+  }
+  distanceTo(v: Vector):number {
+    return Math.sqrt(this.distanceToSquared(v));
+  }
+  manhattanDistance(v: Vector):number {
+    return Math.abs(v.x - this.x) + Math.abs(v.y - this.y);
   }
   plus(v: Quantity):Vector {
     var x = this.x;
@@ -45,7 +48,12 @@ class Vector {
     } else if(typeof v === "number"){
       x += v;
       y += v;
-    } else {
+    } else if(v instanceof Array
+              && typeof v[0] === "number"
+          && typeof v[1] === "number"){
+      x += v[0];
+      y += v[1];
+    }else{
       var error = new Error("<" + JSON.stringify(v) + "> + <" + this.x + ", " + this.y + ">");
       error.message += error.stack;
       throw error;
@@ -59,6 +67,11 @@ class Vector {
     } else if (typeof v === "number") {
       this.x += v;
       this.y += v;
+    } else if(v instanceof Array
+              && typeof v[0] === "number"
+          && typeof v[1] === "number"){
+      this.x += v[0];
+      this.y += v[1];
     } else {
       throw "Error: <" + JSON.stringify(v) + "> + <" + this.x + ", " + this.y + "> is not valid";
     }
@@ -133,6 +146,29 @@ class Vector {
   }
 }
 
+class LineSegment {
+    v0: Vector;
+    v1: Vector;
+
+    constructor(v0: Vector, v1: Vector) {
+        this.v0 = v0;
+        this.v1 = v1;
+    }
+}
+
+class Ball {
+    position: any;
+    r: any;
+
+    constructor(position: Vector, r: number) {
+        if (!r) {
+            throw "Radius should be number > 0";
+        }
+        this.position = position;
+        this.r = r;
+    }
+}
+
 class VectorMath {
   static intersectBallBall(ball0, ball1) {
     if (ball0.position.distanceTo(ball1) < ball0.r + ball1.r) {
@@ -152,4 +188,50 @@ class VectorMath {
 
 function randomInt(max: number) {
   return Math.floor(max * Math.random());
+}
+
+class VectorMap<T>{
+  struc: T[][] = [];
+  map(p: Vector, val: T) {
+    if (!this.struc[p.x]) {
+      this.struc[p.x] = [];
+    }
+    this.struc[p.x][p.y] = val;
+  }
+  unmap(p: Vector) {
+    if (!this.has(p)) return;
+    this.struc[p.x][p.y] = undefined;
+  }
+  has(p: Vector): boolean{
+    if (!this.struc[p.x]) {
+      return false;
+    }
+    return this.struc[p.x][p.y]?true:false;
+  }
+  at(p: Vector): T{
+    if (!this.has(p)) return undefined;
+    return this.struc[p.x][p.y];
+  }
+  spread(): Vector[]{
+    const result = [];
+    for (const x in this.struc) {
+      for (const y in this.struc[x]) {
+        result.push(new Vector(parseInt(x), parseInt(y)));
+      }
+    }
+    return result;
+  }
+}
+
+class VectorSet{
+  struc: VectorMap<boolean> = new VectorMap<boolean>();
+  add(p: Vector) {
+    this.struc.map(p, true);
+  }
+  remove(p: Vector) {
+    this.struc.unmap(p);
+  }
+  has(p: Vector): boolean{
+    return this.struc.has(p);
+  }
 }

@@ -1,24 +1,20 @@
 module WorldBuilder {
     export interface World {
         setPhysics: (physics: Physics) => void;
-        getSurfaces: () => Graphics.Surface[];
-        getObjects: () => Graphics.Object[];
         step: () => void;
     }
 
     export class Build1 implements WorldBuilder.World {
         private sounds: any[];
         private physics: Physics;
-        private surfaces: Array<Graphics.Surface>;
         private perlin: WorldGenerators.LinearGenerator;
         private x: number;
         private y: number;
         private xoffset: number = 0;
         private keyHandler: KeyHandler;
-        private mouseHandler: MouseHandler;
         private screenWidth: number = 1280;
         private screenHeight: number = 1080;
-        public player: Entity.Player;
+        public player: Player;
 
         constructor(physics: Physics) {
             this.physics = physics;
@@ -27,7 +23,6 @@ module WorldBuilder {
                 return new Vector(0, .02);
             });
             this.keyHandler = new KeyHandler(document);
-            this.mouseHandler = new MouseHandler(document);
             this.sounds = [];
             this.perlin = new WorldGenerators.PerlinPerlinGenerator(1080);
             this.x = 0;
@@ -36,13 +31,6 @@ module WorldBuilder {
         }
         setPhysics(physics: Physics):void {
             this.physics = physics;
-        }
-        getSurfaces(): Graphics.Surface[] {
-            return [];
-        }
-
-        getObjects(): Graphics.Object[] {
-            return [];
         }
 
         setLevel(x, y): WorldBuilder.World {
@@ -78,7 +66,7 @@ module WorldBuilder {
             }
             var strokeTo = function(x, y) {
                 var vec = new Vector(x, y);
-                self.physics.addStatic(new Physics.LineSegment(lastStroke, vec));
+                self.physics.addStaticLineSegment(new Physics.StaticLineSegment(lastStroke, vec));
                 lastStroke = vec;
             }
             var dirt = new Physics.Material(0, "black", function(vol) {
@@ -95,7 +83,7 @@ module WorldBuilder {
             });
 
             if (!self.player) {
-                self.player = new Entity.Player(new Vector(413, 0), 10, new Vector(0, 0));
+                self.player = new Player(new Vector(413, 0), 10, new Vector(0, 0));
             }
 
             self.physics.setMaterial(dirt);
@@ -140,24 +128,6 @@ module WorldBuilder {
             });
         }
 
-        step(): void{
-            var ddx = 0,
-                ddy = 0;
-            if(this.keyHandler.isDown('A') && this.player.speed.x > -4){
-                ddx -= 0.03;
-            }
-            if (this.keyHandler.isDown('D') && this.player.speed.x < 4) {
-                ddx += 0.03;
-            }
-            if (this.keyHandler.isDown('S')) {
-                ddy += 0.03;
-            }
-            if (this.keyHandler.isDown('W')) {
-                ddy -= 0.01;
-            }
-            this.player.setAcceleration(function(x, y) {
-                return new Vector(ddx, ddy);
-            });
-        }
+        step(): void{}
     }
 }

@@ -2,16 +2,18 @@
     "compilerOptions": {
         "out": "built/out.js", 
         "sourceMap": true, 
-        "target": "es5"
+        "target": "es5",
+        "module": "system"
     }, 
     "files": [
-        "graphics.ts",
-        "tools.ts",
-        "physics.ts",
-        "entity.ts",
-        "generators.ts",
-        "worldbuilder.ts",
-        "inputs.ts",
-        "rungolf.ts"
+       "tools.ts",
+       "physics.ts",
+       "navigationmesh.ts",
+       "generators.ts",
+       "inputs.ts",
+       "worldbuilder.ts",
+       "entity.ts",
+        "lib/poly2tri.d.ts",
+        "run.ts"
     ]
 }

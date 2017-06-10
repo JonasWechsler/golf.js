@@ -1,165 +1,29 @@
-var Graphics;
-(function (Graphics) {
-    var GraphicsRenderer = (function () {
-        function GraphicsRenderer(world) {
-            this.world = world;
-        }
-        GraphicsRenderer.prototype.drawAll = function (ctx) {
-            ctx.beginPath();
-            this.world.getSurfaces().forEach(function (val) {
-                val.draw(ctx);
-            });
-            ctx.stroke();
-            this.world.getObjects().forEach(function (val) {
-                val.draw(ctx);
-            });
-        };
-        return GraphicsRenderer;
-    })();
-    Graphics.GraphicsRenderer = GraphicsRenderer;
-    var Surface = (function () {
-        function Surface(material, border, drawFunction) {
-            this.material = material;
-            this.border = border;
-            this.drawFunction = drawFunction;
-        }
-        Surface.prototype.setMaterial = function (material) {
-            this.material = material;
-            return this;
-        };
-        Surface.prototype.getMaterial = function () {
-            return this.material;
-        };
-        Surface.prototype.setBorder = function (border) {
-            this.border = border;
-            return this;
-        };
-        Surface.prototype.getBorder = function () {
-            return this.border;
-        };
-        Surface.prototype.setDrawFunction = function (fun) {
-            this.drawFunction = fun;
-            return this;
-        };
-        Surface.prototype.getDrawFunction = function () {
-            return this.drawFunction;
-        };
-        Surface.prototype.draw = function (ctx) {
-            this.drawFunction(ctx, this.getMaterial(), this.getBorder());
-        };
-        Surface.defaultSurface = function () {
-            var defaultMaterial = Physics.Material.defaultMaterial();
-            var defaultBorder = [];
-            var defaultDrawFunction = function (ctx, material, border) {
-                if (border.length === 0)
-                    return;
-                ctx.strokeStyle = material.debugColor;
-                ctx.moveTo(border[0].x, border[0].y);
-                border.forEach(function (val) {
-                    ctx.lineTo(val.x, val.y);
-                });
-            };
-            return new Surface(defaultMaterial, defaultBorder, defaultDrawFunction);
-        };
-        return Surface;
-    })();
-    Graphics.Surface = Surface;
-    var Plant = (function () {
-        function Plant() {
-            this.iterations = 5;
-            this.diam = Math.random() * 1 + 1;
-            this.len = (Math.random() * (screen.height / (this.iterations + 1)) + screen.height / (this.iterations + 1)) / 2;
-            this.diam_coef = Math.random() * .5 + .5;
-            this.len_coef = Math.random() * .7 + .3;
-            this.branches = Math.random() * 2 + 3;
-            this.twig_chance = Math.random() * .5 + .5;
-            this.max_angle = Math.random() * Math.PI / 2;
-        }
-        Plant.prototype.setIterations = function (p) {
-            this.iterations = p;
-            return this;
-        };
-        Plant.prototype.setDiameter = function (p) {
-            this.diam = p;
-            return this;
-        };
-        Plant.prototype.setLength = function (p) {
-            this.len = p;
-            return this;
-        };
-        Plant.prototype.setDiameterCoefficient = function (p) {
-            this.diam_coef = p;
-            return this;
-        };
-        Plant.prototype.setLengthCoefficient = function (p) {
-            this.len_coef = p;
-            return this;
-        };
-        Plant.prototype.setBranches = function (p) {
-            this.branches = p;
-            return this;
-        };
-        Plant.prototype.setTwigChance = function (p) {
-            this.twig_chance = p;
-            return this;
-        };
-        Plant.prototype.setMaxAngle = function (p) {
-            this.max_angle = p;
-            return this;
-        };
-        Plant.prototype.generate = function (x0, y0, ctx) {
-            var bases_x = [x0], bases_y = [y0], angles = [3 * Math.PI / 2];
-            var len_initial = this.len;
-            var diam_initial = this.diam;
-            for (var i = 0; i < this.iterations; i++) {
-                ctx.lineWidth = diam_initial;
-                var new_bases_x = [], new_bases_y = [], new_angles = [];
-                for (var a = 0; a < bases_x.length; a++) {
-                    for (var b = 0; b < this.branches; b++) {
-                        if (Math.random() > this.twig_chance) {
-                            continue;
-                        }
-                        var angle = (b / this.branches) * this.max_angle + Math.random() - .5, angle_adjusted0 = angles[a] + angle + Math.random() - .5, angle_adjusted1 = angles[a] - angle + Math.random() - .5;
-                        ctx.beginPath();
-                        ctx.moveTo(bases_x[a], bases_y[a]);
-                        ctx.lineTo(bases_x[a] + Math.cos(angle_adjusted0) * len_initial, bases_y[a] + Math.sin(angle_adjusted0) * len_initial);
-                        ctx.stroke();
-                        ctx.beginPath();
-                        ctx.moveTo(bases_x[a], bases_y[a]);
-                        ctx.lineTo(bases_x[a] + Math.cos(angle_adjusted1) * len_initial, bases_y[a] + Math.sin(angle_adjusted1) * len_initial);
-                        ctx.stroke();
-                        new_bases_x.push(bases_x[a] + Math.cos(angle_adjusted0) * len_initial);
-                        new_bases_y.push(bases_y[a] + Math.sin(angle_adjusted0) * len_initial);
-                        new_angles.push(angle_adjusted0);
-                        new_bases_x.push(bases_x[a] + Math.cos(angle_adjusted1) * len_initial);
-                        new_bases_y.push(bases_y[a] + Math.sin(angle_adjusted1) * len_initial);
-                        new_angles.push(angle_adjusted1);
-                    }
-                }
-                bases_x = new_bases_x;
-                bases_y = new_bases_y;
-                angles = new_angles;
-                diam_initial *= this.diam_coef;
-                len_initial *= this.len_coef;
-            }
-        };
-        return Plant;
-    })();
-    Graphics.Plant = Plant;
-})(Graphics || (Graphics = {}));
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var Point = (function () {
-    function Point() {
+    function Point(x, y) {
+        this.x = x;
+        this.y = y;
     }
     return Point;
-})();
-var Vector = (function () {
+}());
+var Vector = (function (_super) {
+    __extends(Vector, _super);
     /**
     *
     */
     function Vector(x, y) {
-        this.x = x;
-        this.y = y;
-        this.vector = true;
+        var _this = _super.call(this, x, y) || this;
+        _this.vector = true;
+        return _this;
     }
     Vector.prototype.clone = function () {
         return new Vector(this.x, this.y);
@@ -170,10 +34,16 @@ var Vector = (function () {
     Vector.prototype.length = function () {
         return Math.sqrt(this.x * this.x + this.y * this.y);
     };
-    Vector.prototype.distanceTo = function (v) {
+    Vector.prototype.distanceToSquared = function (v) {
         var dx = v.x - this.x;
         var dy = v.y - this.y;
-        return Math.sqrt(dx * dx + dy * dy);
+        return dx * dx + dy * dy;
+    };
+    Vector.prototype.distanceTo = function (v) {
+        return Math.sqrt(this.distanceToSquared(v));
+    };
+    Vector.prototype.manhattanDistance = function (v) {
+        return Math.abs(v.x - this.x) + Math.abs(v.y - this.y);
     };
     Vector.prototype.plus = function (v) {
         var x = this.x;
@@ -185,6 +55,12 @@ var Vector = (function () {
         else if (typeof v === "number") {
             x += v;
             y += v;
+        }
+        else if (v instanceof Array
+            && typeof v[0] === "number"
+            && typeof v[1] === "number") {
+            x += v[0];
+            y += v[1];
         }
         else {
             var error = new Error("<" + JSON.stringify(v) + "> + <" + this.x + ", " + this.y + ">");
@@ -201,6 +77,12 @@ var Vector = (function () {
         else if (typeof v === "number") {
             this.x += v;
             this.y += v;
+        }
+        else if (v instanceof Array
+            && typeof v[0] === "number"
+            && typeof v[1] === "number") {
+            this.x += v[0];
+            this.y += v[1];
         }
         else {
             throw "Error: <" + JSON.stringify(v) + "> + <" + this.x + ", " + this.y + "> is not valid";
@@ -269,7 +151,24 @@ var Vector = (function () {
         return v;
     };
     return Vector;
-})();
+}(Point));
+var LineSegment = (function () {
+    function LineSegment(v0, v1) {
+        this.v0 = v0;
+        this.v1 = v1;
+    }
+    return LineSegment;
+}());
+var Ball = (function () {
+    function Ball(position, r) {
+        if (!r) {
+            throw "Radius should be number > 0";
+        }
+        this.position = position;
+        this.r = r;
+    }
+    return Ball;
+}());
 var VectorMath = (function () {
     function VectorMath() {
     }
@@ -286,10 +185,62 @@ var VectorMath = (function () {
         return b.unit().timesEquals(VectorMath.projectScalar(a, b));
     };
     return VectorMath;
-})();
+}());
 function randomInt(max) {
     return Math.floor(max * Math.random());
 }
+var VectorMap = (function () {
+    function VectorMap() {
+        this.struc = [];
+    }
+    VectorMap.prototype.map = function (p, val) {
+        if (!this.struc[p.x]) {
+            this.struc[p.x] = [];
+        }
+        this.struc[p.x][p.y] = val;
+    };
+    VectorMap.prototype.unmap = function (p) {
+        if (!this.has(p))
+            return;
+        this.struc[p.x][p.y] = undefined;
+    };
+    VectorMap.prototype.has = function (p) {
+        if (!this.struc[p.x]) {
+            return false;
+        }
+        return this.struc[p.x][p.y] ? true : false;
+    };
+    VectorMap.prototype.at = function (p) {
+        if (!this.has(p))
+            return undefined;
+        return this.struc[p.x][p.y];
+    };
+    VectorMap.prototype.spread = function () {
+        var result = [];
+        for (var x in this.struc) {
+            for (var y in this.struc[x]) {
+                result.push(new Vector(parseInt(x), parseInt(y)));
+            }
+        }
+        return result;
+    };
+    return VectorMap;
+}());
+var VectorSet = (function () {
+    function VectorSet() {
+        this.struc = new VectorMap();
+    }
+    VectorSet.prototype.add = function (p) {
+        this.struc.map(p, true);
+    };
+    VectorSet.prototype.remove = function (p) {
+        this.struc.unmap(p);
+    };
+    VectorSet.prototype.has = function (p) {
+        return this.struc.has(p);
+    };
+    return VectorSet;
+}());
 /*Game time*/
 var Physics = (function () {
     function Physics() {
@@ -302,8 +253,6 @@ var Physics = (function () {
         this.triggers = [];
         this.timestamp = [];
         this.debug = true;
-        var canvas = document.getElementById("draw");
-        this.debugCtx = canvas.getContext("2d");
         this.debugVectorScalar = 100;
         this.debugLines = [];
         this.acceleration = function (x, y) {
@@ -333,14 +282,14 @@ var Physics = (function () {
             var theta = (i / numSides) * Math.PI * 2;
             var x0 = Math.cos(theta) * r;
             var y0 = Math.sin(theta) * r;
-            sides.push(new Physics.LineSegment(new Vector(last_x0, last_y0), new Vector(x0, y0)));
+            sides.push(new LineSegment(new Vector(last_x0, last_y0), new Vector(x0, y0)));
             last_theta = theta;
             last_x0 = x0;
             last_y0 = y0;
         }
         return sides;
     };
-    Physics.prototype.addStatic = function (stat) {
+    Physics.prototype.addStaticLineSegment = function (stat) {
         stat.material = this.currentMaterial;
         this.statics.push(stat);
     };
@@ -371,6 +320,24 @@ var Physics = (function () {
     };
     Physics.prototype.setAcceleration = function (fn) {
         this.acceleration = fn;
+    };
+    Physics.prototype.lineOfSight = function (segment) {
+        for (var i = 0; i < this.statics.length; i++) {
+            var stat_seg = this.statics[i];
+            if (Physics.intersectSegSeg(segment, stat_seg)) {
+                return false;
+            }
+        }
+        return true;
+    };
+    Physics.prototype.lineOfSightDistance = function (segment, distance) {
+        for (var i = 0; i < this.statics.length; i++) {
+            var stat_seg = this.statics[i];
+            if (Physics.intersectSegSegDist(segment, stat_seg, distance)) {
+                return false;
+            }
+        }
+        return true;
     };
     Physics.prototype.processTriggers = function () {
         var self = this;
@@ -412,6 +379,8 @@ var Physics = (function () {
         if (overlap > dynamic.r)
             return null;
         var overlapVector = projectedVector.minus(dynamic.position).unitTimes(overlap);
+        if (overlapVector.x * -originStatic.y + overlapVector.y * originStatic.x < 0)
+            return null;
         var projectedSpeed = VectorMath.projectScalar(dynamic.speed, originStatic);
         var projectedSpeedVector = VectorMath.projectVector(dynamic.speed, originStatic);
         var rejectedSpeedVector = dynamic.speed.minus(projectedSpeedVector);
@@ -424,21 +393,21 @@ var Physics = (function () {
                 y0: dynamic.position.y,
                 x1: overlapVector.times(100).plus(dynamic.position).x,
                 y1: overlapVector.times(100).plus(dynamic.position).y,
-                color: "rgba(0,0,255,.5)"
+                color: "green"
             });
             this.debugLines.push({
                 x0: dynamic.position.x,
                 y0: dynamic.position.y,
                 x1: rejectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
                 y1: rejectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
-                color: "rgba(255,0,0,.5)"
+                color: "yellow"
             });
             this.debugLines.push({
                 x0: dynamic.position.x,
                 y0: dynamic.position.y,
                 x1: projectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
                 y1: projectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
-                color: "rgba(0,255,0,.5)"
+                color: "purple"
             });
         }
         if (dynamic.speed.length() > 1 || stat.material.bounce >= 1) {
@@ -484,7 +453,6 @@ var Physics = (function () {
         });
     };
     Physics.prototype.stepPhysics = function () {
-        var self = this;
         /**
          * 1 move all dynamics according to level rules. This includes momentum, friction, and other forces
          * 2 check for dynamic on static collisions
@@ -495,13 +463,12 @@ var Physics = (function () {
         this.stepFixeds();
         this.processDynamics();
         //TODO Fix "sticky" back collisions
-        self.timestamp++;
+        this.timestamp++;
     };
     Physics.prototype.drawPhysics = function (ctx) {
         var self = this;
         var canvas = ctx.canvas;
         ctx.fillStyle = "rgba(255,255,255,.01)";
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
         for (var i = 0; i < this.statics.length; i++) {
             var v = this.statics[i];
             var v0 = v.v0;
@@ -573,6 +540,8 @@ var Physics = (function () {
         var d = seg.v1.minus(seg.v0), f = seg.v0.minus(ball.position), a = d.dot(d), b = 2 * f.dot(d), c = f.dot(f) - ball.r * ball.r;
         var discriminant = b * b - 4 * a * c;
         if (discriminant < 0) {
+            // no intersection
+            return false;
         }
         else {
             discriminant = Math.sqrt(discriminant);
@@ -586,10 +555,64 @@ var Physics = (function () {
             return false;
         }
     };
+    /** Returns true iff seg0 and seg1 are within distance of each other.
+     *
+     */
+    Physics.intersectSegSegDist = function (seg0, seg1, distance) {
+        if (Physics.intersectSegBall(seg0, new Ball(seg1.v0, distance)))
+            return true;
+        if (Physics.intersectSegBall(seg0, new Ball(seg1.v1, distance)))
+            return true;
+        if (Physics.intersectSegBall(seg1, new Ball(seg0.v0, distance)))
+            return true;
+        if (Physics.intersectSegBall(seg1, new Ball(seg0.v1, distance)))
+            return true;
+        return false;
+    };
+    Physics.onSeg = function (seg, q) {
+        //http://www.cdn.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
+        var p = seg.v0;
+        var r = seg.v1;
+        if (q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
+            q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y))
+            return true;
+        return false;
+    };
+    Physics.orientation = function (p, q, r) {
+        var val = (q.y - p.y) * (r.x - q.x) -
+            (q.x - p.x) * (r.y - q.y);
+        if (val === 0)
+            return 0;
+        return (val > 0) ? 1 : 2;
+    };
+    Physics.intersectSegSeg = function (seg0, seg1) {
+        var o1 = Physics.orientation(seg0.v0, seg0.v1, seg1.v0);
+        var o2 = Physics.orientation(seg0.v0, seg0.v1, seg1.v1);
+        var o3 = Physics.orientation(seg1.v0, seg1.v1, seg0.v0);
+        var o4 = Physics.orientation(seg1.v0, seg1.v1, seg0.v1);
+        if (o1 !== o2 && o3 !== o4)
+            return true;
+        if (o1 == 0 && Physics.onSeg(seg0, seg1.v0))
+            return true;
+        if (o2 == 0 && Physics.onSeg(seg0, seg1.v1))
+            return true;
+        if (o1 == 0 && Physics.onSeg(seg1, seg0.v0))
+            return true;
+        if (o1 == 0 && Physics.onSeg(seg1, seg0.v1))
+            return true;
+        return false;
+    };
     return Physics;
-})();
-var Physics;
+}());
 (function (Physics) {
+    var StaticLineSegment = (function (_super) {
+        __extends(StaticLineSegment, _super);
+        function StaticLineSegment() {
+            return _super !== null && _super.apply(this, arguments) || this;
+        }
+        return StaticLineSegment;
+    }(LineSegment));
+    Physics.StaticLineSegment = StaticLineSegment;
     var Material = (function () {
         function Material(bounce, debugColor, callback, friction) {
             this.bounce = bounce;
@@ -603,27 +626,8 @@ var Physics;
             });
         };
         return Material;
-    })();
+    }());
     Physics.Material = Material;
-    var LineSegment = (function () {
-        function LineSegment(v0, v1) {
-            this.v0 = v0;
-            this.v1 = v1;
-        }
-        return LineSegment;
-    })();
-    Physics.LineSegment = LineSegment;
-    var Ball = (function () {
-        function Ball(position, r) {
-            if (!r) {
-                throw "Radius should be number > 0";
-            }
-            this.position = position;
-            this.r = r;
-        }
-        return Ball;
-    })();
-    Physics.Ball = Ball;
     var DynamicBall = (function () {
         function DynamicBall(position, r, speed) {
             if (!r) {
@@ -659,7 +663,7 @@ var Physics;
             return this.r * 2;
         };
         return DynamicBall;
-    })();
+    }());
     Physics.DynamicBall = DynamicBall;
     var Flapper = (function () {
         function Flapper(position, angleSpeed, upAngle, downAngle) {
@@ -683,9 +687,9 @@ var Physics;
             ];
             this.segments = [];
             for (var i = 2; i < this.structure.length; i += 2) {
-                var v0 = new Vector(this.structure[i - 2] + position.x, this.structure[i - 1] + position.y), v1 = new Vector(this.structure[i] + position.x, this.structure[i + 1] + position.y), segment = new Physics.LineSegment(v0, v1);
+                var v0 = new Vector(this.structure[i - 2] + position.x, this.structure[i - 1] + position.y), v1 = new Vector(this.structure[i] + position.x, this.structure[i + 1] + position.y), segment = new Physics.StaticLineSegment(v0, v1);
                 segment.material = this.material;
-                this.segments.push(new Physics.LineSegment(v0, v1));
+                this.segments.push(segment);
             }
         }
         Flapper.prototype.getSpeedAt = function (position) {
@@ -726,13 +730,13 @@ var Physics;
                     .rotate(this.angle * Math.PI, this.position);
                 var v1 = new Vector(this.structure[i] + this.position.x, this.structure[i + 1] + this.position.y)
                     .rotate(this.angle * Math.PI, this.position);
-                var segment = new Physics.LineSegment(v0, v1);
+                var segment = new StaticLineSegment(v0, v1);
                 segment.material = this.material;
-                this.segments.push(new Physics.LineSegment(v0, v1));
+                this.segments.push(segment);
             }
         };
         return Flapper;
-    })();
+    }());
     Physics.Flapper = Flapper;
     var TriggerBall = (function () {
         function TriggerBall(position, r, effect) {
@@ -741,7 +745,7 @@ var Physics;
             this.effect = effect;
         }
         return TriggerBall;
-    })();
+    }());
     Physics.TriggerBall = TriggerBall;
     var TriggerLineSegment = (function () {
         function TriggerLineSegment(v0, v1, effect) {
@@ -750,26 +754,209 @@ var Physics;
             this.effect = effect;
         }
         return TriggerLineSegment;
-    })();
+    }());
     Physics.TriggerLineSegment = TriggerLineSegment;
 })(Physics || (Physics = {}));
-var __extends = this.__extends || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    __.prototype = b.prototype;
-    d.prototype = new __();
-};
-var Entity;
-(function (Entity) {
-    var Player = (function (_super) {
-        __extends(Player, _super);
-        function Player(position, radius, speed) {
-            _super.call(this, position, radius, speed);
+var NavigationMesh = (function () {
+    function NavigationMesh() {
+    }
+    NavigationMesh.prototype.neighbors = function (p, depth) {
+        var result = new VectorMap();
+        var self = this;
+        var queue = [[p, depth]];
+        var _loop_1 = function () {
+            var q = queue.shift();
+            var x = q[0].x, y = q[0].y, d = q[1];
+            if (d == 0)
+                return "continue";
+            if (result.has(q[0]) && result.at(q[0]) <= d)
+                return "continue";
+            result.map(q[0], d);
+            this_1.adjacent(q[0]).forEach(function (adj) {
+                queue.push([adj, d - 1]);
+            });
+        };
+        var this_1 = this;
+        while (queue.length) {
+            _loop_1();
         }
-        return Player;
-    })(Physics.DynamicBall);
-    Entity.Player = Player;
-})(Entity || (Entity = {}));
+        return result.spread();
+    };
+    return NavigationMesh;
+}());
+var FiniteGridNavigationMesh = (function (_super) {
+    __extends(FiniteGridNavigationMesh, _super);
+    function FiniteGridNavigationMesh(cell_width, min_x, max_x, min_y, max_y) {
+        var _this = _super.call(this) || this;
+        _this.cell_width = cell_width;
+        _this.min_x = min_x;
+        _this.max_x = max_x;
+        _this.min_y = min_y;
+        _this.max_y = max_y;
+        _this.vertices = [];
+        for (var i = min_x; i < max_x; i += cell_width) {
+            for (var j = min_y; j < max_y; j += cell_width) {
+                _this.vertices.push(new Vector(i, j));
+            }
+        }
+        return _this;
+    }
+    FiniteGridNavigationMesh.prototype.get_vertices = function () {
+        return this.vertices;
+    };
+    FiniteGridNavigationMesh.prototype.adjacent = function (p) {
+        if (!(p.x % this.cell_width === 0 && p.y % this.cell_width === 0)) {
+            return [];
+        }
+        var result = [];
+        for (var i = -1; i < 2; i++) {
+            for (var j = -1; j < 2; j++) {
+                var x = p.x + i * this.cell_width;
+                var y = p.y + j * this.cell_width;
+                if (x < this.min_x || x > this.max_x || y < this.min_y || y > this.max_y)
+                    continue;
+                result.push(new Vector(x, y));
+            }
+        }
+        return result;
+    };
+    return FiniteGridNavigationMesh;
+}(NavigationMesh));
+var NonintersectingFiniteGridNavigationMesh = (function (_super) {
+    __extends(NonintersectingFiniteGridNavigationMesh, _super);
+    function NonintersectingFiniteGridNavigationMesh(cell_width, min_x, max_x, min_y, max_y, physics) {
+        var _this = _super.call(this) || this;
+        _this.cell_width = cell_width;
+        _this.min_x = min_x;
+        _this.max_x = max_x;
+        _this.min_y = min_y;
+        _this.max_y = max_y;
+        _this.physics = physics;
+        _this.vertices = [];
+        _this.adjacent_map = new VectorMap();
+        var mesh = new FiniteGridNavigationMesh(cell_width, min_x, max_x, min_y, max_y);
+        var self = _this;
+        mesh.get_vertices().forEach(function (vertex) {
+            self.vertices.push(vertex);
+            self.adjacent_map.map(vertex, []);
+            mesh.adjacent(vertex).forEach(function (adjacent) {
+                if (physics.lineOfSightDistance(new LineSegment(vertex, adjacent), 10)) {
+                    self.adjacent_map.at(vertex).push(adjacent);
+                }
+            });
+        });
+        console.log(self.adjacent_map);
+        return _this;
+    }
+    NonintersectingFiniteGridNavigationMesh.prototype.adjacent = function (p) {
+        return this.adjacent_map.at(p);
+    };
+    NonintersectingFiniteGridNavigationMesh.prototype.get_vertices = function () {
+        return this.vertices;
+    };
+    return NonintersectingFiniteGridNavigationMesh;
+}(NavigationMesh));
+/*
+let Mouse:Vector = new Vector(0, 0);
+document.onmousemove = function (e) {
+  Mouse = new Vector(e.pageX, e.pageY);
+}
+
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = 500;
+canvas.height = 500;
+document.body.appendChild(canvas);
+
+const mesh = new FiniteGridNavigationMesh(10, 0, 500, 0, 500);
+console.log(mesh.neighbors(new Vector(70, 70), 5));
+const obstacle = new Circle(new Vector(80, 80), 20);
+const children: Vector[] = [
+  new Vector(100, 70),
+  new Vector(100, 80),
+  new Vector(100, 90),
+  new Vector(100, 100),
+  new Vector(90, 100),
+  new Vector(80, 100),
+  new Vector(70, 100)
+];
+
+const pts: VectorSet = new VectorSet();
+setInterval(function () {
+  const px = Math.round(Mouse.x / 10) * 10;
+  const py = Math.round(Mouse.y / 10) * 10;
+
+  children.forEach(function (child, idx) {
+    const options = [];
+    if (!intersect(child, [px, py], obstacle)) {
+      mesh.neighbors(child, 5).forEach(function (pt) {
+        const dx = pt.x - obstacle.center.x;
+        const dy = pt.y - obstacle.center.y;
+        const d = dx * dx + dy * dy;
+        if (intersect(pt, [px, py], obstacle) && d > obstacle.radius * obstacle.radius && !pts.has(pt)) {
+          options.push([d, pt]);
+        }
+      });
+    }
+    console.log(JSON.stringify(options));
+    options.sort(function (a, b) {
+      return a[0] - b[0];
+    });
+    if (options.length) {
+      pts.remove(children[idx]);
+      pts.add(options[0][1]);
+      children[idx] = options[0][1];
+    }
+  });
+
+
+    console.log(children);
+
+  ctx.clearRect(0, 0, 500, 500);
+  ctx.beginPath();
+  ctx.arc(obstacle.center.x, obstacle.center.y, obstacle.radius,0,2*Math.PI);
+  ctx.stroke();
+
+  const DEBUG = false;
+  
+  children.forEach(function (child) {
+    if (DEBUG) {
+      if (intersect(child, [px, py], obstacle)) {
+        ctx.strokeStyle = "red";
+      } else {
+        ctx.strokeStyle = "blue";
+      }
+      ctx.beginPath();
+      ctx.moveTo(child.x, child.y);
+      ctx.lineTo(px, py);
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.arc(child.x, child.y, 5,0,2*Math.PI);
+    ctx.stroke();
+
+    if (DEBUG) {
+      mesh.neighbors(child, 5).forEach(function (pt) {
+        if (!intersect(pt, [px, py], obstacle)) {
+          ctx.strokeStyle = "green";
+        } else {
+          ctx.strokeStyle = "purple";
+        }
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 5, 0, 2 * Math.PI);
+        ctx.stroke();
+      });
+    }
+  });
+  ctx.strokeStyle = "black";
+
+  ctx.beginPath();
+  ctx.arc(px, py, 5,0,2*Math.PI);
+  ctx.stroke();
+}, 10);
+
+*/
 var WorldGenerators;
 (function (WorldGenerators) {
     var PerlinPerlinGenerator = (function () {
@@ -811,7 +998,7 @@ var WorldGenerators;
             return low_wavelength_value * (1 - wavelength_coef) + high_wavelength_value * wavelength_coef;
         };
         return PerlinPerlinGenerator;
-    })();
+    }());
     WorldGenerators.PerlinPerlinGenerator = PerlinPerlinGenerator;
     var PerlinGenerator = (function () {
         function PerlinGenerator(height) {
@@ -976,141 +1163,10 @@ var WorldGenerators;
             this.setPersistance(Math.random() / 2);
         };
         return PerlinGenerator;
-    })();
+    }());
     WorldGenerators.PerlinGenerator = PerlinGenerator;
 })(WorldGenerators || (WorldGenerators = {}));
-var WorldBuilder;
-(function (WorldBuilder) {
-    var Build1 = (function () {
-        function Build1(physics) {
-            this.xoffset = 0;
-            this.screenWidth = 1280;
-            this.screenHeight = 1080;
-            this.physics = physics;
-            this.physics.setAcceleration(function (x, y) {
-                //return new Vector(-1*(x-canvas.width/2),-1*(y-canvas.width/2)).divided(1000);
-                return new Vector(0, .02);
-            });
-            this.keyHandler = new KeyHandler(document);
-            this.mouseHandler = new MouseHandler(document);
-            this.sounds = [];
-            this.perlin = new WorldGenerators.PerlinPerlinGenerator(1080);
-            this.x = 0;
-            this.y = 0;
-            this.build();
-        }
-        Build1.prototype.setPhysics = function (physics) {
-            this.physics = physics;
-        };
-        Build1.prototype.getSurfaces = function () {
-            return [];
-        };
-        Build1.prototype.getObjects = function () {
-            return [];
-        };
-        Build1.prototype.setLevel = function (x, y) {
-            var self = this;
-            //self.perlin.setSeed((x >> 32) + y);
-            if (self.x > x)
-                self.xoffset -= this.screenWidth;
-            else
-                self.xoffset += this.screenWidth;
-            self.build();
-            self.x = x;
-            self.y = y;
-            return self;
-        };
-        Build1.prototype.playSound = function (sound, vol) {
-            if (!this.sounds[sound]) {
-                this.sounds[sound] = new Audio('sounds/' + sound);
-            }
-            this.sounds[sound].volume = vol;
-            this.sounds[sound].play();
-        };
-        Build1.prototype.getHeightAt = function (x) {
-            return this.perlin.getHeightAt(x + this.xoffset);
-        };
-        Build1.prototype.drawLevel = function () {
-            var self = this;
-            var lastStroke = new Vector(0, 0);
-            var moveTo = function (x, y) {
-                lastStroke = new Vector(x, y);
-            };
-            var strokeTo = function (x, y) {
-                var vec = new Vector(x, y);
-                self.physics.addStatic(new Physics.LineSegment(lastStroke, vec));
-                lastStroke = vec;
-            };
-            var dirt = new Physics.Material(0, "black", function (vol) {
-                if (vol < .05)
-                    vol *= vol;
-                vol = Math.min(vol, 1);
-                var sounds = ["Percussive Elements-06.wav",
-                    "Percussive Elements-04.wav",
-                    "Percussive Elements-05.wav"
-                ];
-                var i = Math.floor(Math.random() * Math.random() * Math.random() * sounds.length);
-                // self.playSound(sounds[i], vol);
-            }, function (x, y) {
-                return 0.01;
-            });
-            if (!self.player) {
-                self.player = new Entity.Player(new Vector(413, 0), 10, new Vector(0, 0));
-            }
-            self.physics.setMaterial(dirt);
-            moveTo(-1 * self.player.width(), this.screenHeight - self.getHeightAt(-1 * self.player.width()));
-            for (var x = -1 * self.player.width(); x <= this.screenWidth + self.player.width(); x++) {
-                strokeTo(x, this.screenHeight - self.getHeightAt(x));
-            }
-        };
-        Build1.prototype.drawTriggers = function () {
-            var self = this;
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(0, -10000), new Vector(0, 10000), function () {
-                if (self.player.speed.x < 0) {
-                    self.setLevel(self.x - 1, 0);
-                    self.player.position.x = self.screenWidth;
-                }
-            }));
-            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(this.screenWidth, -10000), new Vector(this.screenWidth, 10000), function () {
-                if (self.player.speed.x > 0) {
-                    self.setLevel(self.x + 1, 0);
-                    self.player.position.x = -.5 * self.player.width();
-                }
-            }));
-        };
-        Build1.prototype.build = function () {
-            this.physics.clearAll();
-            this.drawLevel();
-            this.drawTriggers();
-            this.physics.addDynamic(this.player);
-            this.physics.setAcceleration(function (x, y) {
-                return new Vector(0, .02);
-            });
-        };
-        Build1.prototype.step = function () {
-            var ddx = 0, ddy = 0;
-            if (this.keyHandler.isDown('A') && this.player.speed.x > -4) {
-                ddx -= 0.03;
-            }
-            if (this.keyHandler.isDown('D') && this.player.speed.x < 4) {
-                ddx += 0.03;
-            }
-            if (this.keyHandler.isDown('S')) {
-                ddy += 0.03;
-            }
-            if (this.keyHandler.isDown('W')) {
-                ddy -= 0.01;
-            }
-            this.player.setAcceleration(function (x, y) {
-                return new Vector(ddx, ddy);
-            });
-        };
-        return Build1;
-    })();
-    WorldBuilder.Build1 = Build1;
-})(WorldBuilder || (WorldBuilder = {}));
 /*Running*/
-var canvas = document.getElementById("draw");
 var MouseHandler = (function () {
     function MouseHandler(element) {
         this.element = element;
@@ -1152,7 +1208,7 @@ var MouseHandler = (function () {
         return this.mouseDown;
     };
     return MouseHandler;
-})();
+}());
 var KeyHandler = (function () {
     function KeyHandler(element) {
         this.element = element;
@@ -1171,36 +1227,301 @@ var KeyHandler = (function () {
         return this.keysDown[char];
     };
     return KeyHandler;
-})();
-/*Running*/
-var Runner = (function () {
-    function Runner(id) {
-        var _this = this;
-        this.canvasDOM = document.getElementById(id);
-        this.ctx = this.canvasDOM.getContext("2d");
-        this.canvasDOM.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-        this.canvasDOM.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-        this.canvasDOM.width = 1280;
-        this.canvasDOM.height = 1080;
-        // this.canvasDOM.width = screen.width;
-        // this.canvasDOM.height = screen.height;
-        this.world = new WorldGenerators.PerlinGenerator(this.canvasDOM.height);
-        this.plants = new Graphics.Plant();
-        this.physics = new Physics();
-        this.builder = new WorldBuilder.Build1(this.physics);
-        this.plants.setLength(25).setIterations(3);
-        this.mouse = new MouseHandler(canvas);
-        var self = this;
-        var draw = function () {
-            self.builder.step();
-            self.physics.drawPhysics(self.ctx);
-            window.requestAnimationFrame(draw);
+}());
+var WorldBuilder;
+(function (WorldBuilder) {
+    var Build1 = (function () {
+        function Build1(physics) {
+            this.xoffset = 0;
+            this.screenWidth = 1280;
+            this.screenHeight = 1080;
+            this.physics = physics;
+            this.physics.setAcceleration(function (x, y) {
+                //return new Vector(-1*(x-canvas.width/2),-1*(y-canvas.width/2)).divided(1000);
+                return new Vector(0, .02);
+            });
+            this.keyHandler = new KeyHandler(document);
+            this.sounds = [];
+            this.perlin = new WorldGenerators.PerlinPerlinGenerator(1080);
+            this.x = 0;
+            this.y = 0;
+            this.build();
+        }
+        Build1.prototype.setPhysics = function (physics) {
+            this.physics = physics;
         };
-        draw();
-        setInterval(function () {
-            _this.physics.stepPhysics();
-        }, 10);
+        Build1.prototype.setLevel = function (x, y) {
+            var self = this;
+            //self.perlin.setSeed((x >> 32) + y);
+            if (self.x > x)
+                self.xoffset -= this.screenWidth;
+            else
+                self.xoffset += this.screenWidth;
+            self.build();
+            self.x = x;
+            self.y = y;
+            return self;
+        };
+        Build1.prototype.playSound = function (sound, vol) {
+            if (!this.sounds[sound]) {
+                this.sounds[sound] = new Audio('sounds/' + sound);
+            }
+            this.sounds[sound].volume = vol;
+            this.sounds[sound].play();
+        };
+        Build1.prototype.getHeightAt = function (x) {
+            return this.perlin.getHeightAt(x + this.xoffset);
+        };
+        Build1.prototype.drawLevel = function () {
+            var self = this;
+            var lastStroke = new Vector(0, 0);
+            var moveTo = function (x, y) {
+                lastStroke = new Vector(x, y);
+            };
+            var strokeTo = function (x, y) {
+                var vec = new Vector(x, y);
+                self.physics.addStaticLineSegment(new Physics.StaticLineSegment(lastStroke, vec));
+                lastStroke = vec;
+            };
+            var dirt = new Physics.Material(0, "black", function (vol) {
+                if (vol < .05)
+                    vol *= vol;
+                vol = Math.min(vol, 1);
+                var sounds = ["Percussive Elements-06.wav",
+                    "Percussive Elements-04.wav",
+                    "Percussive Elements-05.wav"
+                ];
+                var i = Math.floor(Math.random() * Math.random() * Math.random() * sounds.length);
+                // self.playSound(sounds[i], vol);
+            }, function (x, y) {
+                return 0.01;
+            });
+            if (!self.player) {
+                self.player = new Player(new Vector(413, 0), 10, new Vector(0, 0));
+            }
+            self.physics.setMaterial(dirt);
+            moveTo(-1 * self.player.width(), this.screenHeight - self.getHeightAt(-1 * self.player.width()));
+            for (var x = -1 * self.player.width(); x <= this.screenWidth + self.player.width(); x++) {
+                strokeTo(x, this.screenHeight - self.getHeightAt(x));
+            }
+        };
+        Build1.prototype.drawTriggers = function () {
+            var self = this;
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(0, -10000), new Vector(0, 10000), function () {
+                if (self.player.speed.x < 0) {
+                    self.setLevel(self.x - 1, 0);
+                    self.player.position.x = self.screenWidth;
+                }
+            }));
+            self.physics.addTrigger(new Physics.TriggerLineSegment(new Vector(this.screenWidth, -10000), new Vector(this.screenWidth, 10000), function () {
+                if (self.player.speed.x > 0) {
+                    self.setLevel(self.x + 1, 0);
+                    self.player.position.x = -.5 * self.player.width();
+                }
+            }));
+        };
+        Build1.prototype.build = function () {
+            this.physics.clearAll();
+            this.drawLevel();
+            this.drawTriggers();
+            this.physics.addDynamic(this.player);
+            this.physics.setAcceleration(function (x, y) {
+                return new Vector(0, .02);
+            });
+        };
+        Build1.prototype.step = function () { };
+        return Build1;
+    }());
+    WorldBuilder.Build1 = Build1;
+})(WorldBuilder || (WorldBuilder = {}));
+var Player = (function (_super) {
+    __extends(Player, _super);
+    function Player(position, radius, speed) {
+        var _this = _super.call(this, position, radius, speed) || this;
+        _this.keyHandler = new KeyHandler(document);
+        return _this;
     }
-    return Runner;
-})();
+    Player.prototype.step = function () {
+        var A = this.keyHandler.isDown('A');
+        var D = this.keyHandler.isDown('D');
+        var S = this.keyHandler.isDown('S');
+        var W = this.keyHandler.isDown('W');
+        var ddx = 0, ddy = 0;
+        if (A && !D) {
+            ddx = -1;
+        }
+        else if (D && !A) {
+            ddx = 1;
+        }
+        else {
+            ddx = 0;
+        }
+        if (S && !W) {
+            ddy = 1;
+        }
+        else if (W && !S) {
+            ddy = -1;
+        }
+        else {
+            ddy = 0;
+        }
+        this.speed = new Vector(ddx, ddy).unit().times(2);
+    };
+    return Player;
+}(Physics.DynamicBall));
+var NullState = (function () {
+    function NullState() {
+    }
+    NullState.prototype.weight = function (pt) {
+        return 0;
+    };
+    return NullState;
+}());
+var IsolationState = (function () {
+    function IsolationState() {
+    }
+    IsolationState.prototype.weight = function (pt) {
+        var player = WorldInfo.player.position;
+        if (WorldInfo.physics.lineOfSight(new LineSegment(pt, player))) {
+            return 0;
+        }
+        else {
+            return pt.distanceToSquared(player);
+        }
+    };
+    return IsolationState;
+}());
+var AI = (function (_super) {
+    __extends(AI, _super);
+    function AI(p, r, s) {
+        var _this = _super.call(this, p, r, s) || this;
+        _this.state = new IsolationState();
+        _this.path = [p];
+        return _this;
+    }
+    AI.prototype.update_path = function () {
+        var options = [];
+        var self = this;
+        WorldInfo.mesh.neighbors(this.path[0], 7).forEach(function (pt) {
+            var weight = self.state.weight(pt);
+            options.push([weight, pt]);
+        });
+        options.sort(function (a, b) { return b[0] - a[0]; });
+        var objective = options[0][1];
+        //BFS
+        var successor = new VectorMap();
+        var touched = new VectorSet();
+        var queue = [];
+        touched.add(this.path[0]);
+        queue.push(this.path[0]);
+        var _loop_2 = function () {
+            var current = queue.shift();
+            if (current.equals(objective)) {
+                return "break";
+            }
+            WorldInfo.mesh.adjacent(current).forEach(function (n) {
+                if (touched.has(n))
+                    return;
+                touched.add(n);
+                successor.map(n, current);
+                queue.push(n);
+            });
+        };
+        while (queue.length !== 0) {
+            var state_1 = _loop_2();
+            if (state_1 === "break")
+                break;
+        }
+        /*
+        let r = "";
+        successor.spread().forEach((a) => {r += "" + a.x + "," + a.y + ":" + successor.at(a).x + "," + successor.at(a).y + "\n"});
+        console.log(objective.x + "," + objective.y + "\n" + r);
+       */
+        var path = [];
+        for (var i = objective; i !== this.path[0]; i = successor.at(i)) {
+            if (!i)
+                break;
+            path.push(i);
+        }
+        console.log(JSON.stringify(path));
+        this.path = [options[0][1]];
+    };
+    AI.prototype.step = function () {
+        var objective = this.path[0];
+        var d = objective.minus(this.position);
+        this.speed = d.clampTo(1);
+        this.update_path();
+        if (this.position.distanceTo(objective) < 1) {
+            if (this.path.length > 1)
+                this.path.shift();
+        }
+    };
+    return AI;
+}(Physics.DynamicBall));
+//
+//var contour = [
+//        new poly2tri.Point(100, 100),
+//        new poly2tri.Point(100, 300),
+//        new poly2tri.Point(300, 300),
+//        new poly2tri.Point(300, 100)
+//];
+//var swctx = new poly2tri.SweepContext(contour);
+//swctx.triangulate();
+//var triangles = swctx.getTriangles();
+//triangles.forEach(function(t) {
+//    t.getPoints().forEach(function(p) {
+//        console.log(p.x, p.y);
+//    });
+//});
+//
+var WorldInfo = (function () {
+    function WorldInfo() {
+    }
+    return WorldInfo;
+}());
+var canvasDOM = document.createElement("canvas");
+document.body.appendChild(canvasDOM);
+var ctx = canvasDOM.getContext("2d");
+canvasDOM.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+canvasDOM.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+canvasDOM.width = 1280;
+canvasDOM.height = 1080;
+var physics = new Physics();
+physics.setAcceleration(function (x, y) { return new Vector(0, 0); });
+var player = new Player(new Vector(100, 100), 10, new Vector(0, 0));
+physics.addDynamic(player);
+var ai = new AI(new Vector(360, 360), 10, new Vector(0, 0));
+physics.addDynamic(ai);
+physics.addStaticLineSegment(new Physics.StaticLineSegment(new Vector(0, 0), new Vector(0, 500)));
+physics.addStaticLineSegment(new Physics.StaticLineSegment(new Vector(0, 500), new Vector(500, 500)));
+physics.addStaticLineSegment(new Physics.StaticLineSegment(new Vector(500, 500), new Vector(500, 0)));
+physics.addStaticLineSegment(new Physics.StaticLineSegment(new Vector(500, 0), new Vector(0, 0)));
+physics.addStaticLineSegment(new Physics.StaticLineSegment(new Vector(400, 370), new Vector(400, 400)));
+physics.addStaticLineSegment(new Physics.StaticLineSegment(new Vector(370, 370), new Vector(400, 370)));
+physics.addStaticLineSegment(new Physics.StaticLineSegment(new Vector(370, 400), new Vector(370, 370)));
+physics.addStaticLineSegment(new Physics.StaticLineSegment(new Vector(400, 400), new Vector(370, 400)));
+physics.addStaticLineSegment(new Physics.StaticLineSegment(new Vector(200, 300), new Vector(300, 200)));
+var entities = [player, ai];
+var mouse = new MouseHandler(canvasDOM);
+WorldInfo.physics = physics;
+WorldInfo.player = player;
+WorldInfo.entities = entities;
+WorldInfo.mesh = new NonintersectingFiniteGridNavigationMesh(20, 0, 500, 0, 500, WorldInfo.physics);
+var draw = function () {
+    ctx.clearRect(0, 0, canvasDOM.width, canvasDOM.height);
+    ctx.fillRect(ai.path[0].x, ai.path[0].y, 10, 10);
+    WorldInfo.mesh.neighbors(ai.path[0], 7).forEach(function (vertex) {
+        ctx.fillRect(vertex.x, vertex.y, 5, 5);
+    });
+    physics.drawPhysics(ctx);
+    window.requestAnimationFrame(draw);
+};
+draw();
+setInterval(function () {
+    entities.forEach(function (entity) {
+        entity.step();
+    });
+    physics.stepPhysics();
+}, 10);
+//const r = new Runner();
 //# sourceMappingURL=out.js.map

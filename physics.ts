@@ -9,7 +9,6 @@ class Physics {
 
     private currentMaterial: Physics.Material;
     private debug: boolean;
-    private debugCtx: any;
     private debugVectorScalar: number;
     private debugLines: any;
     private friction: (x: number, y: number) => number;
@@ -27,8 +26,6 @@ class Physics {
         this.timestamp = [];
 
         this.debug = true;
-        var canvas = <HTMLCanvasElement>document.getElementById("draw");
-        this.debugCtx = canvas.getContext("2d");
         this.debugVectorScalar = 100;
         this.debugLines = [];
 
@@ -38,7 +35,6 @@ class Physics {
         this.friction = function(x, y) {
             return 0.01;
         }
-
     }
 
     public clearAll() {
@@ -56,8 +52,8 @@ class Physics {
         this.currentMaterial = material;
     }
 
-    public static polygon(x: number, y: number, r: number, numSides: number) {
-        var sides = [];
+    public static polygon(x: number, y: number, r: number, numSides: number):LineSegment[]{
+        var sides:LineSegment[] = [];
 
         var last_theta = (1 - 1 / numSides) * Math.PI * 2,
             last_x0 = Math.cos(last_theta) * r,
@@ -66,7 +62,7 @@ class Physics {
             var theta = (i / numSides) * Math.PI * 2;
             var x0 = Math.cos(theta) * r;
             var y0 = Math.sin(theta) * r;
-            sides.push(new Physics.LineSegment(new Vector(last_x0, last_y0), new Vector(x0, y0)));
+            sides.push(new LineSegment(new Vector(last_x0, last_y0), new Vector(x0, y0)));
             last_theta = theta;
             last_x0 = x0;
             last_y0 = y0;
@@ -75,7 +71,7 @@ class Physics {
     }
 
 
-    public addStatic(stat: Physics.Static) {
+    public addStaticLineSegment(stat: Physics.StaticLineSegment) {
         stat.material = this.currentMaterial;
         this.statics.push(stat);
     }
@@ -116,6 +112,26 @@ class Physics {
         this.acceleration = fn;
     }
 
+    public lineOfSight(segment:LineSegment):boolean{
+        for(let i=0;i<this.statics.length;i++){
+            const stat_seg = this.statics[i];
+            if(Physics.intersectSegSeg(segment, stat_seg)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public lineOfSightDistance(segment:LineSegment, distance:number):boolean{
+        for(let i=0;i<this.statics.length;i++){
+            const stat_seg = this.statics[i];
+            if(Physics.intersectSegSegDist(segment, stat_seg, distance)){
+                return false;
+            }
+        }
+        return true;
+    }
+
     private processTriggers() {
         var self = this;
         self.triggers.forEach(function(trigger) {
@@ -148,7 +164,7 @@ class Physics {
         });
     }
 
-    private resolveCollision(dynamic, stat){
+    private resolveCollision(dynamic:Physics.DynamicBall, stat:Physics.StaticLineSegment){
         var self = this;
 
         var v0 = stat.v0;
@@ -167,6 +183,9 @@ class Physics {
 
         var overlapVector = projectedVector.minus(dynamic.position).unitTimes(overlap);
 
+        if(overlapVector.x*-originStatic.y + overlapVector.y*originStatic.x < 0)
+            return null;
+
         var projectedSpeed = VectorMath.projectScalar(dynamic.speed, originStatic);
         var projectedSpeedVector = VectorMath.projectVector(dynamic.speed, originStatic);
         var rejectedSpeedVector = dynamic.speed.minus(projectedSpeedVector);
@@ -183,21 +202,21 @@ class Physics {
                 y0: dynamic.position.y,
                 x1: overlapVector.times(100).plus(dynamic.position).x,
                 y1: overlapVector.times(100).plus(dynamic.position).y,
-                color: "rgba(0,0,255,.5)"
+                color: "green"
             });
             this.debugLines.push({
                 x0: dynamic.position.x,
                 y0: dynamic.position.y,
                 x1: rejectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
                 y1: rejectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
-                color: "rgba(255,0,0,.5)"
+                color: "yellow"
             });
             this.debugLines.push({
                 x0: dynamic.position.x,
                 y0: dynamic.position.y,
                 x1: projectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
                 y1: projectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
-                color: "rgba(0,255,0,.5)"
+                color: "purple"
             });
         }
 
@@ -209,7 +228,7 @@ class Physics {
         dynamic.speed.timesEquals(1 - stat.material.friction(dynamic.position.x, dynamic.position.y));
     }
 
-    private processDynamics(){
+    private processDynamics():void{
         var self = this;
 
         self.dynamics.forEach(function(dynamic) {
@@ -247,7 +266,7 @@ class Physics {
         });
     }
 
-    public stepPhysics() {
+    public stepPhysics():void {
         /**
          * 1 move all dynamics according to level rules. This includes momentum, friction, and other forces
          * 2 check for dynamic on static collisions
@@ -262,12 +281,11 @@ class Physics {
         this.timestamp++;
     }
 
-    public drawPhysics(ctx) {
+    public drawPhysics(ctx:CanvasRenderingContext2D):void {
         var self = this;
 
         var canvas = <HTMLCanvasElement>ctx.canvas;
         ctx.fillStyle = "rgba(255,255,255,.01)";
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         for (var i = 0; i < this.statics.length; i++) {
             var v = this.statics[i];
@@ -343,8 +361,7 @@ class Physics {
         }
     }
 
-
-    public static intersectSegBall(seg, ball) {
+    public static intersectSegBall(seg:LineSegment, ball:Ball):boolean{
         //http://stackoverflow.com/questions/1073336/circle-line-segment-collision-detection-algorithm
         var d = seg.v1.minus(seg.v0),
             f = seg.v0.minus(ball.position),
@@ -356,6 +373,7 @@ class Physics {
 
         if (discriminant < 0) {
             // no intersection
+            return false;
         } else {
             discriminant = Math.sqrt(discriminant);
             var t1 = (-b - discriminant) / (2 * a),
@@ -369,11 +387,52 @@ class Physics {
             return false;
         }
     }
+
+    /** Returns true iff seg0 and seg1 are within distance of each other.
+     *
+     */
+    public static intersectSegSegDist(seg0:LineSegment, seg1:LineSegment, distance:number):boolean{
+        if(Physics.intersectSegBall(seg0, new Ball(seg1.v0, distance))) return true;
+        if(Physics.intersectSegBall(seg0, new Ball(seg1.v1, distance))) return true;
+        if(Physics.intersectSegBall(seg1, new Ball(seg0.v0, distance))) return true;
+        if(Physics.intersectSegBall(seg1, new Ball(seg0.v1, distance))) return true;
+        return false;
+    }
+
+    private static onSeg(seg:LineSegment, q:Vector){
+        //http://www.cdn.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
+        const p = seg.v0;
+        const r = seg.v1;
+        if(q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
+           q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y))
+            return true;
+        return false;
+    }
+
+    private static orientation(p: Vector, q: Vector, r: Vector){
+        const val = (q.y - p.y) * (r.x - q.x) -
+            (q.x - p.x) * (r.y - q.y);
+        if(val === 0) return 0;
+        return (val > 0)? 1:2;
+    }
+
+    public static intersectSegSeg(seg0:LineSegment, seg1:LineSegment):boolean{
+        const o1 = Physics.orientation(seg0.v0, seg0.v1, seg1.v0);
+        const o2 = Physics.orientation(seg0.v0, seg0.v1, seg1.v1);
+        const o3 = Physics.orientation(seg1.v0, seg1.v1, seg0.v0);
+        const o4 = Physics.orientation(seg1.v0, seg1.v1, seg0.v1);
+
+        if(o1 !== o2 && o3 !== o4) return true;
+
+        if(o1 == 0 && Physics.onSeg(seg0, seg1.v0)) return true;
+        if(o2 == 0 && Physics.onSeg(seg0, seg1.v1)) return true;
+        if(o1 == 0 && Physics.onSeg(seg1, seg0.v0)) return true;
+        if(o1 == 0 && Physics.onSeg(seg1, seg0.v1)) return true;
+        return false;
+    }
 }
 module Physics {
-    export interface Static {
-        v0: Vector;
-        v1: Vector;
+    export class StaticLineSegment extends LineSegment{
         material: Physics.Material;
     }
 
@@ -410,29 +469,6 @@ module Physics {
             return new Physics.Material(0, "black", (vol: number) => void {}, function(x,y){
                 return 0.01;
             });
-        }
-    }
-
-    export class LineSegment {
-        v0: Vector;
-        v1: Vector;
-        material: Physics.Material;
-        constructor(v0: Vector, v1: Vector) {
-            this.v0 = v0;
-            this.v1 = v1;
-        }
-    }
-
-    export class Ball {
-        position: any;
-        r: any;
-
-        constructor(position: Vector, r: number) {
-            if (!r) {
-                throw "Radius should be number > 0";
-            }
-            this.position = position;
-            this.r = r;
         }
     }
 
@@ -479,10 +515,6 @@ module Physics {
         }
     }
 
-    export class Attractor implements Physics.Static{
-
-    }
-
     export class Flapper implements Physics.Fixed{
         public position: Vector;
         up: boolean;
@@ -519,9 +551,9 @@ module Physics {
             for (var i = 2; i < this.structure.length; i += 2) {
                 var v0 = new Vector(this.structure[i - 2] + position.x, this.structure[i - 1] + position.y),
                     v1 = new Vector(this.structure[i] + position.x, this.structure[i + 1] + position.y),
-                    segment = new Physics.LineSegment(v0, v1);
+                    segment = new Physics.StaticLineSegment(v0, v1);
                 segment.material = this.material;
-                this.segments.push(new Physics.LineSegment(v0, v1));
+                this.segments.push(segment);
             }
         }
 
@@ -562,9 +594,9 @@ module Physics {
                     .rotate(this.angle * Math.PI, this.position);
                 var v1 = new Vector(this.structure[i] + this.position.x, this.structure[i + 1] + this.position.y)
                     .rotate(this.angle * Math.PI, this.position);
-                var segment = new Physics.LineSegment(v0, v1);
+                var segment = new StaticLineSegment(v0, v1);
                 segment.material = this.material;
-                this.segments.push(new Physics.LineSegment(v0, v1));
+                this.segments.push(segment);
             }
         }
     }
