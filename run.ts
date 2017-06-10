@@ -62,9 +62,18 @@ WorldInfo.mesh = new NonintersectingFiniteGridNavigationMesh(20, 0, 500, 0, 500,
 
 const draw = () => {
     ctx.clearRect(0, 0, canvasDOM.width, canvasDOM.height);
-    ctx.fillRect(ai.path[0].x, ai.path[0].y, 10, 10);
 
-    WorldInfo.mesh.neighbors(ai.path[0], 7).forEach(function(vertex){
+    ctx.fillStyle = "orange";
+    WorldInfo.mesh.neighbors(ai.target(), 7).forEach(function(vertex){
+        ctx.fillRect(vertex.x, vertex.y, 5, 5);
+    });
+
+    ctx.fillStyle = "purple";
+    ctx.fillRect(ai.objective().x, ai.objective().y, 10, 10);
+    ctx.fillStyle = "green";
+    ctx.fillRect(ai.target().x, ai.target().y, 10, 10);
+    ctx.fillStyle = "red";
+    ai.path.forEach(function(vertex){
         ctx.fillRect(vertex.x, vertex.y, 5, 5);
     });
 	physics.drawPhysics(ctx);

@@ -68,7 +68,7 @@ class AI extends Physics.DynamicBall{
     update_path(){
         const options:[number, Vector][] = [];
         const self = this;
-        WorldInfo.mesh.neighbors(this.path[0], 7).forEach(
+        WorldInfo.mesh.neighbors(this.target(), 7).forEach(
             (pt:Vector) => {
                 const weight = self.state.weight(pt);
                 options.push([weight, pt]);
@@ -82,8 +82,8 @@ class AI extends Physics.DynamicBall{
         const touched:VectorSet = new VectorSet();
         const queue:Vector[] = [];
 
-        touched.add(this.path[0]);
-        queue.push(this.path[0]);
+        touched.add(this.target());
+        queue.push(this.target());
 
         while(queue.length !== 0){
             const current = queue.shift();
@@ -104,23 +104,36 @@ class AI extends Physics.DynamicBall{
         }
 
         const path = [];
-        for(let i=objective;i!==this.path[0];i=successor.at(i)){
+        for(let i=objective;i!==this.target();i=successor.at(i)){
             if(!i)break;
             path.push(i);
         }
-        console.log(JSON.stringify(path));
-        this.path = [options[0][1]];
+        path.push(this.target());
+        this.path = path;
+    }
+
+    target() : Vector{
+        return this.path[this.path.length-1];
+    }
+
+    objective() : Vector{
+        return this.path[0];
+    }
+    
+    change_state(){
+
     }
 
     step(){
-        const objective = this.path[0];
+        this.update_path();
+
+        const objective = this.target();
         
         const d = objective.minus(this.position);
         this.speed = d.clampTo(1);
 
-        this.update_path();
-        if(this.position.distanceTo(objective) < 1){
-            if(this.path.length > 1) this.path.shift();
-        }
+        if(this.position.distanceTo(objective) < 1)
+            if(this.path.length > 1) this.path.pop();
+            else this.change_state();
     }
 }

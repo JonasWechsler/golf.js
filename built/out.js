@@ -567,6 +567,8 @@ var Physics = (function () {
             return true;
         if (Physics.intersectSegBall(seg1, new Ball(seg0.v1, distance)))
             return true;
+        if (Physics.intersectSegSeg(seg0, seg1))
+            return true;
         return false;
     };
     Physics.onSeg = function (seg, q) {
@@ -1402,7 +1404,7 @@ var AI = (function (_super) {
     AI.prototype.update_path = function () {
         var options = [];
         var self = this;
-        WorldInfo.mesh.neighbors(this.path[0], 7).forEach(function (pt) {
+        WorldInfo.mesh.neighbors(this.target(), 7).forEach(function (pt) {
             var weight = self.state.weight(pt);
             options.push([weight, pt]);
         });
@@ -1412,8 +1414,8 @@ var AI = (function (_super) {
         var successor = new VectorMap();
         var touched = new VectorSet();
         var queue = [];
-        touched.add(this.path[0]);
-        queue.push(this.path[0]);
+        touched.add(this.target());
+        queue.push(this.target());
         var _loop_2 = function () {
             var current = queue.shift();
             if (current.equals(objective)) {
@@ -1432,29 +1434,29 @@ var AI = (function (_super) {
             if (state_1 === "break")
                 break;
         }
-        /*
-        let r = "";
-        successor.spread().forEach((a) => {r += "" + a.x + "," + a.y + ":" + successor.at(a).x + "," + successor.at(a).y + "\n"});
-        console.log(objective.x + "," + objective.y + "\n" + r);
-       */
         var path = [];
-        for (var i = objective; i !== this.path[0]; i = successor.at(i)) {
+        for (var i = objective; i !== this.target(); i = successor.at(i)) {
             if (!i)
                 break;
             path.push(i);
         }
-        console.log(JSON.stringify(path));
-        this.path = [options[0][1]];
+        path.push(this.target());
+        this.path = path;
+    };
+    AI.prototype.target = function () {
+        return this.path[this.path.length - 1];
+    };
+    AI.prototype.objective = function () {
+        return this.path[0];
     };
     AI.prototype.step = function () {
-        var objective = this.path[0];
+        this.update_path();
+        var objective = this.target();
         var d = objective.minus(this.position);
         this.speed = d.clampTo(1);
-        this.update_path();
-        if (this.position.distanceTo(objective) < 1) {
+        if (this.position.distanceTo(objective) < 1)
             if (this.path.length > 1)
-                this.path.shift();
-        }
+                this.path.pop();
     };
     return AI;
 }(Physics.DynamicBall));
@@ -1509,8 +1511,16 @@ WorldInfo.entities = entities;
 WorldInfo.mesh = new NonintersectingFiniteGridNavigationMesh(20, 0, 500, 0, 500, WorldInfo.physics);
 var draw = function () {
     ctx.clearRect(0, 0, canvasDOM.width, canvasDOM.height);
-    ctx.fillRect(ai.path[0].x, ai.path[0].y, 10, 10);
-    WorldInfo.mesh.neighbors(ai.path[0], 7).forEach(function (vertex) {
+    ctx.fillStyle = "orange";
+    WorldInfo.mesh.neighbors(ai.target(), 7).forEach(function (vertex) {
+        ctx.fillRect(vertex.x, vertex.y, 5, 5);
+    });
+    ctx.fillStyle = "purple";
+    ctx.fillRect(ai.objective().x, ai.objective().y, 10, 10);
+    ctx.fillStyle = "green";
+    ctx.fillRect(ai.target().x, ai.target().y, 10, 10);
+    ctx.fillStyle = "red";
+    ai.path.forEach(function (vertex) {
         ctx.fillRect(vertex.x, vertex.y, 5, 5);
     });
     physics.drawPhysics(ctx);

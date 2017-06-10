@@ -396,6 +396,7 @@ class Physics {
         if(Physics.intersectSegBall(seg0, new Ball(seg1.v1, distance))) return true;
         if(Physics.intersectSegBall(seg1, new Ball(seg0.v0, distance))) return true;
         if(Physics.intersectSegBall(seg1, new Ball(seg0.v1, distance))) return true;
+        if(Physics.intersectSegSeg(seg0, seg1)) return true;
         return false;
     }
 
