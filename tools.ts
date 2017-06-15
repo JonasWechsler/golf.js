@@ -2,6 +2,26 @@ interface Error{
   stack?: string;
 }
 
+function cantorPairing(x:number, y:number){
+    return .5*(x+y)*(x+y+1)+y;
+}
+
+function disableImageSmoothing(context: CanvasRenderingContext2D){
+    let ctx: any = context;
+    ctx.mozImageSmoothingEnabled = false;
+    ctx.webkitImageSmoothingEnabled = false;
+    ctx.msImageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = false;
+}
+
+function enableImageSmoothing(context: CanvasRenderingContext2D){
+    let ctx: any = context;
+    ctx.mozImageSmoothingEnabled = true;
+    ctx.webkitImageSmoothingEnabled = true;
+    ctx.msImageSmoothingEnabled = true;
+    ctx.imageSmoothingEnabled = true;
+}
+
 /*Tools*/
 type Quantity = Vector | Point | number;
 

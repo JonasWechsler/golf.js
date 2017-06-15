@@ -17,19 +17,13 @@
 
 class WorldInfo{
     static player: Player;
-    static entities: Entity[];
     static physics: Physics;
     static mesh: NavigationMesh;
+    static camera: Camera;
 }
 
-const canvasDOM = document.createElement("canvas");
-document.body.appendChild(canvasDOM);
-const ctx = canvasDOM.getContext("2d");
-
-canvasDOM.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-canvasDOM.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-canvasDOM.width = 1280;
-canvasDOM.height = 1080;
+KeyInfo.setup();
+MouseInfo.setup();
 
 const physics = new Physics();
 physics.setAcceleration((x, y) => { return new Vector(0, 0); });
@@ -51,20 +45,17 @@ physics.addStaticLineSegment(new Physics.StaticLineSegment(new Vector(400, 400),
 
 physics.addStaticLineSegment(new Physics.StaticLineSegment(new Vector(200, 300), new Vector(300, 200)));
 
-const entities: Entity[] = [player, ai];
-
-const mouse = new MouseHandler(canvasDOM);
-
 WorldInfo.physics = physics;
 WorldInfo.player = player;
-WorldInfo.entities = entities;
 WorldInfo.mesh = new NonintersectingFiniteGridNavigationMesh(20, 0, 500, 0, 500, WorldInfo.physics);
 
+/*
 const draw = () => {
     ctx.clearRect(0, 0, canvasDOM.width, canvasDOM.height);
 
     ctx.fillStyle = "orange";
-    WorldInfo.mesh.neighbors(ai.target(), 7).forEach(function(vertex){
+    WorldInfo.mesh.neighbors(ai.target(), 20).forEach(function(vertex){
+        ctx.fillStyle = ai.state.weight(vertex)?"orange":"black";
         ctx.fillRect(vertex.x, vertex.y, 5, 5);
     });
 
@@ -80,16 +71,19 @@ const draw = () => {
 
 	window.requestAnimationFrame(draw);
 }
+*/
 
-draw();
+DOMManager.make_canvas();
 
-setInterval(() => {
-    entities.forEach((entity) => {
-        entity.step();
-    });
-	physics.stepPhysics();
-}, 10);
+const camera = new Camera(DOMManager.canvas.width*2, DOMManager.canvas.height*2);
+camera.add_render_object(physics);
+camera.follow(() => player.position);
 
+WorldInfo.camera = camera;
 
-
-//const r = new Runner();
+RenderManager.add_render_object(camera);
+RenderManager.add_time_listener(player);
+RenderManager.add_time_listener(ai);
+RenderManager.add_time_listener(physics);
+RenderManager.draw_loop();
+RenderManager.execute_loop();

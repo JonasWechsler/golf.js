@@ -9,9 +9,11 @@
        "tools.ts",
        "physics.ts",
        "navigationmesh.ts",
+       "dom.ts",
+       "camera.ts",
+       "inventory.ts",
        "generators.ts",
        "inputs.ts",
-       "worldbuilder.ts",
        "entity.ts",
         "lib/poly2tri.d.ts",
         "run.ts"

@@ -19,3 +19,10 @@
         * Offense (player is near)
         * Isolation (run away when player is near)
         * 
+
+TODO:
+
+1. Larger space
+2. Camera, panning, etc.
+3. Health?
+4. Projectiles?

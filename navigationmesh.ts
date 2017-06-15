@@ -2,6 +2,7 @@ abstract class NavigationMesh{
     abstract adjacent(p: Vector): Vector[];
     abstract get_vertices(): Vector[];
 
+    neighbor_cache: VectorMap<Vector[]> = new VectorMap<Vector[]>();
     neighbors(p: Vector, depth: number): Vector[]{
         let result: VectorMap<number> = new VectorMap<number>();
         const self = this;

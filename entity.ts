@@ -1,19 +1,54 @@
-interface Entity{
-    step():void;
+interface Killable{
+    damage(amt: number);
+    get_health():number;
 }
 
-class Player extends Physics.DynamicBall{
+class Projectile extends Physics.DynamicBall{
+    constructor(position:Vector, radius:number, speed:Vector){
+        super(position, radius, speed);
+    }
+    oncontact(object:Physics.PhysicsObject){
+        if(object instanceof Projectile)
+            return;
+        WorldInfo.physics.removeDynamic(this);
+    }
+}
+
+class Player extends Physics.DynamicBall implements Killable, MouseListener{
     private keyHandler : KeyHandler = new KeyHandler(document);
+    private health : number = 100;
 
 	constructor(position:Vector, radius:number, speed:Vector){
 		super(position, radius, speed);
+        MouseInfo.add_listener(this);
 	}
 
-    step(){
+    damage(amt: number){
+        this.health -= amt;
+    }
+
+    get_health():number{
+        return this.health;
+    }
+
+    onclick (x : number, y : number, which : number) : void{}
+    ondown (x : number, y : number, which : number) :void{
+        const mouse = WorldInfo.camera.screen_to_camera(x, y);
+        const speed:Vector = mouse.minus(this.position).unitTimes(20);
+        const position:Vector = this.position.clone().plus(this.speed).plus(speed);
+        const radius:number = 2;
+        const projectile:Projectile = new Projectile(position, radius, speed);
+        WorldInfo.physics.addDynamic(projectile);
+    }
+    onup (x : number, y : number, which : number) : void{}
+    onmove (x: number, y: number) : void {}
+
+    execute(){
         const A = this.keyHandler.isDown('A');
         const D = this.keyHandler.isDown('D');
         const S = this.keyHandler.isDown('S');
         const W = this.keyHandler.isDown('W');
+        const F = this.keyHandler.isDown('F');
 
         let ddx = 0, ddy = 0;
 
@@ -59,7 +94,7 @@ class IsolationState implements AIState{
 
 class AI extends Physics.DynamicBall{
     public path : Vector[];
-    private state : AIState = new IsolationState();
+    public state : AIState = new IsolationState();
     constructor(p:Vector, r:number, s:Vector){
         super(p, r, s);
         this.path = [p];
@@ -124,7 +159,7 @@ class AI extends Physics.DynamicBall{
 
     }
 
-    step(){
+    execute(){
         this.update_path();
 
         const objective = this.target();
