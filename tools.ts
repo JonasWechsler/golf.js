@@ -255,3 +255,19 @@ class VectorSet{
     return this.struc.has(p);
   }
 }
+
+class Square{
+    constructor(public left:number,
+                public top:number,
+                public width:number,
+                public height:number){}
+    
+    public contains(vector:Vector){
+        return (vector.x > this.left && vector.x < this.left + this.width) &&
+            (vector.y > this.top && vector.y < this.top + this.height);
+    }
+    
+    public contains_line(line:LineSegment){
+        return this.contains(line.v0) && this.contains(line.v1);
+    }
+}

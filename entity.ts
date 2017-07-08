@@ -1,6 +1,7 @@
 interface Killable{
     damage(amt: number);
     get_health():number;
+    get_max_health():number;
 }
 
 class Projectile extends Physics.DynamicBall{
@@ -14,14 +15,20 @@ class Projectile extends Physics.DynamicBall{
     }
 }
 
-class Player extends Physics.DynamicBall implements Killable, MouseListener{
-    private keyHandler : KeyHandler = new KeyHandler(document);
-    private health : number = 100;
+class Entity extends Physics.DynamicBall implements Killable, RenderObject{
+    private MAX_HEALTH : number = 5;
+    private health : number = this.MAX_HEALTH;
+    private renderer : Leech;
 
-	constructor(position:Vector, radius:number, speed:Vector){
-		super(position, radius, speed);
-        MouseInfo.add_listener(this);
-	}
+    constructor(p: Vector, r: number, speed:Vector){
+        super(p, r, speed);
+        this.renderer = new Leech(p, 10);
+    }
+
+    draw(ctx:CanvasRenderingContext2D){
+        this.renderer.move_to(this.position);
+        this.renderer.draw(ctx);
+    }
 
     damage(amt: number){
         this.health -= amt;
@@ -30,6 +37,25 @@ class Player extends Physics.DynamicBall implements Killable, MouseListener{
     get_health():number{
         return this.health;
     }
+
+    get_max_health():number{
+        return this.MAX_HEALTH;
+    }
+
+    oncontact(object:Physics.PhysicsObject){
+        if(object instanceof Projectile){
+            this.damage(1);
+        }
+    }
+}
+
+class Player extends Entity implements Killable, MouseListener{
+    private keyHandler : KeyHandler = new KeyHandler(document);
+
+	constructor(position:Vector, radius:number, speed:Vector){
+		super(position, radius, speed);
+        MouseInfo.add_listener(this);
+	}
 
     onclick (x : number, y : number, which : number) : void{}
     ondown (x : number, y : number, which : number) :void{
@@ -92,12 +118,14 @@ class IsolationState implements AIState{
     }
 }
 
-class AI extends Physics.DynamicBall{
+class AI extends Entity implements RenderObject{
     public path : Vector[];
     public state : AIState = new IsolationState();
+
     constructor(p:Vector, r:number, s:Vector){
         super(p, r, s);
         this.path = [p];
+
     }
 
     update_path(){

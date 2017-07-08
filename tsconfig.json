@@ -6,16 +6,19 @@
         "module": "system"
     }, 
     "files": [
+        "lib/d3-voronoi.d.ts",
        "tools.ts",
        "physics.ts",
        "navigationmesh.ts",
        "dom.ts",
+       "joints.ts",
        "camera.ts",
+       "worldinfo.ts",
        "inventory.ts",
        "generators.ts",
+       "render.ts",
        "inputs.ts",
        "entity.ts",
-        "lib/poly2tri.d.ts",
-        "run.ts"
+       "run.ts"
     ]
 }

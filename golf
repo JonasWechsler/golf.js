@@ -4,6 +4,7 @@
 		<title>Demo</title>
 	</head>
 	<body>
+        <script src="./lib/d3-voronoi.js"></script>
         <script src="./lib/poly2tri.js"></script>
 		<script src="./built/out.js"></script>
 	</body>

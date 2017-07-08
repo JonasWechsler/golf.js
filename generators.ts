@@ -290,3 +290,193 @@ module WorldGenerators {
         }
     }
 }
+
+class DungeonGenerator{
+  private adjacent:VectorMap<Vector[]> = new VectorMap<Vector[]>();
+  private main_path:Vector[] = [];
+  private distance_from_start:VectorMap<number> = new VectorMap<number>();
+  private rooms:VectorMap<number> = new VectorMap<number>();
+  
+  public static CELL_WIDTH = 10;
+  public static CELL_HEIGHT = 10;
+  public static WIDTH = 20;
+  public static HEIGHT = 20;
+  public static LEFT_POS = 10;
+  public static TOP_POS = 10;
+  public static START_POS:Vector = new Vector(10, 10);
+  
+  private CELL_W;
+  private CELL_H;
+  private WIDTH;
+  private HEIGHT;
+  private LEFT;
+  private TOP;
+  private START:Vector;
+  
+  public static generate(){
+    new DungeonGenerator();
+  }
+
+  private constructor(){
+    this.CELL_W = DungeonGenerator.CELL_WIDTH;
+    this.CELL_H = DungeonGenerator.CELL_HEIGHT;
+    this.WIDTH = DungeonGenerator.WIDTH;
+    this.HEIGHT = DungeonGenerator.HEIGHT;
+    this.LEFT = DungeonGenerator.LEFT_POS;
+    this.TOP = DungeonGenerator.TOP_POS;
+    this.START = DungeonGenerator.START_POS.clone();
+    
+    for(let i = 0; i < this.WIDTH; i++)
+      for(let j = 0; j < this.HEIGHT; j++)
+        this.adjacent.map(new Vector(i, j), []);
+    
+    this.distance_from_start.map(this.START, 1);
+    this.add_path(this.START, 100);
+    this.merge_adjacent(7);
+    this.find_rooms();
+    this.build();
+  }
+  
+    private in_bounds(v:Vector){
+    return v.x >= 0 && v.x < this.WIDTH &&
+      v.y >= 0 && v.y < this.HEIGHT;
+  }
+  
+  private open(v:Vector){
+    if(!this.in_bounds(v)) return false;
+    return this.adjacent.at(v).length == 0;
+  }
+  
+  private adj(v:Vector){
+    return [
+      new Vector(v.x - 1, v.y),
+      new Vector(v.x + 1, v.y),
+      new Vector(v.x, v.y - 1),
+      new Vector(v.x, v.y + 1)
+    ];
+  }
+  
+  private merge_adjacent(dist:number){
+    const self = this;
+    
+    for(let i = 0; i < self.WIDTH; i++){
+      for(let j = 0; j < self.HEIGHT; j++){
+        const curr = new Vector(i, j);
+        if(self.open(curr)) continue;
+        this.adj(curr).forEach(function(adj){
+          if(self.open(adj)) return;
+          if(!self.in_bounds(adj)) return;
+          
+          const dist_curr = self.distance_from_start.at(curr);
+          const dist_adj = self.distance_from_start.at(adj);
+          if(Math.abs(dist_curr - dist_adj) < dist){
+            self.add_adjacent(curr, adj);
+          }
+        });
+      }
+    }
+  }
+  
+  private add_path(start:Vector, length:number):Vector[]{
+    const self = this;
+    
+    var path:Vector[] = [start];
+    while(path.length < length){
+      const curr = path[path.length-1];
+      const last = path[path.length-2];
+      
+      if(last){
+        this.add_adjacent(curr, last);
+        self.distance_from_start.map(curr, path.length
+                                     + self.distance_from_start.at(start));
+      }
+      
+      const next = [];
+      self.adj(curr).forEach(function(adj){
+        if(self.open(adj)) next.push(adj);
+      });
+      if(next.length == 0) path.pop();
+      else path.push(next[Math.floor(Math.random()*next.length)]);
+    }
+    return path;
+  }
+  
+  private add_adjacent(next:Vector, parent:Vector){
+      this.adjacent.at(next).push(parent);
+      this.adjacent.at(parent).push(next);
+  }
+  
+  public find_rooms() {
+      let room = 1;
+      this.rooms = new VectorMap<number>();
+      let Q = [this.START];
+      while(Q.length != 0){
+        const q = Q.shift();
+        if(this.rooms.has(q)) continue;
+        this.rooms.map(q, room);
+
+        let l = false,
+            r = false,
+            t = false,
+            b = false;
+        this.adjacent.at(q).forEach(function(adj){
+            if (adj.x == q.x - 1 && adj.y == q.y) l = true;
+            if (adj.x == q.x + 1 && adj.y == q.y) r = true;
+            if (adj.x == q.x && adj.y == q.y - 1) t = true;
+            if (adj.x == q.x && adj.y == q.y + 1) b = true;
+          Q.push(adj);
+        });
+
+        if((l && r && !t && !b) || (!l && !r && t && b)) room++;
+      }
+  }
+  
+  public build(){
+    for(let i = 0; i < this.WIDTH; i++){
+      for(let j = 0; j < this.HEIGHT; j++){
+        const v = new Vector(i, j);
+        if(this.open(v)) continue;
+        let l = false, r = false,
+              t = false, b = false;
+        this.adjacent.at(v).forEach(function(adj){
+            if (adj.x == i - 1 && adj.y == j) l = true;
+            if (adj.x == i + 1 && adj.y == j) r = true;
+            if (adj.x == i && adj.y == j - 1) t = true;
+            if (adj.x == i && adj.y == j + 1) b = true;
+        });
+        const upper_left = new Vector(this.LEFT + i*this.CELL_W, this.TOP + j*this.CELL_H);
+        const lower_left = new Vector(this.LEFT + i*this.CELL_W, this.TOP + (j+1)*this.CELL_H);
+        const upper_right = new Vector(this.LEFT + (i+1)*this.CELL_W, this.TOP + j*this.CELL_H);
+        const lower_right = new Vector(this.LEFT + (i+1)*this.CELL_W, this.TOP + (j+1)*this.CELL_H);
+        
+        const left = new Physics.StaticLineSegment(upper_left, lower_left);
+        const right = new Physics.StaticLineSegment(upper_right, lower_right);
+        const top = new Physics.StaticLineSegment(upper_left, upper_right);
+        const bottom = new Physics.StaticLineSegment(lower_left, lower_right);
+
+        if(!l){
+          WorldInfo.physics.addStaticLineSegment(left);
+        }else if(this.rooms.at(v) != this.rooms.at(new Vector(i-1, j))){
+          const b = upper_left.times(.25).plus(lower_left.times(.75));
+          const t = upper_left.times(.75).plus(lower_left.times(.25));
+          WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(b, lower_left));
+          WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(upper_left, t));
+        }
+        if(!r){
+          WorldInfo.physics.addStaticLineSegment(right);
+        }
+        if(!t){
+          WorldInfo.physics.addStaticLineSegment(top);
+        }else if(this.rooms.at(v) != this.rooms.at(new Vector(i, j-1))){
+          const r = upper_left.times(.25).plus(upper_right.times(.75));
+          const l = upper_left.times(.75).plus(upper_right.times(.25));
+          WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(l, upper_left));
+          WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(upper_right, r));
+        }
+        if(!b){
+          WorldInfo.physics.addStaticLineSegment(bottom);
+        }
+      }
+    }
+  }
+}

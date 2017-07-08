@@ -15,7 +15,7 @@ class Camera implements RenderObject{
         Camera.current = this;
     }
 
-    private camera_info() : any {
+    public camera_info() : Square {
         const width = DOMManager.canvas.width;
         const height = DOMManager.canvas.height;
 
@@ -34,12 +34,7 @@ class Camera implements RenderObject{
             top = top_norm * shift_height;
         }
 
-        return {
-            left: left,
-            top: top,
-            width: width,
-            height: height
-        };
+        return new Square(left, top, width, height);
     }
 
     follow(fn:()=>Vector){
@@ -60,14 +55,17 @@ class Camera implements RenderObject{
 
     draw(context: CanvasRenderingContext2D){
         const self = this;
+        const info = this.camera_info();
+
         self.context.clearRect(0, 0, self.canvas.width, self.canvas.height);
+        self.context.translate(-info.left, -info.top);
         this.objects.forEach(function(object: RenderObject){
             object.draw(self.context);
         });
+        self.context.translate(info.left, info.top);
 
-        const info = this.camera_info();
         context.drawImage(this.canvas,
-                         info.left, info.top,
+                          0, 0,
                          info.width, info.height,
                          0, 0,
                          info.width, info.height);
