@@ -448,9 +448,9 @@ class DungeonGenerator{
 
         if(this.open(v)){
             open[LEFT] = this.open(new Vector(i-1, j)) || !this.in_bounds(new Vector(i-1, j));
-            open[RIGHT] = this.open(new Vector(i+1, j));
-            open[TOP] = this.open(new Vector(i, j-1));
-            open[BOTTOM] = this.open(new Vector(i, j+1));
+            open[RIGHT] = this.open(new Vector(i+1, j)) || !this.in_bounds(new Vector(i+1, j));
+            open[TOP] = this.open(new Vector(i, j-1)) || !this.in_bounds(new Vector(i, j-1));
+            open[BOTTOM] = this.open(new Vector(i, j+1)) || !this.in_bounds(new Vector(i, j+1));
         }else{
              this.adjacent.at(v).forEach(function(adj){
                 if (adj.x == i - 1 && adj.y == j) open[LEFT] = true;
