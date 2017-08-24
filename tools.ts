@@ -176,6 +176,14 @@ class LineSegment {
         this.v0 = v0;
         this.v1 = v1;
     }
+
+    bounding_box() : Square{
+        const l = Math.min(this.v0.x, this.v1.x);
+        const t = Math.min(this.v0.y, this.v1.y);
+        const w = Math.max(this.v0.x, this.v1.x) - l;
+        const h = Math.max(this.v0.y, this.v1.y) - t;
+        return new Square(l, t, w, h);
+    }
 }
 
 class Ball {
@@ -188,6 +196,13 @@ class Ball {
         }
         this.position = position;
         this.r = r;
+    }
+
+    bounding_box() : Square{
+        const l = this.position.x - this.r;
+        const t = this.position.y - this.r;
+        const w = this.r*2;
+        return new Square(l, t, w, w);
     }
 }
 
@@ -269,8 +284,17 @@ class Square{
             (vector.y > this.top && vector.y < this.top + this.height);
     }
     
-    public contains_line(line:LineSegment){
+    public contains_line_entirely(line:LineSegment){
         return this.contains(line.v0) && this.contains(line.v1);
+    }
+
+    public contains_line_partially(line:LineSegment){
+        return this.contains(line.v0) || this.contains(line.v1);
+    }
+
+    public intersects(sq:Square){
+        return (Math.abs(sq.left - this.left) * 2 < (sq.width + this.width)) &&
+            (Math.abs(sq.top - this.top) * 2 < (sq.height + this.height));
     }
 }
 

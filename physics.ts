@@ -387,6 +387,8 @@ class Physics {
     }
 
     public static intersectSegBall(seg:LineSegment, ball:Ball):boolean{
+        if(!ball.bounding_box().intersects(seg.bounding_box())) return false;
+
         //http://stackoverflow.com/questions/1073336/circle-line-segment-collision-detection-algorithm
         var d = seg.v1.minus(seg.v0),
             f = seg.v0.minus(ball.position),
@@ -505,19 +507,13 @@ module Physics {
         }
     }
 
-    export class DynamicBall implements Physics.Dynamic{
-        public position: Vector;
-        public r: number;
+    export class DynamicBall extends Ball implements Physics.Dynamic{
         public speed: Vector;
         public maxSpeed: number;
         private acceleration: (x: number, y: number) => Vector;
 
         constructor(position: Vector, r: number, speed: Vector) {
-            if (!r) {
-                throw "Radius should be number > 0";
-            }
-            this.position = position;
-            this.r = r;
+            super(position, r);
             this.maxSpeed = this.r;
             this.speed = speed;
             this.acceleration = function(x, y){
@@ -635,12 +631,16 @@ module Physics {
         }
     }
 
-    export class TriggerBall implements Physics.Trigger{
-        constructor(public position: Vector, public r: number, public effect: any) { }
+    export class TriggerBall extends Ball implements Physics.Trigger{
+        constructor(position: Vector, r: number, public effect: any) {
+            super(position, r); 
+        }
     }
 
-    export class TriggerLineSegment implements Physics.Trigger {
-        constructor(public v0: Vector, public v1: Vector, public effect: () => void) { }
+    export class TriggerLineSegment extends LineSegment implements Physics.Trigger {
+        constructor(public v0: Vector, public v1: Vector, public effect: () => void) {
+            super(v0, v1); 
+        }
     }
 
 }

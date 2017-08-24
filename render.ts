@@ -1,4 +1,5 @@
 class HealthRenderer{
+    public RADIUS : number = 60;
     private t:number = 0;
 
     public draw(ctx:CanvasRenderingContext2D, center: Vector, hp:number, maxhp:number){
@@ -8,14 +9,16 @@ class HealthRenderer{
             const theta = incr*i+dt;
             if(i > hp - 1){
                 ctx.beginPath();
-                ctx.arc(center.x, center.y, 20, theta, theta+incr);
+                ctx.arc(center.x, center.y, this.RADIUS, theta, theta+incr);
                 ctx.stroke();
             }else{
                 ctx.beginPath();
-                ctx.arc(center.x, center.y, 20, theta, theta+incr/2);
+                ctx.arc(center.x, center.y, this.RADIUS, theta, theta+incr/2);
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.arc(Math.cos(theta+incr*3/4)*20 + center.x, Math.sin(theta+incr*3/4)*20 + center.y, 5, 0, 2*Math.PI);
+                ctx.arc(Math.cos(theta+incr*3/4)*this.RADIUS + center.x,
+                        Math.sin(theta+incr*3/4)*this.RADIUS + center.y,
+                        5, 0, 2*Math.PI);
                 ctx.stroke();
             }
         }
@@ -27,7 +30,7 @@ class PhysicsRender implements RenderObject{
     constructor(public physics:Physics){}
 
     private drawS(ctx:CanvasRenderingContext2D, v:Physics.StaticLineSegment){
-        if(!WorldInfo.camera.camera_info().contains_line(v)) return;
+        if(!WorldInfo.camera.camera_info().contains_line_partially(v)) return;
         var v0 = v.v0;
         var v1 = v.v1;
         ctx.beginPath();

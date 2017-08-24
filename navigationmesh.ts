@@ -1,9 +1,10 @@
-abstract class NavigationMesh{
+abstract class NavigationMesh implements RenderObject{
     abstract adjacent(p: Vector): Vector[];
     abstract get_vertices(): Vector[];
 
     neighbor_cache: VectorMap<Vector[]> = new VectorMap<Vector[]>();
     neighbors(p: Vector, depth: number): Vector[]{
+        if(!this.adjacent(p)) throw "Not a part of navigation mesh: " + p;
         let result: VectorMap<number> = new VectorMap<number>();
         const self = this;
         const queue:[Vector, number][] = [[p, depth]];
@@ -26,6 +27,18 @@ abstract class NavigationMesh{
         }
 
         return result.spread();
+    }
+
+    draw(ctx: CanvasRenderingContext2D){
+        const self = this;
+        ctx.beginPath();
+        this.get_vertices().forEach(function(v){
+            self.adjacent(v).forEach(function(w){
+                ctx.moveTo(v.x, v.y);
+                ctx.lineTo(w.x, w.y);
+            });
+        });
+        ctx.stroke();
     }
 }
 
@@ -85,12 +98,15 @@ class NonintersectingFiniteGridNavigationMesh extends NavigationMesh{
                         self.vertices.push(vertex);
                         self.adjacent_map.map(vertex, []);
                         mesh.adjacent(vertex).forEach((adjacent) => {
-                            if(physics.lineOfSightDistance(new LineSegment(vertex, adjacent), 10)){
-                                self.adjacent_map.at(vertex).push(adjacent);
-                            }
+                            if(adjacent.x < min_x || adjacent.x >= max_x ||
+                               adjacent.y < min_y || adjacent.y >= max_y)
+                                return;
+                            if(!physics.lineOfSightDistance(new LineSegment(vertex, adjacent), 10))
+                                return;
+
+                            self.adjacent_map.at(vertex).push(adjacent);
                         });
                     });
-                    console.log(self.adjacent_map);
                 }
     adjacent(p: Vector): Vector[]{
         return this.adjacent_map.at(p);

@@ -337,6 +337,10 @@ class DungeonGenerator{
     this.build();
   }
   
+  private on_border(v:Vector){
+    return v.x == 0 || v.x == this.WIDTH-1 ||
+        v.y == 0 || v.y == this.HEIGHT-1;
+  }
     private in_bounds(v:Vector){
     return v.x >= 0 && v.x < this.WIDTH &&
       v.y >= 0 && v.y < this.HEIGHT;
@@ -384,6 +388,10 @@ class DungeonGenerator{
     while(path.length < length){
       const curr = path[path.length-1];
       const last = path[path.length-2];
+
+      if(!curr){
+        throw "Nowhere to go ";
+      }
       
       if(last){
         this.add_adjacent(curr, last);
@@ -393,7 +401,7 @@ class DungeonGenerator{
       
       const next = [];
       self.adj(curr).forEach(function(adj){
-        if(self.open(adj)) next.push(adj);
+        if(self.open(adj) && !self.on_border(adj)) next.push(adj);
       });
       if(next.length == 0) path.pop();
       else path.push(next[Math.floor(Math.random()*next.length)]);
@@ -435,47 +443,77 @@ class DungeonGenerator{
     for(let i = 0; i < this.WIDTH; i++){
       for(let j = 0; j < this.HEIGHT; j++){
         const v = new Vector(i, j);
-        if(this.open(v)) continue;
-        let l = false, r = false,
-              t = false, b = false;
-        this.adjacent.at(v).forEach(function(adj){
-            if (adj.x == i - 1 && adj.y == j) l = true;
-            if (adj.x == i + 1 && adj.y == j) r = true;
-            if (adj.x == i && adj.y == j - 1) t = true;
-            if (adj.x == i && adj.y == j + 1) b = true;
-        });
-        const upper_left = new Vector(this.LEFT + i*this.CELL_W, this.TOP + j*this.CELL_H);
-        const lower_left = new Vector(this.LEFT + i*this.CELL_W, this.TOP + (j+1)*this.CELL_H);
-        const upper_right = new Vector(this.LEFT + (i+1)*this.CELL_W, this.TOP + j*this.CELL_H);
-        const lower_right = new Vector(this.LEFT + (i+1)*this.CELL_W, this.TOP + (j+1)*this.CELL_H);
-        
-        const left = new Physics.StaticLineSegment(upper_left, lower_left);
-        const right = new Physics.StaticLineSegment(upper_right, lower_right);
-        const top = new Physics.StaticLineSegment(upper_left, upper_right);
-        const bottom = new Physics.StaticLineSegment(lower_left, lower_right);
+        const open = [false, false, false, false];
+        const TOP = 0, LEFT = 1, BOTTOM = 2, RIGHT = 3;
 
-        if(!l){
-          WorldInfo.physics.addStaticLineSegment(left);
-        }else if(this.rooms.at(v) != this.rooms.at(new Vector(i-1, j))){
-          const b = upper_left.times(.25).plus(lower_left.times(.75));
-          const t = upper_left.times(.75).plus(lower_left.times(.25));
-          WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(b, lower_left));
-          WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(upper_left, t));
+        if(this.open(v)){
+            open[LEFT] = this.open(new Vector(i-1, j)) || !this.in_bounds(new Vector(i-1, j));
+            open[RIGHT] = this.open(new Vector(i+1, j)) || !this.in_bounds(new Vector(i+1, j));
+            open[TOP] = this.open(new Vector(i, j-1)) || !this.in_bounds(new Vector(i, j-1));
+            open[BOTTOM] = this.open(new Vector(i, j+1)) || !this.in_bounds(new Vector(i, j+1));
+        }else{
+             this.adjacent.at(v).forEach(function(adj){
+                if (adj.x == i - 1 && adj.y == j) open[LEFT] = true;
+                if (adj.x == i + 1 && adj.y == j) open[RIGHT] = true;
+                if (adj.x == i && adj.y == j - 1) open[TOP] = true;
+                if (adj.x == i && adj.y == j + 1) open[BOTTOM] = true;
+            });
         }
-        if(!r){
-          WorldInfo.physics.addStaticLineSegment(right);
+
+        const square_upper_left = new Vector(this.LEFT + i*this.CELL_W, this.TOP + j*this.CELL_H);
+        const square_lower_left = new Vector(this.LEFT + i*this.CELL_W, this.TOP + (j+1)*this.CELL_H);
+        const square_upper_right = new Vector(this.LEFT + (i+1)*this.CELL_W, this.TOP + j*this.CELL_H);
+        const square_lower_right = new Vector(this.LEFT + (i+1)*this.CELL_W, this.TOP + (j+1)*this.CELL_H);
+
+        const square_corners = [];
+
+        square_corners[TOP] = square_upper_right;
+        square_corners[LEFT] = square_upper_left;
+        square_corners[BOTTOM] = square_lower_left;
+        square_corners[RIGHT] = square_lower_right;
+
+        const room_corners = [];
+
+        for(let idx = 0; idx < 4; idx++){
+            room_corners[idx] = square_corners[idx].times(.9).plus(square_corners[(idx+2)%4].times(.1));
         }
-        if(!t){
-          WorldInfo.physics.addStaticLineSegment(top);
-        }else if(this.rooms.at(v) != this.rooms.at(new Vector(i, j-1))){
-          const r = upper_left.times(.25).plus(upper_right.times(.75));
-          const l = upper_left.times(.75).plus(upper_right.times(.25));
-          WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(l, upper_left));
-          WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(upper_right, r));
+
+        const walls = [];
+
+        for(let idx = 0; idx < 4; idx++){
+            walls[idx] = new Physics.StaticLineSegment(room_corners[idx], room_corners[(idx+1)%4]);
         }
-        if(!b){
-          WorldInfo.physics.addStaticLineSegment(bottom);
+
+        const openings = [];
+
+        for(let idx = 0; idx < 4; idx++){
+            let right_wall, left_wall;
+            if(idx % 2 == 0){
+                right_wall = new Vector(room_corners[idx].x, square_corners[idx].y);
+                left_wall = new Vector(room_corners[(idx+1)%4].x, square_corners[(idx+1)%4].y);
+            }else{
+                right_wall = new Vector(square_corners[idx].x, room_corners[idx].y);
+                left_wall = new Vector(square_corners[(idx+1)%4].x, room_corners[(idx+1)%4].y);
+            }
+
+            openings[idx] = [
+                new Physics.StaticLineSegment(room_corners[idx], right_wall),
+                new Physics.StaticLineSegment(room_corners[(idx+1)%4], left_wall)
+            ];
         }
+
+        for(let idx = 0; idx < 4; idx++){
+            if(open[idx]){
+                WorldInfo.physics.addStaticLineSegment(openings[idx][0]);
+                WorldInfo.physics.addStaticLineSegment(openings[idx][1]);
+            }else{
+                WorldInfo.physics.addStaticLineSegment(walls[idx]);
+            }
+        }
+        //  const r = upper_left.times(.25).plus(upper_right.times(.75));
+        //  const l = upper_left.times(.75).plus(upper_right.times(.25));
+        //  WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(l, upper_left));
+        //  WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(upper_right, r));
       }
     }
   }

@@ -29,7 +29,7 @@ MouseInfo.setup();
 const physics = new Physics();
 physics.setAcceleration((x, y) => { return new Vector(0, 0); });
 
-const player = new Player(new Vector(100, 100), 20,new Vector(0, 0));
+const player = new Player(new Vector(30, 30), 20,new Vector(0, 0));
 physics.addDynamic(player);
 
 WorldInfo.physics = physics;
@@ -38,10 +38,11 @@ WorldInfo.player = player;
 const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
 physics.addDynamic(ai);
 
-DungeonGenerator.LEFT_POS=-50;
-DungeonGenerator.TOP_POS=-50;
+DungeonGenerator.LEFT_POS=-1000;
+DungeonGenerator.TOP_POS=-1000;
 DungeonGenerator.CELL_WIDTH=100;
 DungeonGenerator.CELL_HEIGHT=100;
+DungeonGenerator.START_POS = new Vector(10, 10);
 DungeonGenerator.generate();
 
 WorldInfo.mesh = new NonintersectingFiniteGridNavigationMesh(20, 0, 500, 0, 500, WorldInfo.physics);
