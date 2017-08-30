@@ -57,10 +57,16 @@ camera_component.target = () => player.position;
 camera.add_component(camera_component);
 camera.add_component(ui_component);
 
+const fps = new ECSEntity();
+fps.add_component(new FPSComponent(0));
+fps.add_component(new UIComponent(0, 0, document.createElement("canvas")));
+
 system_manager.entity_manager.add_entity(camera);
+system_manager.entity_manager.add_entity(fps);
 system_manager.add(new CameraSystem());
 system_manager.add(new UIRenderSystem());
 system_manager.add(new PhysicsRenderSystem(physics));
+system_manager.add(new FPSSystem());
 system_manager.start();
 
 RenderManager.add_time_listener(player);

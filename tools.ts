@@ -352,7 +352,10 @@ class Square{
     }
 
     public intersects(sq:Square){
-        return (Math.abs(sq.left - this.left) * 2 < (sq.width + this.width)) &&
-            (Math.abs(sq.top - this.top) * 2 < (sq.height + this.height));
+        if(this.left > sq.left + sq.width || sq.left > this.left + this.width)
+            return false;
+        if(this.top > sq.top + sq.height || sq.top > this.top + this.height)
+            return false;
+        return true;
     }
 }

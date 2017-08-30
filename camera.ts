@@ -68,7 +68,9 @@ class CameraSystem implements System{
         ctx.translate(-info.left, -info.top);
         visible_entities.forEach((entity: ECSEntity) => {
             const render_component = entity.get_component<RenderComponent>(ComponentType.Render);
-            ctx.drawImage(render_component.content, render_component.x, render_component.y);
+            const bb = new Square(render_component.x, render_component.y, render_component.content.width, render_component.content.height);
+            if(info.intersects(bb))
+                ctx.drawImage(render_component.content, render_component.x, render_component.y);
         });
         ctx.translate(info.left, info.top);
 

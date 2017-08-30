@@ -37,8 +37,36 @@ class TimerComponent implements Component{
 }
 
 class FPSComponent implements Component{
-    constructor(public fps:number){}
+    public last_time:number;
+    constructor(public fps:number){
+        this.last_time = Date.now();
+    }
     type:ComponentType = ComponentType.FPS;
+}
+
+class FPSSystem implements System{
+    step(e:EntityManager){
+        const entities = e.get_entities([ComponentType.FPS]);
+        const time = Date.now();
+        entities.forEach((entity) => {
+            const fps = entity.get_component<FPSComponent>(ComponentType.FPS);
+            const dt = time - fps.last_time;
+            fps.last_time = time;
+            fps.fps = Math.floor(1000/dt);
+        });
+        const output = e.get_entities([ComponentType.FPS, ComponentType.UI]);
+        output.forEach((entity) => {
+            const fps = entity.get_component<FPSComponent>(ComponentType.FPS);
+            const ui = entity.get_component<UIComponent>(ComponentType.UI);
+            const canvas = ui.content;
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, 100, 100);
+            const str:string = "000" + fps.fps.toString();
+            ctx.fillText(str.substr(str.length-3, 3), 0, 100);
+        });
+    }
 }
 
 class UIRenderSystem{
