@@ -7,7 +7,9 @@ function assert(b:boolean){
 }
 
 function cantorPairing(x:number, y:number){
-    return .5*(x+y)*(x+y+1)+y;
+    const px = (x >= 0)?x*2:-x*2-1;
+    const py = (y >= 0)?y*2:-y*2-1;
+    return .5*(px+py)*(px+py+1)+py;
 }
 
 function disableImageSmoothing(context: CanvasRenderingContext2D){
@@ -357,5 +359,81 @@ class Square{
         if(this.top > sq.top + sq.height || sq.top > this.top + this.height)
             return false;
         return true;
+    }
+}
+
+class Color{
+	public r:number;
+    constructor(r:number|string,
+                public g:number,
+                public b:number){
+        if(g == undefined){
+            this.set_str(<string>r);
+        }else{
+			this.r = <number> r;
+		}
+    }
+    /* accepts parameters
+     *  h  Object = {h:x, s:y, v:z}
+     *   OR 
+     *  * h, s, v
+     *  */
+    public set_hsv(h:number, s:number, v:number) {
+        if(h < 0 || h >= 1 || s < 0 || s >= 1 || v < 0 || v >= 1){
+            throw "0 <= h,s,v < 1";
+        }
+        var r, g, b, i, f, p, q, t;
+        i = Math.floor(h * 6);
+        f = h * 6 - i;
+        p = v * (1 - s);
+        q = v * (1 - f * s);
+        t = v * (1 - (1 - f) * s);
+        switch (i % 6) {
+            case 0: r = v, g = t, b = p; break;
+            case 1: r = q, g = v, b = p; break;
+            case 2: r = p, g = v, b = t; break;
+            case 3: r = p, g = q, b = v; break;
+            case 4: r = t, g = p, b = v; break;
+            case 5: r = v, g = p, b = q; break;
+        }
+        this.r = Math.round(r * 255);
+        this.g = Math.round(g * 255);
+        this.b = Math.round(b * 255);
+    }
+
+    public to_str():string{
+        if(this.r  < 0 || this.r > 255 ||
+        this.g  < 0 || this.g > 255 ||
+        this.b  < 0 || this.b > 255){
+            throw "0 <= r,g,b <= 255";
+        }
+        
+        return "rgb(" + this.r + "," + this.g + "," + this.b + ")";
+    }
+
+    public set_str(hex:string){
+        if(hex.charAt(0) == '#'){
+            this.set_str(hex.substring(1));
+            return;
+        }
+        const parse_byte = (x) => <number> new Number("0x" + x);
+        this.r = parse_byte(hex.substring(0, 2));
+        this.g = parse_byte(hex.substring(2, 2));
+        this.b = parse_byte(hex.substring(4, 2));
+    }
+    public times(x:number){
+        const r = Math.round(this.r*x);
+        const g = Math.round(this.g*x);
+        const b = Math.round(this.b*x);
+        return new Color(r,g,b);
+    }
+    public plus(color:Color){
+        const r = this.r + color.r;
+        const g = this.g + color.g;
+        const b = this.b + color.b;
+        return new Color(r,g,b);
+    }
+    public minus(color:Color){
+        return this.plus(color.times(-1));
     }
 }
