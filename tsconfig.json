@@ -8,6 +8,7 @@
     "files": [
         "lib/d3-voronoi.d.ts",
        "tools.ts",
+       "ecs.ts",
        "physics.ts",
        "navigationmesh.ts",
        "dom.ts",

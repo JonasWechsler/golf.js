@@ -59,7 +59,7 @@ class Player extends Entity implements Killable, MouseListener{
 
     onclick (x : number, y : number, which : number) : void{}
     ondown (x : number, y : number, which : number) :void{
-        const mouse = WorldInfo.camera.screen_to_camera(x, y);
+        const mouse = CameraSystem.screen_to_camera(x, y);
         const speed:Vector = mouse.minus(this.position).unitTimes(20);
         const position:Vector = this.position.clone().plus(this.speed).plus(speed);
         const radius:number = 2;

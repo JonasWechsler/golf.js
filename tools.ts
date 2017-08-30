@@ -2,6 +2,10 @@ interface Error{
   stack?: string;
 }
 
+function assert(b:boolean){
+    if(!b) throw "Assert failed!";
+}
+
 function cantorPairing(x:number, y:number){
     return .5*(x+y)*(x+y+1)+y;
 }
@@ -20,6 +24,63 @@ function enableImageSmoothing(context: CanvasRenderingContext2D){
     ctx.webkitImageSmoothingEnabled = true;
     ctx.msImageSmoothingEnabled = true;
     ctx.imageSmoothingEnabled = true;
+}
+
+function combinations(arr:any[]) {
+    const fn = (active:any[], rest:any[], result:any[][]):any[][] => {
+        if (active.length == 0 && rest.length == 0)
+            return result;
+        if (rest.length == 0) {
+            result.push(active);
+        } else {
+            const t:any[] = active.slice(0);
+            t.push(rest[0]);
+            fn(t, rest.slice(1), result);
+            fn(active, rest.slice(1), result);
+        }
+        return result;
+    }
+    return fn([], arr, []);
+}
+
+class NumberTreeMapNode<T>{
+    public value:T;
+    public children:{[key:number]:NumberTreeMapNode<T>};
+    constructor(){
+        this.children = {};
+    }
+}
+
+class NumberTreeMap<T>{
+    private root:NumberTreeMapNode<T>;
+    constructor(){
+        this.root = new NumberTreeMapNode<T>();
+    }
+    public insert(key:number[], value:T):void{
+        key.sort();
+        let curr = this.root;
+        for(let idx = 0; idx < key.length; idx++){
+            if(!curr.children[key[idx]]){
+                curr.children[key[idx]] = new NumberTreeMapNode<T>();
+            }
+            curr = curr.children[key[idx]];
+        }
+        curr.value = value;
+    }
+
+    public get(key:number[]):T{
+        key.sort();
+        let curr = this.root;
+        for(let idx = 0; idx < key.length; idx++){
+            const val = key[idx];
+            if(curr.children[val]){
+                curr = curr.children[val];
+            }else{
+                return undefined;
+            }
+        }
+        return curr.value;
+    }
 }
 
 /*Tools*/

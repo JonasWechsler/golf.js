@@ -1,5 +1,12 @@
 /*Game time*/
 
+class StaticPhysicsComponent extends LineSegment implements Component{
+    type:ComponentType = ComponentType.StaticPhysics;
+    constructor(v0:Vector, v1:Vector){
+        super(v0, v1);
+    }
+}
+
 class Physics {
     private dynamics: Physics.Dynamic[];
     private statics: Physics.StaticLineSegment[];
