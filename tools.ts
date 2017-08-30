@@ -246,8 +246,8 @@ class LineSegment {
 }
 
 class Ball {
-    position: any;
-    r: any;
+    position: Vector;
+    r: number;
 
     constructor(position: Vector, r: number) {
         if (!r) {
