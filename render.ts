@@ -26,11 +26,50 @@ class HealthRenderer{
     }
 }
 
-class PhysicsRender implements RenderObject{
-    constructor(public physics:Physics){}
+class PhysicsRenderSystem implements System{
+    constructor(public physics:Physics){
+        physics.getStatics().forEach((line:Physics.StaticLineSegment) => {
+            const e = new ECSEntity();
+            const view = new RenderComponent(0, 0, document.createElement("canvas"));
+            const bb = line.bounding_box();
+            view.x = bb.left;
+            view.y = bb.top;
+            view.content.width = bb.width+5;
+            view.content.height = bb.height+5;
+            e.add_component(view);
+            e.add_component(new StaticPhysicsComponent(line.v0, line.v1));
+            
+            EntityManager.current.add_entity(e);
+        });
 
+        this.render_statics();
+    }
+
+    render_statics(){
+        const e = EntityManager.current;
+        const statics = e.get_entities([ComponentType.Render, ComponentType.StaticPhysics]);
+        statics.forEach((s) => {
+            const target = s.get_component<RenderComponent>(ComponentType.Render);
+            const content = s.get_component<StaticPhysicsComponent>(ComponentType.StaticPhysics);
+            const bb = content.bounding_box();
+            target.x = bb.left;
+            target.y = bb.top;
+            const ctx = target.content.getContext("2d");
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(bb.width, bb.height);
+            ctx.stroke();
+        });
+    }
+
+    step(e:EntityManager){
+    }
+
+    /*
     private drawS(ctx:CanvasRenderingContext2D, v:Physics.StaticLineSegment){
-        if(!WorldInfo.camera.camera_info().contains_line_partially(v)) return;
+        if(!CameraSystem.camera_info().contains_line_partially(v)) return;
         var v0 = v.v0;
         var v1 = v.v1;
         ctx.beginPath();
@@ -40,7 +79,7 @@ class PhysicsRender implements RenderObject{
     }
 
     private drawD(ctx:CanvasRenderingContext2D, dyn: Physics.Dynamic){
-        if(!WorldInfo.camera.camera_info().contains(dyn.position)) return;
+        if(!CameraSystem.camera_info().contains(dyn.position)) return;
         const ball : Physics.DynamicBall = dyn as Physics.DynamicBall;
 
         if('draw' in ball){
@@ -97,5 +136,5 @@ class PhysicsRender implements RenderObject{
         ctx.strokeStyle = "orange";
         ctx.fillStyle = "orange";
         this.physics.getTriggers().forEach((trig) => {self.drawT(ctx, trig)});
-    }
+    }*/
 }

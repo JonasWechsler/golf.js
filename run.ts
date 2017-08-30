@@ -49,15 +49,27 @@ WorldInfo.mesh = new NonintersectingFiniteGridNavigationMesh(20, 0, 500, 0, 500,
 
 DOMManager.make_canvas();
 
-const camera = new Camera(DOMManager.canvas.width*2, DOMManager.canvas.height*2);
-camera.add_render_object(new PhysicsRender(physics));
-camera.follow(() => player.position);
+const system_manager = new SystemManager(new EntityManager());
+const camera = new ECSEntity();
+const ui_component = new UIComponent(0, 0, document.createElement("canvas"));
+const camera_component = new CameraComponent();
+camera_component.target = () => player.position;
+camera.add_component(camera_component);
+camera.add_component(ui_component);
 
-WorldInfo.camera = camera;
+const fps = new ECSEntity();
+fps.add_component(new FPSComponent(0));
+fps.add_component(new UIComponent(0, 0, document.createElement("canvas")));
 
-RenderManager.add_render_object(camera);
+system_manager.entity_manager.add_entity(camera);
+system_manager.entity_manager.add_entity(fps);
+system_manager.add(new CameraSystem());
+system_manager.add(new UIRenderSystem());
+system_manager.add(new PhysicsRenderSystem(physics));
+system_manager.add(new FPSSystem());
+system_manager.start();
+
 RenderManager.add_time_listener(player);
 RenderManager.add_time_listener(ai);
 RenderManager.add_time_listener(physics);
-RenderManager.draw_loop();
 RenderManager.execute_loop();

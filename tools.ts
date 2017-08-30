@@ -2,6 +2,10 @@ interface Error{
   stack?: string;
 }
 
+function assert(b:boolean){
+    if(!b) throw "Assert failed!";
+}
+
 function cantorPairing(x:number, y:number){
     const px = (x >= 0)?x*2:-x*2-1;
     const py = (y >= 0)?y*2:-y*2-1;
@@ -22,6 +26,63 @@ function enableImageSmoothing(context: CanvasRenderingContext2D){
     ctx.webkitImageSmoothingEnabled = true;
     ctx.msImageSmoothingEnabled = true;
     ctx.imageSmoothingEnabled = true;
+}
+
+function combinations(arr:any[]) {
+    const fn = (active:any[], rest:any[], result:any[][]):any[][] => {
+        if (active.length == 0 && rest.length == 0)
+            return result;
+        if (rest.length == 0) {
+            result.push(active);
+        } else {
+            const t:any[] = active.slice(0);
+            t.push(rest[0]);
+            fn(t, rest.slice(1), result);
+            fn(active, rest.slice(1), result);
+        }
+        return result;
+    }
+    return fn([], arr, []);
+}
+
+class NumberTreeMapNode<T>{
+    public value:T;
+    public children:{[key:number]:NumberTreeMapNode<T>};
+    constructor(){
+        this.children = {};
+    }
+}
+
+class NumberTreeMap<T>{
+    private root:NumberTreeMapNode<T>;
+    constructor(){
+        this.root = new NumberTreeMapNode<T>();
+    }
+    public insert(key:number[], value:T):void{
+        key.sort();
+        let curr = this.root;
+        for(let idx = 0; idx < key.length; idx++){
+            if(!curr.children[key[idx]]){
+                curr.children[key[idx]] = new NumberTreeMapNode<T>();
+            }
+            curr = curr.children[key[idx]];
+        }
+        curr.value = value;
+    }
+
+    public get(key:number[]):T{
+        key.sort();
+        let curr = this.root;
+        for(let idx = 0; idx < key.length; idx++){
+            const val = key[idx];
+            if(curr.children[val]){
+                curr = curr.children[val];
+            }else{
+                return undefined;
+            }
+        }
+        return curr.value;
+    }
 }
 
 /*Tools*/
@@ -293,8 +354,11 @@ class Square{
     }
 
     public intersects(sq:Square){
-        return (Math.abs(sq.left - this.left) * 2 < (sq.width + this.width)) &&
-            (Math.abs(sq.top - this.top) * 2 < (sq.height + this.height));
+        if(this.left > sq.left + sq.width || sq.left > this.left + this.width)
+            return false;
+        if(this.top > sq.top + sq.height || sq.top > this.top + this.height)
+            return false;
+        return true;
     }
 }
 
