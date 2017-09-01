@@ -58,7 +58,7 @@ camera.add_component(camera_component);
 camera.add_component(ui_component);
 
 const fps = new ECSEntity();
-fps.add_component(new FPSComponent(0));
+fps.add_component(new FPSComponent());
 fps.add_component(new UIComponent(0, 0, document.createElement("canvas")));
 
 system_manager.entity_manager.add_entity(camera);
