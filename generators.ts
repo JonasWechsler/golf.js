@@ -481,7 +481,7 @@ class DungeonGenerator{
         const walls = [];
 
         for(let idx = 0; idx < 4; idx++){
-            walls[idx] = new Physics.StaticLineSegment(room_corners[idx], room_corners[(idx+1)%4]);
+            walls[idx] = new StaticPhysicsComponent(room_corners[idx], room_corners[(idx+1)%4]);
         }
 
         const openings = [];
@@ -497,23 +497,33 @@ class DungeonGenerator{
             }
 
             openings[idx] = [
-                new Physics.StaticLineSegment(room_corners[idx], right_wall),
-                new Physics.StaticLineSegment(room_corners[(idx+1)%4], left_wall)
+                new StaticPhysicsComponent(room_corners[idx], right_wall),
+                new StaticPhysicsComponent(room_corners[(idx+1)%4], left_wall)
             ];
+        }
+
+        const add_line = function(s:StaticPhysicsComponent){
+            const line = new ECSEntity();
+            const view = new RenderComponent(0, 0, document.createElement("canvas"));
+            const bb = s.bounding_box();
+            view.x = bb.left;
+            view.y = bb.top;
+            view.content.width = Math.max(bb.width, 5);
+            view.content.height = Math.max(bb.height, 5);
+
+            line.add_component(s);
+            line.add_component(view);
+            EntityManager.current.add_entity(line);
         }
 
         for(let idx = 0; idx < 4; idx++){
             if(open[idx]){
-                WorldInfo.physics.addStaticLineSegment(openings[idx][0]);
-                WorldInfo.physics.addStaticLineSegment(openings[idx][1]);
+                add_line(openings[idx][0]);
+                add_line(openings[idx][1]);
             }else{
-                WorldInfo.physics.addStaticLineSegment(walls[idx]);
+                add_line(walls[idx]);
             }
         }
-        //  const r = upper_left.times(.25).plus(upper_right.times(.75));
-        //  const l = upper_left.times(.75).plus(upper_right.times(.25));
-        //  WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(l, upper_left));
-        //  WorldInfo.physics.addStaticLineSegment(new Physics.StaticLineSegment(upper_right, r));
       }
     }
   }

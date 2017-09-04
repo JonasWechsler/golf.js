@@ -23,20 +23,17 @@ var voronoi = d3.voronoi(data);
 //});
 //
 
+const system_manager = new SystemManager(new EntityManager());
+
 KeyInfo.setup();
 MouseInfo.setup();
 
-const physics = new Physics();
-physics.setAcceleration((x, y) => { return new Vector(0, 0); });
+const physics = new PhysicsSystem();
+//const player = new Player(new Vector(30, 30), 20,new Vector(0, 0));
+const player = new ECSEntity();
+player.add_component(new DynamicPhysicsComponent(new Vector(30, 30), 20));
 
-const player = new Player(new Vector(30, 30), 20,new Vector(0, 0));
-physics.addDynamic(player);
-
-WorldInfo.physics = physics;
-WorldInfo.player = player;
-
-const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
-physics.addDynamic(ai);
+//const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
 
 DungeonGenerator.LEFT_POS=-1000;
 DungeonGenerator.TOP_POS=-1000;
@@ -45,15 +42,18 @@ DungeonGenerator.CELL_HEIGHT=100;
 DungeonGenerator.START_POS = new Vector(10, 10);
 DungeonGenerator.generate();
 
-WorldInfo.mesh = new NonintersectingFiniteGridNavigationMesh(20, 0, 500, 0, 500, WorldInfo.physics);
+for(let i=0;i<9;i++)
+    console.log(i, ComponentType[i]);
+console.log(system_manager);
+
+//WorldInfo.mesh = new NonintersectingFiniteGridNavigationMesh(20, 0, 500, 0, 500, WorldInfo.physics);
 
 DOMManager.make_canvas();
 
-const system_manager = new SystemManager(new EntityManager());
 const camera = new ECSEntity();
 const ui_component = new UIComponent(0, 0, document.createElement("canvas"));
 const camera_component = new CameraComponent();
-camera_component.target = () => player.position;
+camera_component.target = () => player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position;
 camera.add_component(camera_component);
 camera.add_component(ui_component);
 
@@ -69,7 +69,7 @@ system_manager.add(new PhysicsRenderSystem(physics));
 system_manager.add(new FPSSystem());
 system_manager.start();
 
-RenderManager.add_time_listener(player);
-RenderManager.add_time_listener(ai);
+//RenderManager.add_time_listener(player);
+//RenderManager.add_time_listener(ai);
 RenderManager.add_time_listener(physics);
 RenderManager.execute_loop();

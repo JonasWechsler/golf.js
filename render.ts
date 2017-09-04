@@ -27,21 +27,7 @@ class HealthRenderer{
 }
 
 class PhysicsRenderSystem implements System{
-    constructor(public physics:Physics){
-        physics.getStatics().forEach((line:Physics.StaticLineSegment) => {
-            const e = new ECSEntity();
-            const view = new RenderComponent(0, 0, document.createElement("canvas"));
-            const bb = line.bounding_box();
-            view.x = bb.left;
-            view.y = bb.top;
-            view.content.width = bb.width+5;
-            view.content.height = bb.height+5;
-            e.add_component(view);
-            e.add_component(new StaticPhysicsComponent(line.v0, line.v1));
-            
-            EntityManager.current.add_entity(e);
-        });
-
+    constructor(public physics:PhysicsSystem){
         this.render_statics();
     }
 

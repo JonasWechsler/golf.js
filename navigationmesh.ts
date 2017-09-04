@@ -89,7 +89,7 @@ class NonintersectingFiniteGridNavigationMesh extends NavigationMesh{
                 private max_x: number,
                 private min_y: number,
                 private max_y: number,
-                private physics: Physics){
+                private physics: PhysicsSystem){
                     super();
                     const mesh = new FiniteGridNavigationMesh(cell_width, min_x, max_x, min_y, max_y);
 

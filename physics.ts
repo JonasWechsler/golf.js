@@ -1,64 +1,34 @@
 /*Game time*/
 
+class Material{
+    constructor(public friction:number, public bounce:number, public color:Color){}
+}
+
 class StaticPhysicsComponent extends LineSegment implements Component{
     type:ComponentType = ComponentType.StaticPhysics;
-    constructor(v0:Vector, v1:Vector){
+    material:Material;
+    public static DEFAULT_MATERIAL:Material = new Material(0.01, 0, new Color("black"));
+    constructor(v0:Vector, v1:Vector, material:Material = StaticPhysicsComponent.DEFAULT_MATERIAL){
         super(v0, v1);
+        this.material = material;
     }
 }
 
-class Physics {
-    private dynamics: Physics.Dynamic[];
-    private statics: Physics.StaticLineSegment[];
-    private fixeds: Physics.Fixed[];
-    private triggers: Physics.Trigger[];
-    private timestamp: number;
-
-    private currentMaterial: Physics.Material;
-    private debug: boolean;
-    private debugVectorScalar: number;
-    private debugLines: any;
-    private friction: (x: number, y: number) => number;
-    private acceleration: (x: number, y: number) => Vector;
-
-    constructor() {
-        this.currentMaterial = new Physics.Material(1, "red", function() { }, function(x,y){
-            return 0.01;
-        });
-
-        this.dynamics = [];
-        this.statics = [];
-        this.fixeds = [];
-        this.triggers = [];
-        this.timestamp = 0;
-
-        this.debug = false;
-        this.debugVectorScalar = 100;
-        this.debugLines = [];
-
-        this.acceleration = function(x, y) {
-            return new Vector(0, .05);
-        }
-        this.friction = function(x, y) {
-            return 0.01;
-        }
+class DynamicPhysicsComponent extends Ball implements Component{
+    type:ComponentType = ComponentType.DynamicPhysics;
+    speed:Vector;
+    constructor(position: Vector, r: number, speed: Vector = new Vector(0, 0)){
+        super(position, r);
+        this.speed = speed;
     }
+}
 
-    public clearAll() {
-        this.dynamics = [];
-        this.statics = [];
-        this.fixeds = [];
-        this.triggers = [];
-        this.timestamp = 0;
-        this.currentMaterial = new Physics.Material(1, "red", function() { }, function(x, y) {
-            return 0.01;
-        });
-    }
+class ProjectileComponent implements Component{
+    type:ComponentType = ComponentType.Projectile;
+    constructor(public damage:number){}
+}
 
-    public setMaterial(material: Physics.Material) {
-        this.currentMaterial = material;
-    }
-
+class PhysicsSystem {
     public static polygon(x: number, y: number, r: number, numSides: number):LineSegment[]{
         var sides:LineSegment[] = [];
 
@@ -77,60 +47,11 @@ class Physics {
         return sides;
     }
 
-
-    public addStaticLineSegment(stat: Physics.StaticLineSegment) {
-        stat.material = this.currentMaterial;
-        this.statics.push(stat);
-    }
-
-    public addDynamic(dynamic: Physics.Dynamic) {
-        this.dynamics.push(dynamic);
-        return dynamic;
-    }
-
-    public removeDynamic(dynamic: Physics.Dynamic) {
-        for(let i=0;i<this.dynamics.length;i++){
-            if(this.dynamics[i] == dynamic){
-                this.dynamics.splice(i, 1);
-            }
-        }
-    }
-
-    public addFixed(fixed: Physics.Fixed) {
-        fixed.material = this.currentMaterial;
-        this.fixeds.push(fixed);
-    }
-
-    public addTrigger(trigger) {
-        if (!trigger.effect)
-            throw "Triggers must have effects";
-        this.triggers.push(trigger);
-    }
-
-    public getDynamics():Physics.Dynamic[]{
-        return this.dynamics;
-    }
-
-    public getStatics():Physics.StaticLineSegment[]{
-        return this.statics;
-    }
-
-    public getFixeds():Physics.Fixed[]{
-        return this.fixeds;
-    }
-
-    public getTriggers():Physics.Trigger[]{
-        return this.triggers;
-    }
-
-    public setAcceleration(fn) {
-        this.acceleration = fn;
-    }
-
     public lineOfSight(segment:LineSegment):boolean{
-        for(let i=0;i<this.statics.length;i++){
-            const stat_seg = this.statics[i];
-            if(Physics.intersectSegSeg(segment, stat_seg)){
+        const statics = EntityManager.current.get_entities([ComponentType.StaticPhysics]);
+        for(let i=0;i<statics.length;i++){
+            const stat_seg = statics[i].get_component<StaticPhysicsComponent>(ComponentType.StaticPhysics);
+            if(PhysicsSystem.intersectSegSeg(segment, stat_seg)){
                 return false;
             }
         }
@@ -138,51 +59,27 @@ class Physics {
     }
 
     public lineOfSightDistance(segment:LineSegment, distance:number):boolean{
-        for(let i=0;i<this.statics.length;i++){
-            const stat_seg = this.statics[i];
-            if(Physics.intersectSegSegDist(segment, stat_seg, distance)){
+        const statics = EntityManager.current.get_entities([ComponentType.StaticPhysics]);
+        for(let i=0;i<statics.length;i++){
+            const stat_seg = statics[i].get_component<StaticPhysicsComponent>(ComponentType.DynamicPhysics);
+            if(PhysicsSystem.intersectSegSegDist(segment, stat_seg, distance)){
                 return false;
             }
         }
         return true;
     }
 
-    private processTriggers() {
-        var self = this;
-        self.triggers.forEach(function(trigger:Physics.Trigger) {
-            self.dynamics.forEach(function(dynamic:Physics.Dynamic) {
-                if(dynamic instanceof Ball){
-                    const ball : Ball = dynamic as Ball;
-                    if (trigger instanceof Physics.TriggerLineSegment && Physics.intersectSegBall(trigger, ball)) {
-                        trigger.effect();
-                    }
-                    if (trigger instanceof Physics.TriggerBall && VectorMath.intersectBallBall(trigger, ball)) {
-                        trigger.effect();
-                    }
-                }
-            });
-        });
-    }
-
     private stepDynamics() {
-        var self = this;
-        self.dynamics.forEach(function(dynamic) {
-            dynamic.speed = dynamic.speed.clampTo(Math.min(dynamic.width(), dynamic.height()) / 2);
-            dynamic.move();
-            dynamic.accelerate(self.acceleration(dynamic.position.x, dynamic.position.y));
-            dynamic.accelerate(dynamic.getAcceleration());
+        const dynamics = EntityManager.current.get_entities([ComponentType.DynamicPhysics]);
+        dynamics.forEach((entity) => {
+            const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+            dynamic.speed = dynamic.speed.clampTo(dynamic.r);
+            dynamic.position.plusEquals(dynamic.speed);
         });
 
     }
 
-    private stepFixeds() {
-        var self = this;
-        self.fixeds.forEach(function(fixed) {
-            fixed.move();
-        });
-    }
-
-    private resolveCollision(dynamic:Physics.DynamicBall, stat:Physics.StaticLineSegment){
+    private resolveCollision(dynamic:DynamicPhysicsComponent, stat:StaticPhysicsComponent){
         var self = this;
 
         var v0 = stat.v0;
@@ -213,94 +110,51 @@ class Physics {
 
         var perpendicularComponent = Math.sqrt(dynamic.speed.length() * dynamic.speed.length() - projectedSpeed * projectedSpeed);
 
-        if (this.debug) {
-
-            this.debugLines.push({
-                x0: dynamic.position.x,
-                y0: dynamic.position.y,
-                x1: overlapVector.times(100).plus(dynamic.position).x,
-                y1: overlapVector.times(100).plus(dynamic.position).y,
-                color: "green"
-            });
-            this.debugLines.push({
-                x0: dynamic.position.x,
-                y0: dynamic.position.y,
-                x1: rejectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
-                y1: rejectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
-                color: "yellow"
-            });
-            this.debugLines.push({
-                x0: dynamic.position.x,
-                y0: dynamic.position.y,
-                x1: projectedSpeedVector.x * this.debugVectorScalar + dynamic.position.x,
-                y1: projectedSpeedVector.y * this.debugVectorScalar + dynamic.position.y,
-                color: "purple"
-            });
-        }
-
         if (dynamic.speed.length() > 1 || stat.material.bounce >= 1) {
             dynamic.speed = projectedSpeedVector.plus(rejectedSpeedVector.timesEquals(-1 * stat.material.bounce));
         }
-        stat.material.callback(dynamic.speed.length() / dynamic.maxSpeed);
         dynamic.position = dynamic.position.minus(overlapVector);
-        dynamic.speed.timesEquals(1 - stat.material.friction(dynamic.position.x, dynamic.position.y));
+        dynamic.speed.timesEquals(1 - stat.material.friction);
     }
 
-    private processBall(ball: Physics.DynamicBall){
+    private processBall(ball_entity: ECSEntity){
+        if(!ball_entity.has_component(ComponentType.DynamicPhysics)){
+            throw "Entity must have DynamicPhysics component";
+        }
+        const ball = ball_entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+        const statics = EntityManager.current.get_entities([ComponentType.StaticPhysics]);
+        const dynamics = EntityManager.current.get_entities([ComponentType.DynamicPhysics]);
         const self = this;
-        const deepest_collision = {
-            overlap: Math.pow(2, 32) - 1
-        };
-        this.statics.forEach(function(stat) {
-            var collision = Physics.intersectSegBall(stat, ball);
+        statics.forEach((entity) => {
+            const stat = entity.get_component<StaticPhysicsComponent>(ComponentType.StaticPhysics);
+            var collision = PhysicsSystem.intersectSegBall(stat, ball);
             if (collision) {
                 self.resolveCollision(ball, stat);
-                ball.oncontact(stat);
-            }
-        });
-        this.dynamics.forEach(function(dynamic){
-            if(dynamic instanceof Physics.DynamicBall && dynamic != ball){
-                const other_ball : Physics.DynamicBall = dynamic as Physics.DynamicBall;
-                if(Physics.intersectBallBall(ball, other_ball)){
-                    ball.oncontact(other_ball);
-                    other_ball.oncontact(ball);
+                if(ball_entity.has_component(ComponentType.Projectile)){
+                    EntityManager.current.remove_entity(ball_entity);
                 }
             }
         });
-        this.fixeds.forEach(function(fixed) {
-            var collision = false,
-                collided : Physics.StaticLineSegment;
-            if (fixed instanceof Physics.Flapper) {
-                const flapper = fixed as Physics.Flapper;
-                for (var i = 0; i < flapper.segments.length; i++) {
-                    var val = flapper.segments[i];
-                    collision = Physics.intersectSegBall(val, ball);
-                    if (collision) {
-                        collided = flapper.segments[i];
-                        collided.material = flapper.material;
-                        break;
-                    }
-                }
-                if (collision) {
-                    self.resolveCollision(ball, collided);
-                    ball.speed = ball.speed.plus(flapper.getSpeedAt(ball.position));
-                }
-            } else {
-                throw new Error("Not implemented");
+        dynamics.forEach((entity) => {
+            const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+            if(dynamic == ball)
+                return;
+
+            if(ball_entity.has_component(ComponentType.Projectile) && entity.has_component(ComponentType.Health)){
+                const dmg = ball_entity.get_component<ProjectileComponent>(ComponentType.Projectile).damage;
+                entity.get_component<HealthComponent>(ComponentType.Health).amount -= dmg;
+            }
+
+            if(entity.has_component(ComponentType.Projectile) && ball_entity.has_component(ComponentType.Health)){
+                const dmg = ball_entity.get_component<ProjectileComponent>(ComponentType.Projectile).damage;
+                entity.get_component<HealthComponent>(ComponentType.Health).amount -= dmg;
             }
         });
     }
     private processDynamics():void{
         var self = this;
-
-        self.dynamics.forEach(function(dynamic:Physics.Dynamic) {
-            if(dynamic instanceof Physics.DynamicBall){
-                const ball : Physics.DynamicBall = dynamic as Physics.DynamicBall;
-                self.processBall(ball);
-            }else{
-                throw new Error("Not implemented");
-            }
-        });
+        const dynamics = EntityManager.current.get_entities([ComponentType.DynamicPhysics]);
+        dynamics.forEach((entity:ECSEntity) => self.processBall(entity));
     }
 
     public execute():void {
@@ -309,88 +163,8 @@ class Physics {
          * 2 check for dynamic on static collisions
          * 3 move all fixeds according to their specific rules.
          */
-        this.processTriggers();
         this.stepDynamics();
-        this.stepFixeds();
         this.processDynamics();
-        
-        //TODO Fix "sticky" back collisions
-        this.timestamp++;
-    }
-
-    public draw(ctx:CanvasRenderingContext2D):void {
-        var self = this;
-
-        var canvas = <HTMLCanvasElement>ctx.canvas;
-        ctx.fillStyle = "rgba(255,255,255,.01)";
-        ctx.strokeStyle = "black";
-
-        for (var i = 0; i < this.statics.length; i++) {
-            var v = this.statics[i];
-            var v0 = v.v0;
-            var v1 = v.v1;
-            if (this.debug) {
-                ctx.strokeStyle = v.material.debugColor;
-                ctx.fillStyle = v.material.debugColor;
-            }
-            ctx.beginPath();
-            ctx.moveTo(v0.x, v0.y);
-            ctx.lineTo(v1.x, v1.y);
-            ctx.stroke();
-        }
-
-        for (var i = 0; i < this.fixeds.length; i++) {
-            var fixed = this.fixeds[i] as Physics.Flapper;
-            ctx.strokeStyle = fixed.material.debugColor;
-            ctx.fillStyle = fixed.material.debugColor;
-            for (var j = 0; j < fixed.segments.length; j++) {
-                var v = fixed.segments[j],
-                    v0 = v.v0,
-                    v1 = v.v1;
-
-                ctx.beginPath();
-                ctx.moveTo(v0.x, v0.y);
-                ctx.lineTo(v1.x, v1.y);
-                ctx.stroke();
-            }
-        }
-
-        if (this.debug){
-            this.debugLines.forEach(function(val) {
-                ctx.strokeStyle = val.color;
-                ctx.beginPath();
-                ctx.moveTo(val.x0, val.y0);
-                ctx.lineTo(val.x1, val.y1);
-                ctx.stroke();
-                if (self.debugLines.length > 10){
-                    self.debugLines.shift();
-                }
-            });
-        }
-
-        ctx.strokeStyle = "blue";
-        ctx.fillStyle = "blue";
-        for (var i = 0; i < this.dynamics.length; i++) {
-            const ball : Physics.DynamicBall = this.dynamics[i] as Physics.DynamicBall;
-            ctx.beginPath();
-            ctx.arc(ball.position.x, ball.position.y, ball.r, 0, 2 * Math.PI);
-            ctx.stroke();
-            if(this.debug){
-                ctx.moveTo(ball.position.x, ball.position.y);
-                ctx.lineTo(ball.position.x + ball.speed.x * this.debugVectorScalar,
-                    ball.position.y + ball.speed.y * this.debugVectorScalar);
-                ctx.stroke();
-            }
-        }
-        ctx.strokeStyle = "orange";
-        ctx.fillStyle = "orange";
-        for (var i = 0; i < this.triggers.length; i++) {
-            const trigger : Physics.TriggerLineSegment = this.triggers[i] as Physics.TriggerLineSegment;
-            ctx.beginPath();
-            ctx.moveTo(trigger.v0.x, trigger.v0.y);
-            ctx.lineTo(trigger.v1.x, trigger.v1.y);
-            ctx.stroke();
-        }
     }
 
     public static intersectSegBall(seg:LineSegment, ball:Ball):boolean{
@@ -426,11 +200,11 @@ class Physics {
      *
      */
     public static intersectSegSegDist(seg0:LineSegment, seg1:LineSegment, distance:number):boolean{
-        if(Physics.intersectSegBall(seg0, new Ball(seg1.v0, distance))) return true;
-        if(Physics.intersectSegBall(seg0, new Ball(seg1.v1, distance))) return true;
-        if(Physics.intersectSegBall(seg1, new Ball(seg0.v0, distance))) return true;
-        if(Physics.intersectSegBall(seg1, new Ball(seg0.v1, distance))) return true;
-        if(Physics.intersectSegSeg(seg0, seg1)) return true;
+        if(PhysicsSystem.intersectSegBall(seg0, new Ball(seg1.v0, distance))) return true;
+        if(PhysicsSystem.intersectSegBall(seg0, new Ball(seg1.v1, distance))) return true;
+        if(PhysicsSystem.intersectSegBall(seg1, new Ball(seg0.v0, distance))) return true;
+        if(PhysicsSystem.intersectSegBall(seg1, new Ball(seg0.v1, distance))) return true;
+        if(PhysicsSystem.intersectSegSeg(seg0, seg1)) return true;
         return false;
     }
 
@@ -456,21 +230,23 @@ class Physics {
     }
 
     public static intersectSegSeg(seg0:LineSegment, seg1:LineSegment):boolean{
-        const o1 = Physics.orientation(seg0.v0, seg0.v1, seg1.v0);
-        const o2 = Physics.orientation(seg0.v0, seg0.v1, seg1.v1);
-        const o3 = Physics.orientation(seg1.v0, seg1.v1, seg0.v0);
-        const o4 = Physics.orientation(seg1.v0, seg1.v1, seg0.v1);
+        const o1 = PhysicsSystem.orientation(seg0.v0, seg0.v1, seg1.v0);
+        const o2 = PhysicsSystem.orientation(seg0.v0, seg0.v1, seg1.v1);
+        const o3 = PhysicsSystem.orientation(seg1.v0, seg1.v1, seg0.v0);
+        const o4 = PhysicsSystem.orientation(seg1.v0, seg1.v1, seg0.v1);
 
         if(o1 !== o2 && o3 !== o4) return true;
 
-        if(o1 == 0 && Physics.onSeg(seg0, seg1.v0)) return true;
-        if(o2 == 0 && Physics.onSeg(seg0, seg1.v1)) return true;
-        if(o1 == 0 && Physics.onSeg(seg1, seg0.v0)) return true;
-        if(o1 == 0 && Physics.onSeg(seg1, seg0.v1)) return true;
+        if(o1 == 0 && PhysicsSystem.onSeg(seg0, seg1.v0)) return true;
+        if(o2 == 0 && PhysicsSystem.onSeg(seg0, seg1.v1)) return true;
+        if(o1 == 0 && PhysicsSystem.onSeg(seg1, seg0.v0)) return true;
+        if(o1 == 0 && PhysicsSystem.onSeg(seg1, seg0.v1)) return true;
         return false;
     }
 }
+
 module Physics {
+    /*
     export class StaticLineSegment extends LineSegment{
         material: Physics.Material;
     }
@@ -502,13 +278,12 @@ module Physics {
 
     export class Material {
         constructor(public bounce: number,
-            public debugColor: any,
             public callback: (vol: number) => void,
             public friction: (x: number, y: number) => number) {
 
         }
         public static defaultMaterial() {
-            return new Physics.Material(0, "black", (vol: number) => void {}, function(x,y){
+            return new Physics.Material(0, (vol: number) => void {}, function(x,y){
                 return 0.01;
             });
         }
@@ -552,92 +327,6 @@ module Physics {
         public oncontact(object:PhysicsObject){}
     }
 
-    export class Flapper implements Physics.Fixed{
-        public position: Vector;
-        up: boolean;
-        moving: boolean;
-        upAngle: number;
-        downAngle: number;
-        angle: number;
-        angleSpeed: number;
-        public material: Physics.Material;
-
-        segments: Physics.StaticLineSegment[];
-        private structure: any;
-
-        constructor(position: Vector, angleSpeed: number, upAngle: number, downAngle: number) {
-            if (!position.vector) {
-                throw "Center should be a vector";
-            }
-            this.position = position;
-            this.up = false;
-            this.moving = false;
-            this.upAngle = upAngle;
-            this.downAngle = downAngle;
-            this.angle = this.downAngle;
-            this.angleSpeed = angleSpeed;
-            this.structure = [2, -11,
-                48, 20,
-                49, 24,
-                49, 28, //tip
-                45, 32,
-                41, 32, -5, 10, -11, 5, -12, -1, -9, -7, -4, -11,
-                2, -11
-            ];
-            this.segments = [];
-            for (var i = 2; i < this.structure.length; i += 2) {
-                var v0 = new Vector(this.structure[i - 2] + position.x, this.structure[i - 1] + position.y),
-                    v1 = new Vector(this.structure[i] + position.x, this.structure[i + 1] + position.y),
-                    segment = new Physics.StaticLineSegment(v0, v1);
-                segment.material = this.material;
-                this.segments.push(segment);
-            }
-        }
-
-        public getSpeedAt(position: Vector): Vector {
-            if (!this.moving)
-                return new Vector(0, 0);
-
-            var speed = 2 * Math.PI * this.position.distanceTo(position) * this.angleSpeed * Math.PI;
-            var translated = this.segments[2].v1.minus(this.position);
-            var perp = new Vector(translated.y * -1, translated.x).unit().times(speed);
-
-            return perp;
-        }
-
-        public move() : void{
-            if (this.angle / this.upAngle < 1 && this.up) {
-                if (1 - this.angle / this.upAngle < this.angleSpeed / this.upAngle) {
-                    this.angle = this.upAngle;
-                    this.moving = false;
-                } else {
-                    this.angle += this.angleSpeed;
-                    this.moving = true;
-                }
-            } else if (this.angle / this.downAngle > 1 && !this.up) {
-                if (this.angle / this.downAngle < this.angleSpeed / this.downAngle) {
-                    this.angle = this.downAngle;
-                    this.moving = false;
-                } else {
-                    this.angle -= this.angleSpeed;
-                    this.moving = true;
-                }
-            } else {
-                this.moving = false;
-            }
-            this.segments = [];
-            for (var i = 2; i < this.structure.length; i += 2) {
-                var v0 = new Vector(this.structure[i - 2] + this.position.x, this.structure[i - 1] + this.position.y)
-                    .rotate(this.angle * Math.PI, this.position);
-                var v1 = new Vector(this.structure[i] + this.position.x, this.structure[i + 1] + this.position.y)
-                    .rotate(this.angle * Math.PI, this.position);
-                var segment = new StaticLineSegment(v0, v1);
-                segment.material = this.material;
-                this.segments.push(segment);
-            }
-        }
-    }
-
     export class TriggerBall extends Ball implements Physics.Trigger{
         constructor(position: Vector, r: number, public effect: any) {
             super(position, r); 
@@ -649,5 +338,5 @@ module Physics {
             super(v0, v1); 
         }
     }
-
+*/
 }

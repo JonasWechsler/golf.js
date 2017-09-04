@@ -252,7 +252,7 @@ class Ball {
     r: number;
 
     constructor(position: Vector, r: number) {
-        if (!r) {
+        if (r <= 0) {
             throw "Radius should be number > 0";
         }
         this.position = position;
@@ -365,8 +365,8 @@ class Square{
 class Color{
 	public r:number;
     constructor(r:number|string,
-                public g:number,
-                public b:number){
+                public g:number = undefined,
+                public b:number = undefined){
         if(g == undefined){
             this.set_str(<string>r);
         }else{

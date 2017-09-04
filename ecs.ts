@@ -1,13 +1,18 @@
 enum ComponentType{
     DynamicPhysics,
     StaticPhysics,
-    FixedPhysics,
+    Projectile,
     Timer,
     Health,
     Render,
     UI,
     Camera,
     FPS
+}
+
+class HealthComponent implements Component{
+    type:ComponentType = ComponentType.Health;
+    constructor(public amount:number){}
 }
 
 class ECSEntity{
@@ -25,6 +30,9 @@ class ECSEntity{
         }
         this.component_types[c.type] = c;
         this.components.push(c);
+    }
+    public has_component(type:ComponentType):boolean{
+        return this.component_types[type]?true:false;
     }
     public get_component<Class>(type):Class{
         return <Class> this.component_types[type];
@@ -59,6 +67,18 @@ class EntityManager{
                 }else{
                     this.entities.insert(arr, [e]);
                 }
+            }
+        );
+    }
+    public remove_entity(e:ECSEntity):void{
+        const types = [];
+        e.get_components().forEach((c) => types.push(c.type));
+        combinations(types).forEach(
+            (arr) => {
+                const entry = this.entities.get(arr);
+                const idx = entry.indexOf(e);
+                assert(idx != -1);
+                entry.splice(idx, 1);
             }
         );
     }

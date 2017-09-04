@@ -19,7 +19,6 @@
        "generators.ts",
        "render.ts",
        "inputs.ts",
-       "entity.ts",
        "run.ts"
     ]
 }
