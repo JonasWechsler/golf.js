@@ -38,8 +38,10 @@ class TimerComponent implements Component{
 
 class FPSComponent implements Component{
     public last_time:number;
-    constructor(public fps:number){
+    public fps:number[];
+    constructor(){
         this.last_time = Date.now();
+        this.fps = []
     }
     type:ComponentType = ComponentType.FPS;
 }
@@ -52,18 +54,27 @@ class FPSSystem implements System{
             const fps = entity.get_component<FPSComponent>(ComponentType.FPS);
             const dt = time - fps.last_time;
             fps.last_time = time;
-            fps.fps = Math.floor(1000/dt);
+            fps.fps.push(Math.floor(1000/dt));
         });
         const output = e.get_entities([ComponentType.FPS, ComponentType.UI]);
         output.forEach((entity) => {
             const fps = entity.get_component<FPSComponent>(ComponentType.FPS);
+            if(fps.fps.length < 100){
+                return;
+            }
             const ui = entity.get_component<UIComponent>(ComponentType.UI);
             const canvas = ui.content;
             canvas.width = 100;
             canvas.height = 100;
             const ctx = canvas.getContext("2d");
             ctx.clearRect(0, 0, 100, 100);
-            const str:string = "000" + fps.fps.toString();
+
+            let avg = 0;
+            fps.fps.forEach((v) => avg+=v);
+            avg=Math.floor(avg/fps.fps.length);
+            fps.fps = [];
+
+            const str:string = "000" + avg.toString();
             ctx.fillText(str.substr(str.length-3, 3), 0, 100);
         });
     }
