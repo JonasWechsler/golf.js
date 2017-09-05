@@ -353,10 +353,10 @@ class DungeonGenerator{
   
   private adj(v:Vector){
     return [
-      new Vector(v.x - 1, v.y),
-      new Vector(v.x + 1, v.y),
       new Vector(v.x, v.y - 1),
-      new Vector(v.x, v.y + 1)
+      new Vector(v.x - 1, v.y),
+      new Vector(v.x, v.y + 1),
+      new Vector(v.x + 1, v.y)
     ];
   }
   
@@ -438,27 +438,36 @@ class DungeonGenerator{
         if((l && r && !t && !b) || (!l && !r && t && b)) room++;
       }
   }
+
+  private openings(i:number, j:number):boolean[]{
+        if(!this.in_bounds(new Vector(i, j))){
+            return [false, false, false, false];
+        }
+        const v = new Vector(i, j);
+        const open = [false, false, false, false];
+        const NORTH = 0, WEST = 1, SOUTH = 2, EAST = 3;
+
+        if(this.open(v)){
+            this.adj(v).forEach((adj, idx) => {
+                open[idx] = this.open(adj) || !this.in_bounds(adj)
+            });
+        }else{
+             this.adjacent.at(v).forEach(function(adj){
+                if (adj.x == i - 1 && adj.y == j) open[WEST] = true;
+                if (adj.x == i + 1 && adj.y == j) open[EAST] = true;
+                if (adj.x == i && adj.y == j - 1) open[NORTH] = true;
+                if (adj.x == i && adj.y == j + 1) open[SOUTH] = true;
+            });
+        }
+        return open;
+  }
   
   public build(){
     for(let i = 0; i < this.WIDTH; i++){
       for(let j = 0; j < this.HEIGHT; j++){
         const v = new Vector(i, j);
-        const open = [false, false, false, false];
+        const open = this.openings(i, j);
         const TOP = 0, LEFT = 1, BOTTOM = 2, RIGHT = 3;
-
-        if(this.open(v)){
-            open[LEFT] = this.open(new Vector(i-1, j)) || !this.in_bounds(new Vector(i-1, j));
-            open[RIGHT] = this.open(new Vector(i+1, j)) || !this.in_bounds(new Vector(i+1, j));
-            open[TOP] = this.open(new Vector(i, j-1)) || !this.in_bounds(new Vector(i, j-1));
-            open[BOTTOM] = this.open(new Vector(i, j+1)) || !this.in_bounds(new Vector(i, j+1));
-        }else{
-             this.adjacent.at(v).forEach(function(adj){
-                if (adj.x == i - 1 && adj.y == j) open[LEFT] = true;
-                if (adj.x == i + 1 && adj.y == j) open[RIGHT] = true;
-                if (adj.x == i && adj.y == j - 1) open[TOP] = true;
-                if (adj.x == i && adj.y == j + 1) open[BOTTOM] = true;
-            });
-        }
 
         const square_upper_left = new Vector(this.LEFT + i*this.CELL_W, this.TOP + j*this.CELL_H);
         const square_lower_left = new Vector(this.LEFT + i*this.CELL_W, this.TOP + (j+1)*this.CELL_H);
@@ -518,8 +527,13 @@ class DungeonGenerator{
 
         for(let idx = 0; idx < 4; idx++){
             if(open[idx]){
-                add_line(openings[idx][0]);
-                add_line(openings[idx][1]);
+                const adj = this.adj(v)[idx];
+                const bdj = this.adj(v)[(idx+5)%4];
+                const cdj = this.adj(v)[(idx+3)%4];
+                if(!(this.openings(adj.x, adj.y)[(idx+3)%4] && open[(idx+3)%4] && this.openings(cdj.x, cdj.y)[idx]))
+                    add_line(openings[idx][0]);
+                if(!(this.openings(adj.x, adj.y)[(idx+5)%4] && open[(idx+5)%4] && this.openings(bdj.x, bdj.y)[idx]))
+                    add_line(openings[idx][1]);
             }else{
                 add_line(walls[idx]);
             }

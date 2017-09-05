@@ -28,7 +28,6 @@ const system_manager = new SystemManager(new EntityManager());
 KeyInfo.setup();
 MouseInfo.setup();
 
-const physics = new PhysicsSystem();
 //const player = new Player(new Vector(30, 30), 20,new Vector(0, 0));
 const player = new ECSEntity();
 player.add_component(new DynamicPhysicsComponent(new Vector(30, 30), 20));
@@ -63,13 +62,10 @@ fps.add_component(new UIComponent(0, 0, document.createElement("canvas")));
 
 system_manager.entity_manager.add_entity(camera);
 system_manager.entity_manager.add_entity(fps);
+system_manager.entity_manager.add_entity(player);
 system_manager.add(new CameraSystem());
 system_manager.add(new UIRenderSystem());
-system_manager.add(new PhysicsRenderSystem(physics));
+system_manager.add(new PhysicsRenderSystem());
 system_manager.add(new FPSSystem());
+system_manager.add(new PhysicsSystem());
 system_manager.start();
-
-//RenderManager.add_time_listener(player);
-//RenderManager.add_time_listener(ai);
-RenderManager.add_time_listener(physics);
-RenderManager.execute_loop();

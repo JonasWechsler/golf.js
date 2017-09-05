@@ -1,4 +1,4 @@
-interface Killable{
+/*interface Killable{
     damage(amt: number);
     get_health():number;
     get_max_health():number;
@@ -199,4 +199,4 @@ class AI extends Entity implements RenderObject{
             if(this.path.length > 1) this.path.pop();
             else this.change_state();
     }
-}
+}*/

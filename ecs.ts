@@ -95,15 +95,14 @@ class SystemManager{
         this.systems.push(system);
     }
 
+    static frame(self:SystemManager){
+        self.systems.forEach((system) => {
+            system.step(self.entity_manager);
+        });
+        window.requestAnimationFrame(() => SystemManager.frame(self));
+    }
+
     start(){
-        const self = this;
-        let finished = true;
-        setInterval(() => {
-            if(!finished) return;
-            self.systems.forEach((system) => {
-                system.step(self.entity_manager);
-            });
-            finished = true;
-        }, 1);
+        window.requestAnimationFrame(() => SystemManager.frame(this));
     }
 }

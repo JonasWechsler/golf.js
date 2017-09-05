@@ -28,7 +28,7 @@ class ProjectileComponent implements Component{
     constructor(public damage:number){}
 }
 
-class PhysicsSystem {
+class PhysicsSystem implements System{
     public static polygon(x: number, y: number, r: number, numSides: number):LineSegment[]{
         var sides:LineSegment[] = [];
 
@@ -76,7 +76,6 @@ class PhysicsSystem {
             dynamic.speed = dynamic.speed.clampTo(dynamic.r);
             dynamic.position.plusEquals(dynamic.speed);
         });
-
     }
 
     private resolveCollision(dynamic:DynamicPhysicsComponent, stat:StaticPhysicsComponent){
@@ -157,7 +156,7 @@ class PhysicsSystem {
         dynamics.forEach((entity:ECSEntity) => self.processBall(entity));
     }
 
-    public execute():void {
+    public step():void {
         /**
          * 1 move all dynamics according to level rules. This includes momentum, friction, and other forces
          * 2 check for dynamic on static collisions
