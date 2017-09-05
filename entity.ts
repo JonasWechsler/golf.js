@@ -1,3 +1,20 @@
+class ControlSystem{
+    constructor(){}
+    step(){
+        const entities = EntityManager.current.get_entities([ComponentType.KeyInput, ComponentType.DynamicPhysics]);
+        entities.forEach((entity) => {
+            const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+            const keys = entity.get_component<KeyInputComponent>(ComponentType.KeyInput);
+            const speed = new Vector(0, 0);
+            speed.x -= keys.left?2:0;
+            speed.x += keys.right?2:0;
+            speed.y -= keys.up?2:0;
+            speed.y += keys.down?2:0;
+            dynamic.speed = speed;
+        });
+    }
+}
+
 /*interface Killable{
     damage(amt: number);
     get_health():number;

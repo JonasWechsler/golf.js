@@ -25,12 +25,12 @@ var voronoi = d3.voronoi(data);
 
 const system_manager = new SystemManager(new EntityManager());
 
-KeyInfo.setup();
 MouseInfo.setup();
 
 //const player = new Player(new Vector(30, 30), 20,new Vector(0, 0));
 const player = new ECSEntity();
 player.add_component(new DynamicPhysicsComponent(new Vector(30, 30), 20));
+player.add_component(new KeyInputComponent());
 
 //const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
 
@@ -63,6 +63,8 @@ fps.add_component(new UIComponent(0, 0, document.createElement("canvas")));
 system_manager.entity_manager.add_entity(camera);
 system_manager.entity_manager.add_entity(fps);
 system_manager.entity_manager.add_entity(player);
+system_manager.add(new KeySystem());
+system_manager.add(new ControlSystem());
 system_manager.add(new CameraSystem());
 system_manager.add(new UIRenderSystem());
 system_manager.add(new PhysicsRenderSystem());

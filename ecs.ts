@@ -7,7 +7,8 @@ enum ComponentType{
     Render,
     UI,
     Camera,
-    FPS
+    FPS,
+    KeyInput
 }
 
 class HealthComponent implements Component{

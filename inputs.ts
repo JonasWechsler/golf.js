@@ -1,75 +1,58 @@
 /*Running*/
-interface KeyListener {
-    onkeydown(key_code : number) : void;
-    onkeyup(key_code : number) : void;
-}
 
-class KeyInfo {
-  private static keys_down: boolean[] = [];
-  private static listeners: KeyListener[] = [];
-  private static trigger_downs(key_code : number){
-    this.listeners.forEach(function(listener){
-      listener.onkeydown(key_code);
-    });
-  }
+class KeySystem implements System{
+    private static keys_down: boolean[] = [];
+    private static has_setup: boolean = false;
+    static is_down(code: number): boolean{
+        return this.keys_down[code];
+    }
 
-  private static trigger_ups(key_code : number){
-    this.listeners.forEach(function(listener){
-      listener.onkeyup(key_code);
-    });
-  }
+    static code(str: string): number{
+        return str.charCodeAt(0);
+    }
+    public static setup(){
+        if(KeySystem.has_setup) return;
+        const self = this;
+        function handle_down(event: KeyboardEvent){
+            if(self.keys_down[event.keyCode]){
+                return;
+            }
 
-  static setup(){
-      const self = this;
-      function handle_down(event: KeyboardEvent){
-        if(self.keys_down[event.keyCode]){
-            return;
+            self.keys_down[event.keyCode] = true;
         }
+        function handle_up(event: KeyboardEvent){
+            self.keys_down[event.keyCode] = false;
+        }
+        document.addEventListener('keydown', handle_down, false);
+        document.addEventListener('keyup', handle_up, false);
+        KeySystem.has_setup = true;
+    }
 
-        self.keys_down[event.keyCode] = true;
-        self.trigger_downs(event.keyCode);
-      }
-      function handle_up(event: KeyboardEvent){
-        self.keys_down[event.keyCode] = false;
-        self.trigger_ups(event.keyCode);
-      }
-      document.addEventListener('keydown', handle_down, false);
-      document.addEventListener('keyup', handle_up, false);
-  }
-
-  static add_key_listener(listener : KeyListener){
-    this.listeners.push(listener);
-  }
-
-  static is_down(code: number): boolean{
-    return this.keys_down[code];
-  }
-
-  static code(str: string): number{
-    return str.charCodeAt(0);
-  }
+    constructor(){
+        KeySystem.setup();
+    }
+    step(){
+        const self = this;
+        EntityManager.current.get_entities([ComponentType.KeyInput]).forEach(
+            (entity) => {
+                const input = entity.get_component<KeyInputComponent>(ComponentType.KeyInput);
+                input.up = KeySystem.is_down(KeySystem.code('W'));
+                input.left = KeySystem.is_down(KeySystem.code('A'));
+                input.down = KeySystem.is_down(KeySystem.code('S'));
+                input.right = KeySystem.is_down(KeySystem.code('D'));
+            }
+        );
+    }
 }
 
-class KeyHandler {
-  private keysDown: Array<boolean>;
-  constructor(private element: any){
-    var self = this;
-    this.keysDown = [];
-    element.addEventListener('keydown', function(e) {
-      var char = String.fromCharCode(e.keyCode);
-      self.keysDown[char] = true;
-    }, false);
-    element.addEventListener('keyup', function(e) {
-      var char = String.fromCharCode(e.keyCode);
-      self.keysDown[char] = false;
-    }, false);
-  }
-  isDown(char: string): boolean{
-    return this.keysDown[char];
-  }
-  
+class KeyInputComponent implements Component{
+    type:ComponentType = ComponentType.KeyInput;
+    up:boolean = false;
+    down:boolean = false;
+    left:boolean = false;
+    right:boolean = false;
+    constructor(){}
 }
-
 
 interface MouseListener{
     onclick: (x : number, y : number, which : number) => void;
