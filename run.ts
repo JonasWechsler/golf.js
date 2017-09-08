@@ -31,6 +31,10 @@ MouseInfo.setup();
 const player = new ECSEntity();
 player.add_component(new DynamicPhysicsComponent(new Vector(30, 30), 20));
 player.add_component(new KeyInputComponent());
+const player_canvas = document.createElement("canvas");
+player_canvas.width = 40;
+player_canvas.height = 40;
+player.add_component(new RenderComponent(0, 0, player_canvas));
 
 //const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
 
@@ -59,6 +63,16 @@ camera.add_component(ui_component);
 const fps = new ECSEntity();
 fps.add_component(new FPSComponent());
 fps.add_component(new UIComponent(0, 0, document.createElement("canvas")));
+
+const sample_wall = new ECSEntity();
+sample_wall.add_component(new StaticPhysicsComponent(new Vector(30, 30), new Vector(50, 50)));
+const sample_wall_view = new RenderComponent(0, 0, document.createElement("canvas"));
+sample_wall_view.x = 30;
+sample_wall_view.y = 30;
+sample_wall_view.content.width = 20;
+sample_wall_view.content.height = 20;
+sample_wall.add_component(sample_wall_view);
+system_manager.entity_manager.add_entity(sample_wall);
 
 system_manager.entity_manager.add_entity(camera);
 system_manager.entity_manager.add_entity(fps);

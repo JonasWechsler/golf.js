@@ -37,20 +37,39 @@ class PhysicsRenderSystem implements System{
         statics.forEach((s) => {
             const target = s.get_component<RenderComponent>(ComponentType.Render);
             const content = s.get_component<StaticPhysicsComponent>(ComponentType.StaticPhysics);
+            const o = content.v1.minus(content.v0);
+            const p = new LineSegment(new Vector(0, 0), new Vector(-o.y, o.x));
+            const bbp = p.bounding_box();
             const bb = content.bounding_box();
-            target.x = bb.left;
-            target.y = bb.top;
+            target.x = bb.left-3;
+            target.y = bb.top-3;
+            target.content.width = bb.width + 6;
+            target.content.width = bb.width + 6;
             const ctx = target.content.getContext("2d");
             ctx.strokeStyle = "black";
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(bb.width, bb.height);
+            ctx.moveTo(3, 3);
+            ctx.lineTo(bb.width+3, bb.height+3);
             ctx.stroke();
+            ctx.fillRect(1, 1, 5, 5);
+            ctx.fillRect(bb.width+1, bb.height+1, 5, 5);
         });
     }
 
     step(e:EntityManager){
+        const dynamics = e.get_entities([ComponentType.DynamicPhysics, ComponentType.Render]);
+        dynamics.forEach((s) => {
+            const target = s.get_component<RenderComponent>(ComponentType.Render);
+            const content = s.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+            target.x = content.position.x - content.r;
+            target.y = content.position.y - content.r;
+            const ctx = target.content.getContext("2d");
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.beginPath();
+            ctx.arc(content.r, content.r, content.r, 0, 2*Math.PI);
+            ctx.stroke();
+        });
     }
 
     /*

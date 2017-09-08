@@ -100,24 +100,3 @@ class TimeSystem{
         });
     }
 }
-
-class RenderManager{
-    private static time_listeners : TimeListener[] = [];
-    private static timer: number = 0;
-
-    static add_time_listener(listener : TimeListener){
-        this.time_listeners.push(listener);
-    }
-
-    static execute_loop(){
-        RenderManager.time_listeners.forEach(function(listener){
-            listener.execute(RenderManager.time());
-        });
-        setTimeout(RenderManager.execute_loop, 10);
-        RenderManager.timer++;
-    }
-
-    static time() : number{
-        return this.timer;
-    }
-}

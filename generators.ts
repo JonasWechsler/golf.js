@@ -507,19 +507,13 @@ class DungeonGenerator{
 
             openings[idx] = [
                 new StaticPhysicsComponent(room_corners[idx], right_wall),
-                new StaticPhysicsComponent(room_corners[(idx+1)%4], left_wall)
+                new StaticPhysicsComponent(left_wall, room_corners[(idx+1)%4])
             ];
         }
 
         const add_line = function(s:StaticPhysicsComponent){
             const line = new ECSEntity();
             const view = new RenderComponent(0, 0, document.createElement("canvas"));
-            const bb = s.bounding_box();
-            view.x = bb.left;
-            view.y = bb.top;
-            view.content.width = Math.max(bb.width, 5);
-            view.content.height = Math.max(bb.height, 5);
-
             line.add_component(s);
             line.add_component(view);
             EntityManager.current.add_entity(line);

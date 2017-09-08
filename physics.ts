@@ -79,35 +79,36 @@ class PhysicsSystem implements System{
     }
 
     private resolveCollision(dynamic:DynamicPhysicsComponent, stat:StaticPhysicsComponent){
-        var self = this;
+        const self = this;
 
-        var v0 = stat.v0;
-        var v1 = stat.v1;
+        const v0:Vector = stat.v0;
+        const v1:Vector = stat.v1;
 
-        var originStatic = v1.minus(v0);
-        var originDynamic = dynamic.position.minus(v0);
+        const originStatic:Vector = v1.minus(v0);
+        const originDynamic:Vector = dynamic.position.minus(v0);
 
-        var projectedScalar = VectorMath.projectScalar(originDynamic, originStatic);
-        var projectedVector = v0.plus(originStatic.unit().times(projectedScalar));
+        const projectedScalar:number = VectorMath.projectScalar(originDynamic, originStatic);
+        const projectedVector:Vector = v0.plus(originStatic.unit().times(projectedScalar));
 
-        var overlap = dynamic.r - dynamic.position.distanceTo(projectedVector);
+        const overlap:number = dynamic.r - dynamic.position.distanceTo(projectedVector);
 
         if (overlap > dynamic.r)
-            return null;
+            return;
 
-        var overlapVector = projectedVector.minus(dynamic.position).unitTimes(overlap);
+        const overlapVector:Vector = projectedVector.minus(dynamic.position).unitTimes(overlap);
 
-        if(overlapVector.x*-originStatic.y + overlapVector.y*originStatic.x < 0)
-            return null;
+        if(overlapVector.x*-originStatic.y + overlapVector.y*originStatic.x < 0){
+            return;
+        }
 
-        var projectedSpeed = VectorMath.projectScalar(dynamic.speed, originStatic);
-        var projectedSpeedVector = VectorMath.projectVector(dynamic.speed, originStatic);
-        var rejectedSpeedVector = dynamic.speed.minus(projectedSpeedVector);
+        const projectedSpeed:number = VectorMath.projectScalar(dynamic.speed, originStatic);
+        const projectedSpeedVector:Vector = VectorMath.projectVector(dynamic.speed, originStatic);
+        const rejectedSpeedVector:Vector = dynamic.speed.minus(projectedSpeedVector);
 
         if (!overlapVector.unit().equals(rejectedSpeedVector.unit()))
-            return null;
+            return;
 
-        var perpendicularComponent = Math.sqrt(dynamic.speed.length() * dynamic.speed.length() - projectedSpeed * projectedSpeed);
+        const perpendicularComponent:number = Math.sqrt(dynamic.speed.length() * dynamic.speed.length() - projectedSpeed * projectedSpeed);
 
         if (dynamic.speed.length() > 1 || stat.material.bounce >= 1) {
             dynamic.speed = projectedSpeedVector.plus(rejectedSpeedVector.timesEquals(-1 * stat.material.bounce));
