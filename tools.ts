@@ -190,6 +190,14 @@ class Vector extends Point{
   dividedEquals(scalar: number) {
     return this.timesEquals(1 / scalar);
   }
+  apply(fun:(x:number)=>number): Vector{
+    return new Vector(fun(this.x), fun(this.y));
+  }
+  applyEquals(fun:(x:number)=>number): Vector{
+    this.x = fun(this.x);
+    this.y = fun(this.y);
+    return this;
+  }
   dot(vector: Vector) {
     return this.x * vector.x + this.y * vector.y;
   }
@@ -435,5 +443,52 @@ class Color{
     }
     public minus(color:Color){
         return this.plus(color.times(-1));
+    }
+}
+
+
+class CanvasCache {
+    public static DEFAULT_CANVAS_WIDTH:number = 500;
+    private cache:VectorMap<HTMLCanvasElement> = new VectorMap<HTMLCanvasElement>();
+    constructor(private CANVAS_WIDTH: number = CanvasCache.DEFAULT_CANVAS_WIDTH) { }
+    
+    draw_image(canvas:HTMLCanvasElement, position:Vector):void{
+        const p = position.divided(this.CANVAS_WIDTH).apply(Math.floor);
+        const dimensions = new Vector(canvas.width, canvas.height).divided(this.CANVAS_WIDTH).apply(Math.ceil);
+        for(let i=0;i<dimensions.x+1;i++){
+            for(let j=0;j<dimensions.y+1;j++){
+                const left = position.x - (p.x + i)*this.CANVAS_WIDTH;
+                const top = position.y - (p.y + j) * this.CANVAS_WIDTH;
+                console.log("(" + position.x + "," + position.y + ") " + this.CANVAS_WIDTH + " (" + left + "," + top + ") (" + (p.x + i) + "," + (p.y + j) + ")");
+                const idx = new Vector(p.x + i, p.y + j);
+                if (!this.cache.has(idx)) {
+                    const new_canvas = document.createElement("canvas");
+                    new_canvas.width = this.CANVAS_WIDTH;
+                    new_canvas.height = this.CANVAS_WIDTH;
+                    this.cache.map(idx, new_canvas);
+                }
+                this.cache.at(idx).getContext("2d").drawImage(canvas, left, top);
+            }
+        }
+    }
+
+    get_image(view:Square):HTMLCanvasElement{
+        const result = document.createElement("canvas");
+        result.width = view.width;
+        result.height = view.height;
+        const ctx = result.getContext("2d");
+        const position = new Vector(view.left, view.top).divided(this.CANVAS_WIDTH).apply(Math.floor);
+        const dimensions = new Vector(view.width, view.height).divided(this.CANVAS_WIDTH).apply(Math.ceil);
+        for(let i=0;i<dimensions.x+1;i++){
+            for(let j=0;j<dimensions.y+1;j++){
+                let left = i*this.CANVAS_WIDTH - view.left%this.CANVAS_WIDTH;
+                let top = j*this.CANVAS_WIDTH - view.top%this.CANVAS_WIDTH;
+                const idx = new Vector(position.x + i, position.y + j);
+                const img = this.cache.at(idx);
+                if (!img) continue;
+                ctx.drawImage(img, left, top);
+            }
+        }
+        return result;
     }
 }
