@@ -33,9 +33,9 @@ class PhysicsRenderSystem implements System{
 
     render_statics(){
         const e = EntityManager.current;
-        const statics = e.get_entities([ComponentType.Render, ComponentType.StaticPhysics]);
+        const statics = e.get_entities([ComponentType.StaticRender, ComponentType.StaticPhysics]);
         statics.forEach((s) => {
-            const target = s.get_component<RenderComponent>(ComponentType.Render);
+            const target = s.get_component<DynamicRenderComponent>(ComponentType.StaticRender);
             const content = s.get_component<StaticPhysicsComponent>(ComponentType.StaticPhysics);
             const o = content.v1.minus(content.v0);
             const p = new LineSegment(new Vector(0, 0), new Vector(-o.y, o.x));
@@ -58,9 +58,9 @@ class PhysicsRenderSystem implements System{
     }
 
     step(e:EntityManager){
-        const dynamics = e.get_entities([ComponentType.DynamicPhysics, ComponentType.Render]);
+        const dynamics = e.get_entities([ComponentType.DynamicPhysics, ComponentType.DynamicRender]);
         dynamics.forEach((s) => {
-            const target = s.get_component<RenderComponent>(ComponentType.Render);
+            const target = s.get_component<DynamicRenderComponent>(ComponentType.DynamicRender);
             const content = s.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
             target.x = content.position.x - content.r;
             target.y = content.position.y - content.r;

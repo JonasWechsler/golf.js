@@ -452,6 +452,10 @@ class CanvasCache {
     private cache:VectorMap<HTMLCanvasElement> = new VectorMap<HTMLCanvasElement>();
     constructor(private CANVAS_WIDTH: number = CanvasCache.DEFAULT_CANVAS_WIDTH) { }
     
+    private mod(a: number, b: number): number{
+        return ((a % b) + b) % b;
+    }
+
     draw_image(canvas:HTMLCanvasElement, position:Vector):void{
         const p = position.divided(this.CANVAS_WIDTH).apply(Math.floor);
         const dimensions = new Vector(canvas.width, canvas.height).divided(this.CANVAS_WIDTH).apply(Math.ceil);
@@ -459,7 +463,6 @@ class CanvasCache {
             for(let j=0;j<dimensions.y+1;j++){
                 const left = position.x - (p.x + i)*this.CANVAS_WIDTH;
                 const top = position.y - (p.y + j) * this.CANVAS_WIDTH;
-                console.log("(" + position.x + "," + position.y + ") " + this.CANVAS_WIDTH + " (" + left + "," + top + ") (" + (p.x + i) + "," + (p.y + j) + ")");
                 const idx = new Vector(p.x + i, p.y + j);
                 if (!this.cache.has(idx)) {
                     const new_canvas = document.createElement("canvas");
@@ -481,8 +484,8 @@ class CanvasCache {
         const dimensions = new Vector(view.width, view.height).divided(this.CANVAS_WIDTH).apply(Math.ceil);
         for(let i=0;i<dimensions.x+1;i++){
             for(let j=0;j<dimensions.y+1;j++){
-                let left = i*this.CANVAS_WIDTH - view.left%this.CANVAS_WIDTH;
-                let top = j*this.CANVAS_WIDTH - view.top%this.CANVAS_WIDTH;
+                let left = i*this.CANVAS_WIDTH - this.mod(view.left, this.CANVAS_WIDTH);
+                let top = j*this.CANVAS_WIDTH - this.mod(view.top, this.CANVAS_WIDTH);
                 const idx = new Vector(position.x + i, position.y + j);
                 const img = this.cache.at(idx);
                 if (!img) continue;

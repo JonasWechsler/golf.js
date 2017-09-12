@@ -513,7 +513,7 @@ class DungeonGenerator{
 
         const add_line = function(s:StaticPhysicsComponent){
             const line = new ECSEntity();
-            const view = new RenderComponent(0, 0, document.createElement("canvas"));
+            const view = new StaticRenderComponent(0, 0, document.createElement("canvas"));
             line.add_component(s);
             line.add_component(view);
             EntityManager.current.add_entity(line);

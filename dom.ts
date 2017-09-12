@@ -21,9 +21,14 @@ interface TimeListener{
     execute: (time: number) => void;
 }
 
-class RenderComponent implements Component{
+class DynamicRenderComponent implements Component{
     constructor(public x:number, public y:number, public content:HTMLCanvasElement){}
-    type:ComponentType = ComponentType.Render;
+    type:ComponentType = ComponentType.DynamicRender;
+}
+
+class StaticRenderComponent implements Component{
+    constructor(public x:number, public y:number, public content:HTMLCanvasElement){}
+    type:ComponentType = ComponentType.StaticRender;
 }
 
 class UIComponent implements Component{

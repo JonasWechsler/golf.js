@@ -8,6 +8,8 @@ class CameraComponent implements Component{
 }
 
 class CameraSystem implements System{
+    private canvas_cache:CanvasCache = new CanvasCache();
+
     public static camera_info() : Square {
         const targets = EntityManager.current.get_entities([ComponentType.UI, ComponentType.Camera]);
         assert(targets.length == 1);
@@ -49,7 +51,20 @@ class CameraSystem implements System{
         );
     }
 
-    public step(entity_manager:EntityManager){
+    constructor(){
+        this.render_statics();
+    }
+
+    private render_statics(){
+        const visible_statics = EntityManager.current.get_entities([ComponentType.StaticRender]);
+        visible_statics.forEach((entity: ECSEntity) => {
+            const render_component = entity.get_component<StaticRenderComponent>(ComponentType.StaticRender);
+            this.canvas_cache.draw_image(render_component.content, new Vector(render_component.x, render_component.y));
+        });
+    }
+
+    public step(){
+        const entity_manager = EntityManager.current;
         const targets = entity_manager.get_entities([ComponentType.UI, ComponentType.Camera]);
         assert(targets.length == 1);
         const target = targets[0];
@@ -63,11 +78,15 @@ class CameraSystem implements System{
         content.width = info.width;
         content.height = info.height;
 
-        const visible_entities = entity_manager.get_entities([ComponentType.Render]);
+        //Draw statics from a cache
+        ctx.drawImage(this.canvas_cache.get_image(info), 0, 0);
+
+        //Draw dynamic entities
+        const visible_entities = entity_manager.get_entities([ComponentType.DynamicRender]);
 
         ctx.translate(-info.left, -info.top);
         visible_entities.forEach((entity: ECSEntity) => {
-            const render_component = entity.get_component<RenderComponent>(ComponentType.Render);
+            const render_component = entity.get_component<DynamicRenderComponent>(ComponentType.DynamicRender);
             const bb = new Square(render_component.x, render_component.y, render_component.content.width, render_component.content.height);
             if(info.intersects(bb))
                 ctx.drawImage(render_component.content, render_component.x, render_component.y);
