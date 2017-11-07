@@ -1,11 +1,11 @@
-var data = [
-    [0, 0],
-    [0, 100],
-    [100, 0],
-];
-
-var voronoi = d3.voronoi(data);
-
+//var data = [
+//    [0, 0],
+//    [0, 100],
+//    [100, 0],
+//];
+//
+//var voronoi = d3.voronoi(data);
+//
 //
 //var contour = [
 //        new poly2tri.Point(100, 100),
@@ -38,10 +38,25 @@ player.add_component(new DynamicRenderComponent(0, 0, player_canvas));
 
 //const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
 
-DungeonGenerator.LEFT_POS=-1000;
-DungeonGenerator.TOP_POS=-1000;
-DungeonGenerator.CELL_WIDTH=100;
-DungeonGenerator.CELL_HEIGHT=100;
+function background(){
+const ent = new ECSEntity();
+const view = new StaticRenderComponent(0, 0, document.createElement("canvas"));
+view.content.width = view.content.height = 512*32;
+view.x = view.y = -512*8;
+const ctx = view.content.getContext("2d");
+disableImageSmoothing(ctx);
+ctx.drawImage(new SandTexture(512).generate(), 0, 0, 512*16, 512*16);
+ent.add_component(view);
+EntityManager.current.add_entity(ent);
+}
+background();
+
+DungeonGenerator.LEFT_POS=-1280;
+DungeonGenerator.TOP_POS=-1280;
+DungeonGenerator.CELL_WIDTH=128;
+DungeonGenerator.CELL_HEIGHT=128;
+DungeonGenerator.HEIGHT=20;
+DungeonGenerator.WIDTH=20;
 DungeonGenerator.START_POS = new Vector(10, 10);
 DungeonGenerator.generate();
 
@@ -69,6 +84,7 @@ system_manager.entity_manager.add_entity(fps);
 system_manager.entity_manager.add_entity(player);
 system_manager.add(new KeySystem());
 system_manager.add(new ControlSystem());
+system_manager.add(new DungeonRenderSystem());
 system_manager.add(new PhysicsRenderSystem());
 system_manager.add(new CameraSystem());
 system_manager.add(new UIRenderSystem());

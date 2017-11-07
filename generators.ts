@@ -291,6 +291,58 @@ module WorldGenerators {
     }
 }
 
+class DungeonComponent implements Component{
+    constructor(public width:number, public height:number, public left:number, public top:number, public cell_width:number, public cell_height:number, public rooms:VectorMap<number>){}
+    type:ComponentType = ComponentType.Dungeon;
+}
+
+class DungeonRenderSystem implements System{
+    constructor(){
+        this.render_dungeons();
+    }
+
+    render_dungeons(){
+        const dungeons = EntityManager.current.get_entities([ComponentType.StaticRender, ComponentType.Dungeon]);
+        dungeons.forEach((d) => {
+            const dungeon = d.get_component<DungeonComponent>(ComponentType.Dungeon);
+            const target = d.get_component<StaticRenderComponent>(ComponentType.StaticRender);
+            this.render_dungeon(dungeon, target);
+        });
+    }
+
+    render_room(dungeon:DungeonComponent, room_id:number){
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = dungeon.cell_width;
+        canvas.height = dungeon.cell_height;
+        const texture_entities = EntityManager.current.get_entities([ComponentType.FloorTexture]);
+        const entity = texture_entities[room_id%texture_entities.length];
+        return entity.get_component<FloorTextureComponent>(ComponentType.FloorTexture).texture;
+    }
+
+    render_dungeon(dungeon:DungeonComponent, target:StaticRenderComponent){
+        const ctx = target.content.getContext("2d");
+        target.x = dungeon.left;
+        target.y = dungeon.top;
+
+        const room_textures = {};
+
+        for(let x = 0; x < dungeon.width; x++){
+            for(let y = 0; y < dungeon.height; y++){
+                const square_left = x*dungeon.cell_width;
+                const square_top = y*dungeon.cell_height;
+                const room_label = dungeon.rooms.at(new Vector(x, y));
+                if(!room_label) continue;
+                if(!room_textures[room_label])
+                    room_textures[room_label] = this.render_room(dungeon, room_label);
+                ctx.drawImage(room_textures[room_label], square_left, square_top, dungeon.cell_width, dungeon.cell_height);
+            }
+        }
+    }
+
+    step(e:EntityManager){}
+}
+
 class DungeonGenerator{
   private adjacent:VectorMap<Vector[]> = new VectorMap<Vector[]>();
   private main_path:Vector[] = [];
@@ -314,7 +366,27 @@ class DungeonGenerator{
   private START:Vector;
   
   public static generate(){
-    new DungeonGenerator();
+    const render_component = new StaticRenderComponent(0, 0, document.createElement("canvas"));
+    const dungeon_component = new DungeonComponent(0, 0, 0, 0, 0, 0, undefined);
+    const entity = new ECSEntity();
+    entity.add_component(dungeon_component);
+    entity.add_component(render_component);
+    EntityManager.current.add_entity(entity);
+
+    const dungeon = new DungeonGenerator();
+
+    dungeon_component.width = dungeon.WIDTH;
+    dungeon_component.height = dungeon.HEIGHT;
+    dungeon_component.left = dungeon.LEFT;
+    dungeon_component.top = dungeon.TOP;
+    dungeon_component.cell_width = dungeon.CELL_W;
+    dungeon_component.cell_height = dungeon.CELL_H;
+    dungeon_component.rooms = dungeon.rooms;
+
+    render_component.x = dungeon.LEFT;
+    render_component.y = dungeon.TOP;
+    render_component.content.width = dungeon.CELL_W * dungeon.WIDTH;
+    render_component.content.height = dungeon.CELL_H * dungeon.HEIGHT;
   }
 
   private constructor(){
@@ -536,3 +608,5 @@ class DungeonGenerator{
     }
   }
 }
+
+

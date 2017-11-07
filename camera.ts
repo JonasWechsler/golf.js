@@ -79,7 +79,10 @@ class CameraSystem implements System{
         content.height = info.height;
 
         //Draw statics from a cache
-        ctx.drawImage(this.canvas_cache.get_image(info), 0, 0);
+        const static_cache = this.canvas_cache.get_image(info);
+        assert(static_cache.width == info.width);
+        assert(static_cache.height == info.height);
+        ctx.drawImage(static_cache, 0, 0);
 
         //Draw dynamic entities
         const visible_entities = entity_manager.get_entities([ComponentType.DynamicRender]);

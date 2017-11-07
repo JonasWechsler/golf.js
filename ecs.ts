@@ -9,7 +9,10 @@ enum ComponentType{
     UI,
     Camera,
     FPS,
-    KeyInput
+    KeyInput,
+    WorldCell,
+    Dungeon,
+    FloorTexture
 }
 
 class HealthComponent implements Component{

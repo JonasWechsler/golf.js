@@ -35,7 +35,7 @@ class PhysicsRenderSystem implements System{
         const e = EntityManager.current;
         const statics = e.get_entities([ComponentType.StaticRender, ComponentType.StaticPhysics]);
         statics.forEach((s) => {
-            const target = s.get_component<DynamicRenderComponent>(ComponentType.StaticRender);
+            const target = s.get_component<StaticRenderComponent>(ComponentType.StaticRender);
             const content = s.get_component<StaticPhysicsComponent>(ComponentType.StaticPhysics);
             const o = content.v1.minus(content.v0);
             const p = new LineSegment(new Vector(0, 0), new Vector(-o.y, o.x));

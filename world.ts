@@ -1,7 +1,3 @@
-enum WorldCell{
-    None, NotNone
-}
-
 class Grid<T>{
     private grid:T[][];
     constructor(public WIDTH:number,
@@ -24,12 +20,5 @@ class Grid<T>{
     }
 }
 
-class WorldGrid{
-    private world:Grid<WorldCell>;
-    constructor(public WIDTH:number,
-                public HEIGHT:number){
-        this.world = new Grid<WorldCell>(WIDTH, HEIGHT, WorldCell.None);
-        
-                }
-
+class WorldCellComponent{
 }

@@ -8,6 +8,8 @@
     "files": [
         "lib/d3-voronoi.d.ts",
        "tools.ts",
+       "noise.ts",
+       "textures.ts",
        "ecs.ts",
        "entity.ts",
        "physics.ts",
