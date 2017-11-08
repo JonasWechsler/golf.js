@@ -292,7 +292,7 @@ module WorldGenerators {
 }
 
 class DungeonComponent implements Component{
-    constructor(public width:number, public height:number, public left:number, public top:number, public cell_width:number, public cell_height:number, public rooms:VectorMap<number>){}
+    constructor(public width:number, public height:number, public left:number, public top:number, public cell_width:number, public cell_height:number, public rooms:VectorMap<number>, public adjacent:VectorMap<Vector[]>){}
     type:ComponentType = ComponentType.Dungeon;
 }
 
@@ -315,13 +315,29 @@ class DungeonRenderSystem implements System{
         const ctx = canvas.getContext("2d");
         canvas.width = dungeon.cell_width;
         canvas.height = dungeon.cell_height;
+        disableImageSmoothing(ctx);
         const texture_entities = EntityManager.current.get_entities([ComponentType.FloorTexture]);
         const entity = texture_entities[room_id%texture_entities.length];
         return entity.get_component<FloorTextureComponent>(ComponentType.FloorTexture).texture;
     }
 
+    private adjacent(v:Vector){
+        return [
+          new Vector(v.x, v.y - 1),
+          new Vector(v.x - 1, v.y),
+          new Vector(v.x, v.y + 1),
+          new Vector(v.x + 1, v.y)
+        ];
+    }
+
+    render_walls(dungeon:DungeonComponent, x:number, y:number){
+
+    }
+
     render_dungeon(dungeon:DungeonComponent, target:StaticRenderComponent){
         const ctx = target.content.getContext("2d");
+        disableImageSmoothing(ctx);
+
         target.x = dungeon.left;
         target.y = dungeon.top;
 
@@ -367,7 +383,7 @@ class DungeonGenerator{
   
   public static generate(){
     const render_component = new StaticRenderComponent(0, 0, document.createElement("canvas"));
-    const dungeon_component = new DungeonComponent(0, 0, 0, 0, 0, 0, undefined);
+    const dungeon_component = new DungeonComponent(0, 0, 0, 0, 0, 0, undefined, undefined);
     const entity = new ECSEntity();
     entity.add_component(dungeon_component);
     entity.add_component(render_component);
@@ -382,6 +398,7 @@ class DungeonGenerator{
     dungeon_component.cell_width = dungeon.CELL_W;
     dungeon_component.cell_height = dungeon.CELL_H;
     dungeon_component.rooms = dungeon.rooms;
+    dungeon_component.adjacent = dungeon.adjacent;
 
     render_component.x = dungeon.LEFT;
     render_component.y = dungeon.TOP;
@@ -513,7 +530,7 @@ class DungeonGenerator{
 
   private openings(i:number, j:number):boolean[]{
         if(!this.in_bounds(new Vector(i, j))){
-            return [false, false, false, false];
+            return [true, true, true, true];
         }
         const v = new Vector(i, j);
         const open = [false, false, false, false];

@@ -38,6 +38,16 @@ player.add_component(new DynamicRenderComponent(0, 0, player_canvas));
 
 //const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
 
+function floor(){
+    for(let i=0;i<5;i++){
+    const ent = new ECSEntity();
+    const texture = new FloorTextureComponent(new MarbleTexture(8).generate());
+    ent.add_component(texture);
+    EntityManager.current.add_entity(ent);
+    }
+}
+floor();
+
 function background(){
 const ent = new ECSEntity();
 const view = new StaticRenderComponent(0, 0, document.createElement("canvas"));
