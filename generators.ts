@@ -531,6 +531,8 @@ class DungeonRenderSystem implements System{
       }
     }
   }
+
+
     render_dungeons(){
         const dungeons = EntityManager.current.get_entities([ComponentType.StaticRender, ComponentType.Dungeon]);
         dungeons.forEach((d) => {
@@ -560,8 +562,86 @@ class DungeonRenderSystem implements System{
         ];
     }
 
-    render_walls(dungeon:DungeonComponent, x:number, y:number){
+    public render_walls(dungeon: DungeonComponent, i:number, j:number){
+        const v = new Vector(i, j);
+        const open = this.openings(dungeon, i, j);
+        const TOP = 0, LEFT = 1, BOTTOM = 2, RIGHT = 3;
 
+        const square_x = 0;//dungeon.left + i*dungeon.cell_width;
+        const square_y = 0;//dungeon.top + j*dungeon.cell_height;
+
+        const square_upper_left = new Vector(square_x, square_y);
+        const square_lower_left = new Vector(square_x, square_y + dungeon.cell_height);
+        const square_upper_right = new Vector(square_x + dungeon.cell_width, square_y);
+        const square_lower_right = new Vector(square_x + dungeon.cell_width, square_y + dungeon.cell_height);
+
+        const square_corners = [];
+
+        square_corners[TOP] = square_upper_right;
+        square_corners[LEFT] = square_upper_left;
+        square_corners[BOTTOM] = square_lower_left;
+        square_corners[RIGHT] = square_lower_right;
+
+        const room_corners = [];
+
+        for(let idx = 0; idx < 4; idx++){
+            room_corners[idx] = square_corners[idx].times(7/8).plus(square_corners[(idx+2)%4].times(1/8));
+        }
+
+        const walls = [];
+
+        for(let idx = 0; idx < 4; idx++){
+            walls[idx] = new StaticPhysicsComponent(room_corners[idx], room_corners[(idx+1)%4]);
+        }
+
+        const openings = [];
+
+        for(let idx = 0; idx < 4; idx++){
+            let right_wall, left_wall;
+            if(idx % 2 == 0){
+                right_wall = new Vector(room_corners[idx].x, square_corners[idx].y);
+                left_wall = new Vector(room_corners[(idx+1)%4].x, square_corners[(idx+1)%4].y);
+            }else{
+                right_wall = new Vector(square_corners[idx].x, room_corners[idx].y);
+                left_wall = new Vector(square_corners[(idx+1)%4].x, room_corners[(idx+1)%4].y);
+            }
+
+            openings[idx] = [
+                new LineSegment(room_corners[idx], right_wall),
+                new LineSegment(left_wall, room_corners[(idx+1)%4])
+            ];
+        }
+
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.width = dungeon.cell_width;
+        canvas.height = dungeon.cell_height;
+
+        const add_wall = function(v:[Vector, Vector, Vector, Vector]){
+            context.beginPath();
+            context.moveTo(v[0].x, v[0].y);
+            [1,2,3,0].forEach((i) => context.lineTo(v[i].x, v[i].y));
+            context.fillStyle = "black";
+            context.fill();
+        }
+
+        for(let idx = 0; idx < 4; idx++){
+            if(open[idx]){
+                const adj = this.adj(v)[idx];
+                const bdj = this.adj(v)[(idx+5)%4];
+                const cdj = this.adj(v)[(idx+3)%4];
+                if(!(this.openings(dungeon, adj.x, adj.y)[(idx+3)%4] && open[(idx+3)%4] && this.openings(dungeon, cdj.x, cdj.y)[idx])){
+                    add_wall([openings[idx][0].v0, openings[idx][0].v1, square_corners[idx], square_corners[idx]]);
+                }
+                if(!(this.openings(dungeon, adj.x, adj.y)[(idx+5)%4] && open[(idx+5)%4] && this.openings(dungeon, bdj.x, bdj.y)[idx])){
+                    add_wall([openings[idx][1].v0, openings[idx][1].v1, square_corners[(idx+1)%4], square_corners[(idx+1)%4]]);
+                }
+            }else{
+                add_wall([square_corners[idx], room_corners[idx], room_corners[(idx+1)%4], square_corners[(idx+1)%4]]);
+            }
+        }
+
+        return canvas;
     }
 
     render_dungeon(dungeon:DungeonComponent, target:StaticRenderComponent){
@@ -578,10 +658,14 @@ class DungeonRenderSystem implements System{
                 const square_left = x*dungeon.cell_width;
                 const square_top = y*dungeon.cell_height;
                 const room_label = dungeon.rooms.at(new Vector(x, y));
-                if(!room_label) continue;
+                if(room_label){
                 if(!room_textures[room_label])
                     room_textures[room_label] = this.render_room(dungeon, room_label);
                 ctx.drawImage(room_textures[room_label], square_left, square_top, dungeon.cell_width, dungeon.cell_height);
+                    ctx.drawImage(this.render_walls(dungeon, x, y), square_left, square_top);
+                }else{
+                    ctx.drawImage(this.render_walls(dungeon, x, y), square_left, square_top);
+                }
             }
         }
     }

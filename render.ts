@@ -52,8 +52,8 @@ class PhysicsRenderSystem implements System{
             ctx.moveTo(3, 3);
             ctx.lineTo(bb.width+3, bb.height+3);
             ctx.stroke();
-            ctx.fillRect(1, 1, 5, 5);
-            ctx.fillRect(bb.width+1, bb.height+1, 5, 5);
+            //ctx.fillRect(1, 1, 5, 5);
+            //ctx.fillRect(bb.width+1, bb.height+1, 5, 5);
         });
     }
 
