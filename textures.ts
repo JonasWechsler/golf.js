@@ -4,7 +4,7 @@ interface TextureGenerator{
 
 class MarbleTexture implements TextureGenerator{
     public PERIOD = 4;
-    public COLOR0 = new Color(105, 112, 120);
+    public COLOR0 = new Color(150, 130, 130);
     public COLOR1 = new Color(228, 203, 170);
 
     constructor(private WIDTH:number){}
