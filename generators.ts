@@ -480,7 +480,7 @@ class DungeonRenderSystem implements System{
         const room_corners = [];
 
         for(let idx = 0; idx < 4; idx++){
-            room_corners[idx] = square_corners[idx].times(.9).plus(square_corners[(idx+2)%4].times(.1));
+            room_corners[idx] = square_corners[idx].times(7/8).plus(square_corners[(idx+2)%4].times(1/8));
         }
 
         const walls = [];
