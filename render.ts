@@ -27,8 +27,8 @@ class HealthRenderer{
 }
 
 class PhysicsRenderSystem implements System{
-    constructor(){
-        this.render_statics();
+    constructor(render_statics:boolean=true){
+        if(render_statics) this.render_statics();
     }
 
     render_statics(){

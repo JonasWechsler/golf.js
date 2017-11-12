@@ -95,7 +95,7 @@ system_manager.entity_manager.add_entity(player);
 system_manager.add(new KeySystem());
 system_manager.add(new ControlSystem());
 system_manager.add(new DungeonRenderSystem());
-system_manager.add(new PhysicsRenderSystem());
+system_manager.add(new PhysicsRenderSystem(false));
 system_manager.add(new CameraSystem());
 system_manager.add(new UIRenderSystem());
 system_manager.add(new FPSSystem());
