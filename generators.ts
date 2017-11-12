@@ -618,11 +618,16 @@ class DungeonRenderSystem implements System{
         canvas.height = dungeon.cell_height;
 
         const add_wall = function(v:[Vector, Vector, Vector, Vector]){
+            //context.save();
             context.beginPath();
             context.moveTo(v[0].x, v[0].y);
             [1,2,3,0].forEach((i) => context.lineTo(v[i].x, v[i].y));
-            context.fillStyle = "black";
+            context.fillStyle="black";
             context.fill();
+            //context.closePath();
+            //context.clip();
+            //context.drawImage(/*...*/);
+            //context.restore();
         }
 
         for(let idx = 0; idx < 4; idx++){
