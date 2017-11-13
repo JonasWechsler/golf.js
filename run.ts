@@ -66,8 +66,8 @@ DungeonGenerator.CELL_WIDTH=256;
 DungeonGenerator.CELL_HEIGHT=256;
 DungeonGenerator.HEIGHT=20;
 DungeonGenerator.WIDTH=20;
-DungeonGenerator.LEFT_POS=-.5*DungeonGenerator.WIDTH*DungeonGenerator.CELL_WIDTH;
-DungeonGenerator.TOP_POS=-.5*DungeonGenerator.HEIGHT*DungeonGenerator.CELL_HEIGHT;
+DungeonGenerator.LEFT_POS=-.5*DungeonGenerator.WIDTH*DungeonGenerator.CELL_WIDTH+32;
+DungeonGenerator.TOP_POS=-.5*DungeonGenerator.HEIGHT*DungeonGenerator.CELL_HEIGHT+32;
 DungeonGenerator.START_POS = new Vector(DungeonGenerator.WIDTH/2, DungeonGenerator.HEIGHT/2);
 DungeonGenerator.generate();
 
