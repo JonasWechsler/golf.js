@@ -1,4 +1,3 @@
-
 * Architecture
     * Buildings are desaturated
     * Surroundings are saturated
@@ -18,11 +17,27 @@
         * Protection (player is near)
         * Offense (player is near)
         * Isolation (run away when player is near)
-        * 
+    * AI isolated to rooms
+        * Binding of Isaac, LoZ
+* Gameplay Mechanics
+    * Room lockdown?
+    * Inventory
+    * Room types should be more than aesthetic
+* Horror Game elements?
+    * Fear of death
+    * Value of death
 
 TODO:
 
-1. Larger space
-2. Camera, panning, etc.
-3. Health?
-4. Projectiles?
+1. Player Animation
+1. Additional building textures
+1. Wall textures (clipped textures)
+1. Plants, other decoration
+1. Import and debug AI
+1. Health?
+1. Projectiles?
+
+Bugs:
+
+1. Canvas cache bugs if blocksize too small
+1. Random white spaces in background (cache related)
