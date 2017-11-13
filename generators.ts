@@ -509,7 +509,7 @@ class DungeonRenderSystem implements System{
 
         const add_line = function(s:StaticPhysicsComponent){
             const line = new ECSEntity();
-            const view = new StaticRenderComponent(0, 0, document.createElement("canvas"));
+            const view = new StaticRenderComponent(0, 0, document.createElement("canvas"), -1);
             line.add_component(s);
             line.add_component(view);
             EntityManager.current.add_entity(line);
@@ -534,6 +534,9 @@ class DungeonRenderSystem implements System{
 
 
     render_dungeons(){
+        if(!EntityManager.current.has_entities([ComponentType.StaticRender, ComponentType.Dungeon]))
+            return;
+
         const dungeons = EntityManager.current.get_entities([ComponentType.StaticRender, ComponentType.Dungeon]);
         dungeons.forEach((d) => {
             const dungeon = d.get_component<DungeonComponent>(ComponentType.Dungeon);
@@ -614,6 +617,7 @@ class DungeonRenderSystem implements System{
 
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
+        disableImageSmoothing(context);
         canvas.width = dungeon.cell_width;
         canvas.height = dungeon.cell_height;
 
@@ -623,6 +627,9 @@ class DungeonRenderSystem implements System{
             context.moveTo(v[0].x, v[0].y);
             [1,2,3,0].forEach((i) => context.lineTo(v[i].x, v[i].y));
             context.fillStyle="black";
+            context.lineWidth=1;
+            context.strokeStyle="black";
+            context.stroke();
             context.fill();
             //context.closePath();
             //context.clip();
@@ -704,6 +711,7 @@ class DungeonGenerator{
     dungeon_component.start = DungeonGenerator.START_POS.clone();
 
     new DungeonRenderSystem(false).generate(dungeon_component);
+    console.log(dungeon_component);
 
     render_component.x = dungeon_component.left;
     render_component.y = dungeon_component.top;

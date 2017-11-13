@@ -90,6 +90,9 @@ class EntityManager{
     public get_entities(types:ComponentType[]){
         return this.entities.get(types);
     }
+    public has_entities(types:ComponentType[]){
+        return this.entities.get(types)?true:false;
+    }
 }
 
 class SystemManager{

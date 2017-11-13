@@ -27,7 +27,7 @@ class DynamicRenderComponent implements Component{
 }
 
 class StaticRenderComponent implements Component{
-    constructor(public x:number, public y:number, public content:HTMLCanvasElement){}
+    constructor(public x:number, public y:number, public content:HTMLCanvasElement, public z_index:number = 0){}
     type:ComponentType = ComponentType.StaticRender;
 }
 

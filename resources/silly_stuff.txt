@@ -1,0 +1,22 @@
+World rules:
+- All language is code
+- There are three logical values: True, False, Indeterminant
+- 
+
+Stances of the two major political parties, and the minor third party:
+
+Orbit (Fascist):
+- Report all communications
+- Issue superpowered government-issued processors
+- All commands are subject to prior administrative screening and monitoring
+
+Geode (Socialist):
+- Single public communications channel
+- Form a large supercluster of all computers
+- All commands are nation-wide and executed by vote
+
+Trinity (libertarian):
+- Disable your communications
+- Do not install the government-issue IO bus
+- No restrictions on commands
+- No GUIs

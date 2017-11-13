@@ -44,16 +44,18 @@ class PhysicsRenderSystem implements System{
             target.x = bb.left-3;
             target.y = bb.top-3;
             target.content.width = bb.width + 6;
-            target.content.width = bb.width + 6;
+            target.content.height = bb.height + 6;
             const ctx = target.content.getContext("2d");
+            ctx.fillStyle = "black";
             ctx.strokeStyle = "black";
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(3, 3);
             ctx.lineTo(bb.width+3, bb.height+3);
+            ctx.closePath();
             ctx.stroke();
-            //ctx.fillRect(1, 1, 5, 5);
-            //ctx.fillRect(bb.width+1, bb.height+1, 5, 5);
+            ctx.fillRect(1, 1, 5, 5);
+            ctx.fillRect(bb.width+1, bb.height+1, 5, 5);
         });
     }
 

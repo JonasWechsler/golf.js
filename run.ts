@@ -29,7 +29,7 @@ MouseInfo.setup();
 
 //const player = new Player(new Vector(30, 30), 20,new Vector(0, 0));
 const player = new ECSEntity();
-player.add_component(new DynamicPhysicsComponent(new Vector(30, 30), 20));
+player.add_component(new DynamicPhysicsComponent(new Vector(60, 60), 20));
 player.add_component(new KeyInputComponent());
 const player_canvas = document.createElement("canvas");
 player_canvas.width = 40;
@@ -49,25 +49,26 @@ function floor(){
 floor();
 
 function background(){
-const ent = new ECSEntity();
-const view = new StaticRenderComponent(0, 0, document.createElement("canvas"));
-view.content.width = view.content.height = 512*32;
-view.x = view.y = -512*8;
-const ctx = view.content.getContext("2d");
-disableImageSmoothing(ctx);
-ctx.drawImage(new SandTexture(512).generate(), 0, 0, 512*16, 512*16);
-ent.add_component(view);
-EntityManager.current.add_entity(ent);
+    const ent = new ECSEntity();
+    const view = new StaticRenderComponent(0, 0, document.createElement("canvas"), -2);
+    view.content.width = view.content.height = 128*64;
+    view.x = view.y = view.content.width/-2;
+    const ctx = view.content.getContext("2d");
+    const img = new SandTexture(128).generate();
+    disableImageSmoothing(ctx);
+    ctx.drawImage(img, 0, 0, view.content.width, view.content.height);
+    ent.add_component(view);
+    EntityManager.current.add_entity(ent);
 }
 background();
 
-DungeonGenerator.LEFT_POS=-1280;
-DungeonGenerator.TOP_POS=-1280;
-DungeonGenerator.CELL_WIDTH=128;
-DungeonGenerator.CELL_HEIGHT=128;
+DungeonGenerator.CELL_WIDTH=256;
+DungeonGenerator.CELL_HEIGHT=256;
 DungeonGenerator.HEIGHT=20;
 DungeonGenerator.WIDTH=20;
-DungeonGenerator.START_POS = new Vector(10, 10);
+DungeonGenerator.LEFT_POS=-.5*DungeonGenerator.WIDTH*DungeonGenerator.CELL_WIDTH;
+DungeonGenerator.TOP_POS=-.5*DungeonGenerator.HEIGHT*DungeonGenerator.CELL_HEIGHT;
+DungeonGenerator.START_POS = new Vector(DungeonGenerator.WIDTH/2, DungeonGenerator.HEIGHT/2);
 DungeonGenerator.generate();
 
 for(let i=0;i<9;i++)
@@ -95,7 +96,7 @@ system_manager.entity_manager.add_entity(player);
 system_manager.add(new KeySystem());
 system_manager.add(new ControlSystem());
 system_manager.add(new DungeonRenderSystem());
-system_manager.add(new PhysicsRenderSystem(false));
+system_manager.add(new PhysicsRenderSystem(true));
 system_manager.add(new CameraSystem());
 system_manager.add(new UIRenderSystem());
 system_manager.add(new FPSSystem());

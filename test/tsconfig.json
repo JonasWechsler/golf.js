@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "out": "../built/out.js", 
+        "sourceMap": true, 
+        "target": "es5",
+        "module": "system"
+    }, 
+    "files": [
+       "../tools.ts",
+       "../noise.ts",
+       "../textures.ts",
+       "../ecs.ts",
+       "../entity.ts",
+       "../physics.ts",
+       "../navigationmesh.ts",
+       "../dom.ts",
+       "../joints.ts",
+       "../camera.ts",
+       "../worldinfo.ts",
+       "../inventory.ts",
+       "../generators.ts",
+       "../render.ts",
+       "../inputs.ts",
+       "test.ts"
+    ]
+}

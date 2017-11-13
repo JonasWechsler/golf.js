@@ -448,7 +448,7 @@ class Color{
 
 
 class CanvasCache {
-    public static DEFAULT_CANVAS_WIDTH:number = 500;
+    public static DEFAULT_CANVAS_WIDTH:number = 1500; //TODO If this is 500, draw_image bugs out on images of size 512*16
     private cache:VectorMap<HTMLCanvasElement> = new VectorMap<HTMLCanvasElement>();
     constructor(private CANVAS_WIDTH: number = CanvasCache.DEFAULT_CANVAS_WIDTH) { }
     

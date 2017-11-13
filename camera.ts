@@ -56,7 +56,13 @@ class CameraSystem implements System{
     }
 
     private render_statics(){
-        const visible_statics = EntityManager.current.get_entities([ComponentType.StaticRender]);
+        const visible_statics:ECSEntity[] = EntityManager.current.get_entities([ComponentType.StaticRender]);
+        visible_statics.sort((left, right) => {
+            const left_component = left.get_component<StaticRenderComponent>(ComponentType.StaticRender);
+            const right_component = right.get_component<StaticRenderComponent>(ComponentType.StaticRender);
+            return left_component.z_index - right_component.z_index;
+        });
+        console.log(visible_statics);
         visible_statics.forEach((entity: ECSEntity) => {
             const render_component = entity.get_component<StaticRenderComponent>(ComponentType.StaticRender);
             this.canvas_cache.draw_image(render_component.content, new Vector(render_component.x, render_component.y));
