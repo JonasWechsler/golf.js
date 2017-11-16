@@ -66,13 +66,20 @@ function joints(){
     const player_joint = new JointComponent(new Vector(60, 60));
     player.add_component(player_joint);
 
-    const x = new JointComponent(new Vector(60, 60));
+    const fixed_joint_entity = new ECSEntity();
+    const fixed_joint = new JointComponent(new Vector(60, 60));
+    fixed_joint_entity.add_component(fixed_joint);
+    fixed_joint_entity.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
+
     const fixed_entity = new ECSEntity();
-    const fixed_connection = new FixedConnectionComponent(player_joint, x, new Vector(0, 15));
+    const fixed_connection = new FixedConnectionComponent(player_joint, fixed_joint, new Vector(0, 15));
     fixed_entity.add_component(fixed_connection);
     fixed_entity.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
+
     player_joint.adjacent_fixed.push(fixed_connection);
-    x.adjacent_fixed.push(fixed_connection);
+    fixed_joint.adjacent_fixed.push(fixed_connection);
+
+    EntityManager.current.add_entity(fixed_joint_entity);
     EntityManager.current.add_entity(fixed_entity);
 
     let last_j = player_joint;
@@ -93,25 +100,6 @@ function joints(){
         last_j = jc;
         EntityManager.current.add_entity(e);
     }
-    last_j = x;
-    for(let i=1;i<5;i++){
-        const e = new ECSEntity();
-        const jc = new JointComponent(new Vector(60, 60+i*20));
-        e.add_component(jc);
-        e.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
-        if(last_j){
-            const connection_entity = new ECSEntity();
-            const connection = new FlexibleConnectionComponent(jc, last_j, 20);
-            jc.adjacent_flexible.push(connection);
-            last_j.adjacent_flexible.push(connection);
-            connection_entity.add_component(connection);
-            connection_entity.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
-            EntityManager.current.add_entity(connection_entity);
-        }
-        last_j = jc;
-        EntityManager.current.add_entity(e);
-    }
-    console.log(player);
 }
 joints();
 

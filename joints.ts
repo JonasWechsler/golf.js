@@ -2,14 +2,16 @@ class FlexibleConnectionComponent implements Component{
     type:ComponentType = ComponentType.FlexibleConnection;
     constructor( public first : JointComponent,
                 public second : JointComponent,
-                public length : number){}
+                public length : number,
+                public width : number = 12){}
 }
 
 class FixedConnectionComponent implements Component{
     type:ComponentType = ComponentType.FixedConnection;
     constructor( public first : JointComponent,
                 public second : JointComponent,
-                public relative_position : Vector){}
+                public relative_position : Vector,
+                public width : number = 12){}
 }
 
 class JointComponent implements Component {
@@ -18,6 +20,10 @@ class JointComponent implements Component {
     constructor( public position:Vector,
                 public adjacent_flexible : FlexibleConnectionComponent[] = [],
                 public adjacent_fixed : FixedConnectionComponent[] = []) {}
+    public forEachComponent(fn: (component:FlexibleConnectionComponent|FixedConnectionComponent) => void){
+        this.adjacent_flexible.forEach(fn);
+        this.adjacent_fixed.forEach(fn);
+    }
 }
 
 class JointSystem implements System{
@@ -64,19 +70,77 @@ class JointSystem implements System{
     }
 
     render_connection(connection:FlexibleConnectionComponent|FixedConnectionComponent, dynamic:DynamicRenderComponent){
+        const width = connection.width;
         const segment = new LineSegment(connection.first.position, connection.second.position);
         const bounding_box = segment.bounding_box();
-        dynamic.x = bounding_box.left;
-        dynamic.y = bounding_box.top;
-        dynamic.content.width = bounding_box.width+30;
-        dynamic.content.height = bounding_box.height+30;
+        dynamic.x = bounding_box.left - width;
+        dynamic.y = bounding_box.top - width;
+        dynamic.content.width = bounding_box.width+2*width;
+        dynamic.content.height = bounding_box.height+2*width;
         const ctx = dynamic.content.getContext("2d");
         ctx.beginPath();
-        ctx.moveTo(segment.v0.x - bounding_box.left, segment.v0.y - bounding_box.top);
-        ctx.lineTo(segment.v1.x - bounding_box.left, segment.v1.y - bounding_box.top);
+        ctx.moveTo(segment.v0.x - bounding_box.left + width, segment.v0.y - bounding_box.top + width);
+        ctx.lineTo(segment.v1.x - bounding_box.left + width, segment.v1.y - bounding_box.top + width);
         ctx.lineWidth = 12;
         ctx.strokeStyle = "black";
+        ctx.lineCap = "round";
         ctx.stroke();
+    }
+
+    render_triple_joint(p:JointComponent, q:JointComponent, r:JointComponent, dynamic:DynamicRenderComponent){
+        
+    }
+
+    render_joint(joint:JointComponent, dynamic:DynamicRenderComponent){
+        const width = 12;
+
+        let min_x, min_y, max_x, max_y;
+
+        joint.forEachComponent((connection) => {
+            const sibling = (connection.first == joint)?connection.second:connection.first;
+            const segment = new LineSegment(connection.first.position, connection.second.position);
+            const bounding_box = segment.bounding_box();
+            
+            min_x = Math.min(min_x, bounding_box.left);
+            min_y = Math.min(min_y, bounding_box.top);
+            max_x = Math.max(max_x, bounding_box.left + bounding_box.width);
+            max_y = Math.max(max_y, bounding_box.top + bounding_box.height);
+        });
+
+        dynamic.x = min_x - width;
+        dynamic.y = max_y - width;
+        dynamic.content.width = max_x - min_x + width*2;
+        dynamic.content.height = max_y - min_y + width*2;
+
+        const context = dynamic.content.getContext("2d");
+        context.lineCap = "round";
+        context.lineWidth = width;
+
+        joint.forEachComponent((first_connection) => {
+            joint.forEachComponent((second_connection) => {
+                if(first_connection == second_connection)
+                    return;
+                const first_joint = (first_connection.first == joint)?first_connection.second:first_connection.first
+                const second_joint = (second_connection.first == joint)?second_connection.second:second_connection.first
+
+                const p = first_joint.position.clone();
+                const q = joint.position.clone();
+                const r = second_joint.position.clone();
+
+                const offset = new Vector(min_x, min_y);
+                p.minusEquals(offset);
+                q.minusEquals(offset);
+                r.minusEquals(offset);
+
+                const v0 = p.plus(q).divided(2); //(p + q)/2
+                const v1 = q.plus(r).divided(2); //(q + r)/2
+
+                context.beginPath();
+                context.moveTo(v0.x, v0.y);
+                context.quadraticCurveTo(q.x, q.y, v1.x, v1.y);
+                context.stroke();
+            });
+        });
     }
 
     step(){
@@ -90,6 +154,13 @@ class JointSystem implements System{
                 self.moveTo(joint, dynamic_physics.position);
             }
         });
+
+        //const drawable_joint_entities = EntityManager.current.get_entities([ComponentType.Joint, ComponentType.DynamicRender]);
+        //drawable_joint_entities.forEach((entity) => {
+        //    const joint = entity.get_component<JointComponent>(ComponentType.Joint);
+        //    const dynamic = entity.get_component<DynamicRenderComponent>(ComponentType.DynamicRender);
+        //    self.render_joint(joint, dynamic);
+        //});
 
         const flexible_components = [ComponentType.FlexibleConnection, ComponentType.DynamicRender];
         const flexible_entities = EntityManager.current.get_entities(flexible_components);
