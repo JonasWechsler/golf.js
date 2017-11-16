@@ -65,16 +65,48 @@ background();
 function joints(){
     const player_joint = new JointComponent(new Vector(60, 60));
     player.add_component(player_joint);
+
+    const x = new JointComponent(new Vector(60, 60));
+    const fixed_entity = new ECSEntity();
+    const fixed_connection = new FixedConnectionComponent(player_joint, x, new Vector(0, 15));
+    fixed_entity.add_component(fixed_connection);
+    fixed_entity.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
+    player_joint.adjacent_fixed.push(fixed_connection);
+    x.adjacent_fixed.push(fixed_connection);
+    EntityManager.current.add_entity(fixed_entity);
+
     let last_j = player_joint;
-    for(let i=1;i<10;i++){
+    for(let i=1;i<5;i++){
         const e = new ECSEntity();
         const jc = new JointComponent(new Vector(60, 60+i*20));
         e.add_component(jc);
         e.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
         if(last_j){
-            const connection = new FlexibleConnection(jc, last_j, 20);
-            jc.adjacent.push(connection);
-            last_j.adjacent.push(connection);
+            const connection_entity = new ECSEntity();
+            const connection = new FlexibleConnectionComponent(jc, last_j, 20);
+            jc.adjacent_flexible.push(connection);
+            last_j.adjacent_flexible.push(connection);
+            connection_entity.add_component(connection);
+            connection_entity.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
+            EntityManager.current.add_entity(connection_entity);
+        }
+        last_j = jc;
+        EntityManager.current.add_entity(e);
+    }
+    last_j = x;
+    for(let i=1;i<5;i++){
+        const e = new ECSEntity();
+        const jc = new JointComponent(new Vector(60, 60+i*20));
+        e.add_component(jc);
+        e.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
+        if(last_j){
+            const connection_entity = new ECSEntity();
+            const connection = new FlexibleConnectionComponent(jc, last_j, 20);
+            jc.adjacent_flexible.push(connection);
+            last_j.adjacent_flexible.push(connection);
+            connection_entity.add_component(connection);
+            connection_entity.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
+            EntityManager.current.add_entity(connection_entity);
         }
         last_j = jc;
         EntityManager.current.add_entity(e);
@@ -110,7 +142,6 @@ camera.add_component(ui_component);
 const fps = new ECSEntity();
 fps.add_component(new FPSComponent());
 fps.add_component(new UIComponent(0, 0, document.createElement("canvas")));
-
 system_manager.entity_manager.add_entity(camera);
 system_manager.entity_manager.add_entity(fps);
 system_manager.entity_manager.add_entity(player);

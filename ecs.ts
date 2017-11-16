@@ -14,7 +14,8 @@ enum ComponentType{
     Dungeon,
     FloorTexture,
     Joint,
-    FlexibleConnection
+    FlexibleConnection,
+    FixedConnection
 }
 
 class HealthComponent implements Component{

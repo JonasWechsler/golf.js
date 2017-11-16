@@ -71,7 +71,6 @@ class PhysicsRenderSystem implements System{
             ctx.beginPath();
             ctx.arc(content.r, content.r, content.r, 0, 2*Math.PI);
             ctx.stroke();
-            ctx.fill();
         });
     }
 
