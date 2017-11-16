@@ -12,7 +12,9 @@ enum ComponentType{
     KeyInput,
     WorldCell,
     Dungeon,
-    FloorTexture
+    FloorTexture,
+    Joint,
+    FlexibleConnection
 }
 
 class HealthComponent implements Component{

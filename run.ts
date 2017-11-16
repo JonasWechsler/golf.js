@@ -40,10 +40,10 @@ player.add_component(new DynamicRenderComponent(0, 0, player_canvas));
 
 function floor(){
     for(let i=0;i<5;i++){
-    const ent = new ECSEntity();
-    const texture = new FloorTextureComponent(new MarbleTexture(8).generate());
-    ent.add_component(texture);
-    EntityManager.current.add_entity(ent);
+        const ent = new ECSEntity();
+        const texture = new FloorTextureComponent(new MarbleTexture(32).generate());
+        ent.add_component(texture);
+        EntityManager.current.add_entity(ent);
     }
 }
 floor();
@@ -51,10 +51,10 @@ floor();
 function background(){
     const ent = new ECSEntity();
     const view = new StaticRenderComponent(0, 0, document.createElement("canvas"), -2);
-    view.content.width = view.content.height = 128*64;
+    view.content.width = view.content.height = 256*32;
     view.x = view.y = view.content.width/-2;
     const ctx = view.content.getContext("2d");
-    const img = new SandTexture(128).generate();
+    const img = new SandTexture(256).generate();
     disableImageSmoothing(ctx);
     ctx.drawImage(img, 0, 0, view.content.width, view.content.height);
     ent.add_component(view);
@@ -62,16 +62,37 @@ function background(){
 }
 background();
 
+function joints(){
+    const player_joint = new JointComponent(new Vector(60, 60));
+    player.add_component(player_joint);
+    let last_j = player_joint;
+    for(let i=1;i<10;i++){
+        const e = new ECSEntity();
+        const jc = new JointComponent(new Vector(60, 60+i*20));
+        e.add_component(jc);
+        e.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
+        if(last_j){
+            const connection = new FlexibleConnection(jc, last_j, 20);
+            jc.adjacent.push(connection);
+            last_j.adjacent.push(connection);
+        }
+        last_j = jc;
+        EntityManager.current.add_entity(e);
+    }
+    console.log(player);
+}
+joints();
+
 DungeonGenerator.CELL_WIDTH=256;
 DungeonGenerator.CELL_HEIGHT=256;
 DungeonGenerator.HEIGHT=20;
 DungeonGenerator.WIDTH=20;
-DungeonGenerator.LEFT_POS=-.5*DungeonGenerator.WIDTH*DungeonGenerator.CELL_WIDTH+32;
-DungeonGenerator.TOP_POS=-.5*DungeonGenerator.HEIGHT*DungeonGenerator.CELL_HEIGHT+32;
+DungeonGenerator.LEFT_POS=-.5*DungeonGenerator.WIDTH*DungeonGenerator.CELL_WIDTH+16;
+DungeonGenerator.TOP_POS=-.5*DungeonGenerator.HEIGHT*DungeonGenerator.CELL_HEIGHT+16;
 DungeonGenerator.START_POS = new Vector(DungeonGenerator.WIDTH/2, DungeonGenerator.HEIGHT/2);
 DungeonGenerator.generate();
 
-for(let i=0;i<9;i++)
+for(let i=0;ComponentType[i];i++)
     console.log(i, ComponentType[i]);
 console.log(system_manager);
 
@@ -96,7 +117,8 @@ system_manager.entity_manager.add_entity(player);
 system_manager.add(new KeySystem());
 system_manager.add(new ControlSystem());
 system_manager.add(new DungeonRenderSystem());
-system_manager.add(new PhysicsRenderSystem(true));
+system_manager.add(new PhysicsRenderSystem(false));
+system_manager.add(new JointSystem());
 system_manager.add(new CameraSystem());
 system_manager.add(new UIRenderSystem());
 system_manager.add(new FPSSystem());

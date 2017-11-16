@@ -10,6 +10,11 @@
         * Cold areas -> structures are connected
     * Rooms with function
     * Room evolution optimizes?
+    * Room types
+        * Marble floors
+        * Concrete floors
+        * Wood floors
+        * Quartz
 * Position optimization of AI
     * AI is state machine
         * States optimize for different properties
@@ -26,7 +31,8 @@
 * Horror Game elements?
     * Fear of death
     * Value of death
-
+* Enemy types
+    * 
 TODO:
 
 1. Player Animation
@@ -36,6 +42,8 @@ TODO:
 1. Import and debug AI
 1. Health?
 1. Projectiles?
+1. Triggers on room entrance and exit
+    1. Lockdown, enemies spawn
 
 Bugs:
 
