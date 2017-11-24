@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "out": "built/out.js", 
+        "sourceMap": true, 
+        "target": "es5",
+        "module": "system"
+    }, 
+    "files": [
+        "../tools.ts",
+        "colors.ts",
+        "run.ts"
+    ]
+}

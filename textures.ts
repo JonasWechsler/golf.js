@@ -1,13 +1,41 @@
 interface TextureGenerator{
     generate() : HTMLCanvasElement;
+    WIDTH:number;
+}
+
+class TileTexture implements TextureGenerator{
+    private _WIDTH:number;
+    constructor(public GRID_WIDTH:number,
+                public GRID_HEGHT:number,
+                public OFFSET_X:number,
+                public OFFSET_Y:number,
+                public TEXTURE:TextureGenerator){
+                    this._WIDTH = TEXTURE.WIDTH*this.GRID_WIDTH;
+                }
+
+    get WIDTH():number{
+        return this._WIDTH;
+    }
+
+    generate(): HTMLCanvasElement{
+        const texture_canvas:HTMLCanvasElement = document.createElement("canvas");
+        texture_canvas.width = texture_canvas.height = this.WIDTH;
+
+        
+        return texture_canvas;
+    }
 }
 
 class MarbleTexture implements TextureGenerator{
     public PERIOD = 4;
-    public COLOR0 = new Color(150, 130, 130);
-    public COLOR1 = new Color(228, 203, 170);
+    SCHEME:[string, number][] = COLOR_SCHEME["Marble"];
 
-    constructor(private WIDTH:number){}
+    constructor(private _WIDTH:number){}
+
+    get WIDTH():number{
+        return this._WIDTH;
+    }
+
     private marble(x, y, v){
         const xP = this.PERIOD/this.WIDTH;
         const yP = this.PERIOD/this.WIDTH;
@@ -18,6 +46,12 @@ class MarbleTexture implements TextureGenerator{
         return sine;
     }
     generate(): HTMLCanvasElement{
+        //if(this.SCHEME.length != 2){
+        //    throw "Scheme should only have 2 colors";
+        //}
+        const COLOR0 = new Color(this.SCHEME[0][0]);
+        const COLOR1 = new Color(this.SCHEME[1][0]);
+
         Perlin2D.WIDTH = this.WIDTH;
         const perlin = Perlin2D.generate();
         const texture_canvas:HTMLCanvasElement = document.createElement("canvas");
@@ -27,7 +61,53 @@ class MarbleTexture implements TextureGenerator{
         for(let i=0;i<perlin.length;i++){
             for(let j=0;j<perlin[i].length;j++){
                 const rgbv = this.marble(i, j, perlin[i][j]);
-                const color = this.COLOR0.times(1-rgbv).plus(this.COLOR1.times(rgbv));
+                const color = COLOR0.times(1-rgbv).plus(COLOR1.times(rgbv));
+                texture.fillStyle = color.to_str();
+                texture.fillRect(i*4, j*4, 4, 4);
+            }
+        }
+        return texture_canvas;
+    }
+}
+
+class WoodGrainTexture implements TextureGenerator{
+    public PERIOD = 4;
+    SCHEME:[string, number][] = COLOR_SCHEME["Blackwood"];
+    //public COLOR0 = new Color(150, 130, 130);
+    //public COLOR1 = new Color(228, 203, 170);
+
+    constructor(private _WIDTH:number){}
+
+    get WIDTH():number{
+        return this._WIDTH;
+    }
+
+    private marble(x, y, v){
+        const xP = this.PERIOD/this.WIDTH;
+        const yP = this.PERIOD/this.WIDTH;
+        const turbPower = 2.5;
+        const turbSize = 4.0;
+        const xy = x * xP + y * yP + turbPower * v;
+        const sine = Math.abs(Math.sin(xy * Math.PI));
+        return sine;
+    }
+    generate(): HTMLCanvasElement{
+        //if(this.SCHEME.length != 2){
+        //    throw "Scheme should only have 2 colors";
+        //}
+        const COLOR0 = new Color(this.SCHEME[0][0]);
+        const COLOR1 = new Color(this.SCHEME[1][0]);
+
+        Perlin2D.WIDTH = this.WIDTH;
+        const perlin = Perlin2D.generate();
+        const texture_canvas:HTMLCanvasElement = document.createElement("canvas");
+        texture_canvas.width = this.WIDTH*4;
+        texture_canvas.height = this.WIDTH*4;
+        const texture = texture_canvas.getContext("2d");
+        for(let i=0;i<perlin.length;i++){
+            for(let j=0;j<perlin[i].length;j++){
+                const rgbv = this.marble(i, j, perlin[i][j]);
+                const color = COLOR0.times(1-rgbv).plus(COLOR1.times(rgbv));
                 texture.fillStyle = color.to_str();
                 texture.fillRect(i*4, j*4, 4, 4);
             }
@@ -37,22 +117,13 @@ class MarbleTexture implements TextureGenerator{
 }
 
 class SandTexture implements TextureGenerator{
-    SCHEME:[string, number][] = [
-        ["#565656",0.2],
-        ["#6e5457",0.1],
-        ["#6D5051",0.025],
-        ["#834B5F",0.025],
-        ["#A98978",0.025],
-        ["#A7705A",0.025],
-        ["#B88968",0.0375],
-        ["#82694A",0.0125],
-        ["#A98978",0.0375],
-        ["#B88968",0.025],
-        ["#B88968",0.1],
-        ["#A37B5F",0.1],
-        ["#C8B998",0.2]
-    ];
-    constructor(private WIDTH:number){}
+    SCHEME:[string, number][] = COLOR_SCHEME["Mesa"];
+    constructor(private _WIDTH:number){}
+
+    get WIDTH():number{
+        return this._WIDTH;
+    }
+
     private color0(height:number, intensity:number){
         let sum:number = 0;
         for(let i=0;i<this.SCHEME.length;i++){

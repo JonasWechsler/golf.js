@@ -8,6 +8,7 @@
     "files": [
         "lib/d3-voronoi.d.ts",
        "tools.ts",
+       "resources/colors.ts",
        "noise.ts",
        "textures.ts",
        "ecs.ts",

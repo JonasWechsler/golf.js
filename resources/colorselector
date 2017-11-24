@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Demo</title>
+	</head>
+    <style>
+        body{
+            margin:0;
+            padding:0;
+            overflow:hidden;
+        }
+    </style>
+	<body>
+		<script src="./built/out.js"></script>
+	</body>
+</html>

@@ -41,7 +41,7 @@ player.add_component(new DynamicRenderComponent(0, 0, player_canvas));
 function floor(){
     for(let i=0;i<5;i++){
         const ent = new ECSEntity();
-        const texture = new FloorTextureComponent(new MarbleTexture(32).generate());
+        const texture = new FloorTextureComponent(new MarbleTexture(16).generate());
         ent.add_component(texture);
         EntityManager.current.add_entity(ent);
     }
@@ -54,7 +54,7 @@ function background(){
     view.content.width = view.content.height = 256*32;
     view.x = view.y = view.content.width/-2;
     const ctx = view.content.getContext("2d");
-    const img = new SandTexture(256).generate();
+    const img = new SandTexture(512).generate();
     disableImageSmoothing(ctx);
     ctx.drawImage(img, 0, 0, view.content.width, view.content.height);
     ent.add_component(view);

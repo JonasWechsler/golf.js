@@ -381,11 +381,7 @@ class Color{
 			this.r = <number> r;
 		}
     }
-    /* accepts parameters
-     *  h  Object = {h:x, s:y, v:z}
-     *   OR 
-     *  * h, s, v
-     *  */
+
     public set_hsv(h:number, s:number, v:number) {
         if(h < 0 || h >= 1 || s < 0 || s >= 1 || v < 0 || v >= 1){
             throw "0 <= h,s,v < 1";
@@ -409,6 +405,19 @@ class Color{
         this.b = Math.round(b * 255);
     }
 
+    public to_hex():string{
+        const component = (c) => {
+            const hex = c.toString(16);
+            return hex.length == 1 ? "0" + hex : hex;
+        }
+
+        const r = component(this.r);
+        const g = component(this.g);
+        const b = component(this.b);
+
+        return "#" + r + g + b;
+    }
+
     public to_str():string{
         if(this.r  < 0 || this.r > 255 ||
         this.g  < 0 || this.g > 255 ||
@@ -419,15 +428,52 @@ class Color{
         return "rgb(" + this.r + "," + this.g + "," + this.b + ")";
     }
 
+    public to_hsv():[number, number, number]{
+        const r = this.r/255;
+        const g = this.g/255;
+        const b = this.b/255;
+        const max = Math.max(r,g,b);
+        const min = Math.min(r,g,b);
+        const diff = max - min;
+        const v = max;
+
+        if(diff == 0){
+            return [0, 0, v];
+        }
+
+        const diffc = (c)=>(v-c) / 6 / diff + 1/2;
+
+        const rr = diffc(r);
+        const gg = diffc(g);
+        const bb = diffc(b);
+
+        let h;
+        if(r === v)
+            h = bb - gg;
+        else if(g === v)
+            h = (1 / 3) + rr - bb;
+        else if(b === v)
+            h = (2 / 3) + gg - rr;
+
+        if (h < 0)
+            h += 1;
+        else if (h > 1)
+            h -= 1;
+
+        const s = diff / v;
+
+        return [h,s,v];
+    }
+
     public set_str(hex:string){
         if(hex.charAt(0) == '#'){
             this.set_str(hex.substring(1));
             return;
         }
         const parse_byte = (x) => <number> new Number("0x" + x);
-        this.r = parse_byte(hex.substring(0, 2));
-        this.g = parse_byte(hex.substring(2, 2));
-        this.b = parse_byte(hex.substring(4, 2));
+        this.r = parse_byte(hex.substr(0, 2));
+        this.g = parse_byte(hex.substr(2, 2));
+        this.b = parse_byte(hex.substr(4, 2));
     }
     public times(x:number){
         const r = Math.round(this.r*x);

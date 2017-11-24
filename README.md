@@ -10,11 +10,21 @@
         * Cold areas -> structures are connected
     * Rooms with function
     * Room evolution optimizes?
-    * Room types
+        * Dimensions
+    * Room decoration
         * Marble floors
         * Concrete floors
         * Wood floors
         * Quartz
+    * Room types
+        * Church (wood floors, wood furniture, books, symbols...)
+        * Library (patterned floors? wood furniture, book piles)
+        * Garden (plants)
+        * School room (desks, books, boards)
+        * Kitchen (fireplace + shelves?)
+        * Chemistry Lab
+        * Workshop (concrete floor, wood furniture)
+        * Machine room (Pistons + gears + steam + engines...)
 * Position optimization of AI
     * AI is state machine
         * States optimize for different properties
@@ -24,6 +34,11 @@
         * Isolation (run away when player is near)
     * AI isolated to rooms
         * Binding of Isaac, LoZ
+        * Naw
+    * AI isolated to room types?
+        * AI has an affinity for a type of room, but player is not locked off
+        * e.g. spirit spawns in church room
+        * critters 
 * Gameplay Mechanics
     * Room lockdown?
     * Inventory
