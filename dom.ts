@@ -7,6 +7,7 @@ class DOMManager{
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
         this.context = this.canvas.getContext('2d');
+        disableImageSmoothing(this.context);
     }
     static clear() : void {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -32,7 +33,8 @@ class StaticRenderComponent implements Component{
 }
 
 class UIComponent implements Component{
-    constructor(public x:number, public y:number, public content:HTMLCanvasElement){}
+    constructor(public x:number, public y:number, public content:HTMLCanvasElement,
+               public width:number = content.width, public height:number = content.height){}
     type:ComponentType = ComponentType.UI;
 }
 
@@ -91,7 +93,7 @@ class UIRenderSystem{
         DOMManager.clear();
         targets.forEach((entity) => {
             const ui = entity.get_component<UIComponent>(ComponentType.UI);
-            DOMManager.context.drawImage(ui.content, ui.x, ui.y);
+            DOMManager.context.drawImage(ui.content, ui.x, ui.y, ui.width, ui.height);
         });
     }
 }

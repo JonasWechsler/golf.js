@@ -78,13 +78,30 @@ class JointSystem implements System{
         dynamic.content.width = bounding_box.width+2*width;
         dynamic.content.height = bounding_box.height+2*width;
         const ctx = dynamic.content.getContext("2d");
+        disableImageSmoothing(ctx);
         ctx.beginPath();
         ctx.moveTo(segment.v0.x - bounding_box.left + width, segment.v0.y - bounding_box.top + width);
         ctx.lineTo(segment.v1.x - bounding_box.left + width, segment.v1.y - bounding_box.top + width);
-        ctx.lineWidth = 12;
+        ctx.lineWidth = 1;
         ctx.strokeStyle = "black";
-        ctx.lineCap = "round";
+        ctx.lineCap = "square";
         ctx.stroke();
+
+        let img_data = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+        for(let i=0;i<img_data.data.length;i+=4){
+            img_data.data[i+0] = img_data.data[i+0];
+            img_data.data[i+1] = img_data.data[i+1];
+            img_data.data[i+2] = img_data.data[i+2];
+            img_data.data[i+3] = img_data.data[i+3]>128?255:0;
+        }
+        const tmpc = document.createElement("canvas");
+        tmpc.width = ctx.canvas.width;
+        tmpc.height = ctx.canvas.height;
+        const tmpctx = tmpc.getContext("2d");
+        tmpctx.putImageData(img_data, 0, 0);
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        disableImageSmoothing(ctx);
+        ctx.drawImage(tmpc, 0, 0);
     }
 
     render_triple_joint(p:JointComponent, q:JointComponent, r:JointComponent, dynamic:DynamicRenderComponent){
@@ -113,7 +130,8 @@ class JointSystem implements System{
         dynamic.content.height = max_y - min_y + width*2;
 
         const context = dynamic.content.getContext("2d");
-        context.lineCap = "round";
+        disableImageSmoothing(context);
+        context.lineCap = "square";
         context.lineWidth = width;
 
         joint.forEachComponent((first_connection) => {
@@ -141,6 +159,7 @@ class JointSystem implements System{
                 context.stroke();
             });
         });
+
     }
 
     step(){

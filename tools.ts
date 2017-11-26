@@ -12,6 +12,10 @@ function cantorPairing(x:number, y:number){
     return .5*(px+py)*(px+py+1)+py;
 }
 
+function modulus(a:number, b:number){
+    return ((a % b) + b) % b;
+}
+
 function disableImageSmoothing(context: CanvasRenderingContext2D){
     let ctx: any = context;
     ctx.mozImageSmoothingEnabled = false;
@@ -494,7 +498,7 @@ class Color{
 
 
 class CanvasCache {
-    public static DEFAULT_CANVAS_WIDTH:number = 1500; //TODO If this is 500, draw_image bugs out on images of size 512*16
+    public static DEFAULT_CANVAS_WIDTH:number = 1024; //TODO If this is 500, draw_image bugs out on images of size 512*16
     private cache:VectorMap<HTMLCanvasElement> = new VectorMap<HTMLCanvasElement>();
     constructor(private CANVAS_WIDTH: number = CanvasCache.DEFAULT_CANVAS_WIDTH) { }
     
@@ -516,7 +520,9 @@ class CanvasCache {
                     new_canvas.height = this.CANVAS_WIDTH;
                     this.cache.map(idx, new_canvas);
                 }
-                this.cache.at(idx).getContext("2d").drawImage(canvas, left, top);
+                const ctx = this.cache.at(idx).getContext("2d");
+                disableImageSmoothing(ctx);
+                ctx.drawImage(canvas, left, top);
             }
         }
     }
@@ -526,16 +532,30 @@ class CanvasCache {
         result.width = view.width;
         result.height = view.height;
         const ctx = result.getContext("2d");
+        disableImageSmoothing(ctx);
         const position = new Vector(view.left, view.top).divided(this.CANVAS_WIDTH).apply(Math.floor);
         const dimensions = new Vector(view.width, view.height).divided(this.CANVAS_WIDTH).apply(Math.ceil);
+        const offset_x = this.mod(view.left, this.CANVAS_WIDTH);
+        const offset_y = this.mod(view.top, this.CANVAS_WIDTH);
         for(let i=0;i<dimensions.x+1;i++){
             for(let j=0;j<dimensions.y+1;j++){
-                let left = i*this.CANVAS_WIDTH - this.mod(view.left, this.CANVAS_WIDTH);
-                let top = j*this.CANVAS_WIDTH - this.mod(view.top, this.CANVAS_WIDTH);
-                const idx = new Vector(position.x + i, position.y + j);
+                let left = i*this.CANVAS_WIDTH - offset_x;
+                let top = j*this.CANVAS_WIDTH - offset_y;
+                const idx = position.plus(new Vector(i, j));
                 const img = this.cache.at(idx);
                 if (!img) continue;
+                /*
+                const sx = Math.max(-left, 0);
+                const sy = Math.max(-top, 0);
+                const sWidth = img.width - sx;
+                const sHeight = img.height - sy;
+                ctx.drawImage(img, sx, sy, sWidth, sHeight, left+sx, top+sx, sWidth, sHeight);
+               */
                 ctx.drawImage(img, left, top);
+                ctx.fillStyle = "red";
+                ctx.fillRect(left, top, 2, 2);
+                ctx.fillStyle = "green";
+                ctx.fillRect(left + img.width - 2, top + img.height - 2, 2, 2);
             }
         }
         return result;

@@ -16,8 +16,8 @@ class CameraSystem implements System{
         const target = targets[0];
         const ui = target.get_component<UIComponent>(ComponentType.UI);
         const camera = target.get_component<CameraComponent>(ComponentType.Camera);
-        const width = DOMManager.canvas.width;
-        const height = DOMManager.canvas.height;
+        const width = Math.floor(DOMManager.canvas.width/8);
+        const height = Math.floor(DOMManager.canvas.height/8);
 
         let left, top;
         if(camera.target){
@@ -33,6 +33,9 @@ class CameraSystem implements System{
             left = left_norm * shift_width;
             top = top_norm * shift_height;
         }
+
+        left = Math.round(left);
+        top = Math.round(top);
 
         return new Square(left, top, width, height);
     }
@@ -79,6 +82,7 @@ class CameraSystem implements System{
 
         const content = document.createElement("canvas");
         const ctx = content.getContext("2d");
+        disableImageSmoothing(ctx);
 
         const info = CameraSystem.camera_info();
         content.width = info.width;
@@ -98,12 +102,15 @@ class CameraSystem implements System{
             const render_component = entity.get_component<DynamicRenderComponent>(ComponentType.DynamicRender);
             const bb = new Square(render_component.x, render_component.y, render_component.content.width, render_component.content.height);
             if(info.intersects(bb))
-                ctx.drawImage(render_component.content, render_component.x, render_component.y);
+                ctx.drawImage(render_component.content, Math.round(render_component.x), Math.round(render_component.y));
         });
         ctx.translate(info.left, info.top);
 
         ui.content = content;
         ui.x = 0;
         ui.y = 0;
+        ui.x = modulus(cam.target().x,1)*8;
+        ui.y = modulus(cam.target().y,1)*-8;
+        console.log(cam.target().x, info.left, info.top, ui.x);
     }
 }

@@ -29,11 +29,10 @@ MouseInfo.setup();
 
 //const player = new Player(new Vector(30, 30), 20,new Vector(0, 0));
 const player = new ECSEntity();
-player.add_component(new DynamicPhysicsComponent(new Vector(60, 60), 20));
+player.add_component(new DynamicPhysicsComponent(new Vector(60, 60), 3));
 player.add_component(new KeyInputComponent());
 const player_canvas = document.createElement("canvas");
-player_canvas.width = 40;
-player_canvas.height = 40;
+player_canvas.width = player_canvas.height = 6;
 player.add_component(new DynamicRenderComponent(0, 0, player_canvas));
 
 //const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
@@ -51,7 +50,7 @@ floor();
 function background(){
     const ent = new ECSEntity();
     const view = new StaticRenderComponent(0, 0, document.createElement("canvas"), -2);
-    view.content.width = view.content.height = 256*32;
+    view.content.width = view.content.height = 256*8;
     view.x = view.y = view.content.width/-2;
     const ctx = view.content.getContext("2d");
     const img = new SandTexture(512).generate();
@@ -72,7 +71,7 @@ function joints(){
     fixed_joint_entity.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
 
     const fixed_entity = new ECSEntity();
-    const fixed_connection = new FixedConnectionComponent(player_joint, fixed_joint, new Vector(0, 15));
+    const fixed_connection = new FixedConnectionComponent(player_joint, fixed_joint, new Vector(0, 3));
     fixed_entity.add_component(fixed_connection);
     fixed_entity.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
 
@@ -85,12 +84,12 @@ function joints(){
     let last_j = player_joint;
     for(let i=1;i<5;i++){
         const e = new ECSEntity();
-        const jc = new JointComponent(new Vector(60, 60+i*20));
+        const jc = new JointComponent(new Vector(player_joint.position.x, player_joint.position.y+i*3));
         e.add_component(jc);
         e.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
         if(last_j){
             const connection_entity = new ECSEntity();
-            const connection = new FlexibleConnectionComponent(jc, last_j, 20);
+            const connection = new FlexibleConnectionComponent(jc, last_j, 3);
             jc.adjacent_flexible.push(connection);
             last_j.adjacent_flexible.push(connection);
             connection_entity.add_component(connection);
@@ -103,8 +102,8 @@ function joints(){
 }
 joints();
 
-DungeonGenerator.CELL_WIDTH=256;
-DungeonGenerator.CELL_HEIGHT=256;
+DungeonGenerator.CELL_WIDTH=32;
+DungeonGenerator.CELL_HEIGHT=32;
 DungeonGenerator.HEIGHT=20;
 DungeonGenerator.WIDTH=20;
 DungeonGenerator.LEFT_POS=-.5*DungeonGenerator.WIDTH*DungeonGenerator.CELL_WIDTH+16;
@@ -121,7 +120,8 @@ console.log(system_manager);
 DOMManager.make_canvas();
 
 const camera = new ECSEntity();
-const ui_component = new UIComponent(0, 0, document.createElement("canvas"));
+const ui_component = new UIComponent(0, 0, document.createElement("canvas"),
+                                     DOMManager.canvas.width, DOMManager.canvas.height);
 const camera_component = new CameraComponent();
 camera_component.target = () => player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position;
 camera.add_component(camera_component);

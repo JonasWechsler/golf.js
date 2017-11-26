@@ -629,7 +629,6 @@ class DungeonRenderSystem implements System{
             context.fillStyle="black";
             context.lineWidth=1;
             context.strokeStyle="black";
-            context.stroke();
             context.fill();
             //context.closePath();
             //context.clip();
