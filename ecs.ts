@@ -9,6 +9,7 @@ enum ComponentType{
     UI,
     Camera,
     FPS,
+    EntityInspector,
     KeyInput,
     WorldCell,
     Dungeon,

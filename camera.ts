@@ -1,10 +1,40 @@
+class EntityInspectorComponent implements Component{
+    type: ComponentType = ComponentType.EntityInspector;
+    constructor(public entities:ECSEntity[], public target:() => Vector){}
+}
+
+class EntityInspectorRenderSystem implements System{
+    static render_entity_inspector(entity:EntityInspectorComponent, ui:UIComponent){
+        const target = entity.target();
+
+        const ctx = ui.content.getContext("2d");
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        disableImageSmoothing(ctx);
+
+        entity.entities.forEach((entity)=>{
+            console.assert(entity.has_component(ComponentType.DynamicRender));
+            const render = entity.get_component<DynamicRenderComponent>(ComponentType.DynamicRender);
+            ctx.drawImage(render.content, render.x - target.x + ui.content.width/2,
+                          render.y - target.y + ui.content.height/2);
+        });
+    }
+
+    step(){
+        const components = [ComponentType.EntityInspector, ComponentType.UI];
+        const entities = EntityManager.current.get_entities(components);
+
+        entities.forEach((entity) => {
+            const inspector = entity.get_component<EntityInspectorComponent>(ComponentType.EntityInspector);
+            const target = entity.get_component<UIComponent>(ComponentType.UI);
+            EntityInspectorRenderSystem.render_entity_inspector(inspector, target);
+        });
+    }
+}
+
 class CameraComponent implements Component{
     type: ComponentType = ComponentType.Camera;
-    target : ()=>Vector;
-
-    constructor(){
-        this.target = ()=>new Vector(0, 0);
-    }
+    constructor(public target:()=>Vector = ()=>new Vector(0, 0)){}
 }
 
 class CameraSystem implements System{
@@ -12,7 +42,7 @@ class CameraSystem implements System{
 
     public static camera_info() : Square {
         const targets = EntityManager.current.get_entities([ComponentType.UI, ComponentType.Camera]);
-        assert(targets.length == 1);
+        console.assert(targets.length == 1);
         const target = targets[0];
         const ui = target.get_component<UIComponent>(ComponentType.UI);
         const camera = target.get_component<CameraComponent>(ComponentType.Camera);
@@ -43,7 +73,7 @@ class CameraSystem implements System{
     public static screen_to_camera(x : number, y : number) : Vector {
         const entity_manager = EntityManager.current;
         const targets = entity_manager.get_entities([ComponentType.UI, ComponentType.Camera]);
-        assert(targets.length == 1);
+        console.assert(targets.length == 1);
         const target = targets[0];
         const ui = target.get_component<UIComponent>(ComponentType.UI);
         const cam = target.get_component<CameraComponent>(ComponentType.Camera);
@@ -65,7 +95,6 @@ class CameraSystem implements System{
             const right_component = right.get_component<StaticRenderComponent>(ComponentType.StaticRender);
             return left_component.z_index - right_component.z_index;
         });
-        console.log(visible_statics);
         visible_statics.forEach((entity: ECSEntity) => {
             const render_component = entity.get_component<StaticRenderComponent>(ComponentType.StaticRender);
             this.canvas_cache.draw_image(render_component.content, new Vector(render_component.x, render_component.y));
@@ -75,7 +104,7 @@ class CameraSystem implements System{
     public step(){
         const entity_manager = EntityManager.current;
         const targets = entity_manager.get_entities([ComponentType.UI, ComponentType.Camera]);
-        assert(targets.length == 1);
+        console.assert(targets.length == 1);
         const target = targets[0];
         const ui = target.get_component<UIComponent>(ComponentType.UI);
         const cam = target.get_component<CameraComponent>(ComponentType.Camera);
@@ -90,27 +119,35 @@ class CameraSystem implements System{
 
         //Draw statics from a cache
         const static_cache = this.canvas_cache.get_image(info);
-        assert(static_cache.width == info.width);
-        assert(static_cache.height == info.height);
+        console.assert(static_cache.width == info.width);
+        console.assert(static_cache.height == info.height);
         ctx.drawImage(static_cache, 0, 0);
 
         //Draw dynamic entities
         const visible_entities = entity_manager.get_entities([ComponentType.DynamicRender]);
 
         ctx.translate(-info.left, -info.top);
+
         visible_entities.forEach((entity: ECSEntity) => {
             const render_component = entity.get_component<DynamicRenderComponent>(ComponentType.DynamicRender);
-            const bb = new Square(render_component.x, render_component.y, render_component.content.width, render_component.content.height);
-            if(info.intersects(bb))
+
+            if(!render_component.visible){
+                return;
+            }
+
+            const bounding_box = new Square(render_component.x,
+                                  render_component.y,
+            render_component.content.width,
+            render_component.content.height);
+            
+            if(info.intersects(bounding_box)){
                 ctx.drawImage(render_component.content, Math.round(render_component.x), Math.round(render_component.y));
+            }
         });
         ctx.translate(info.left, info.top);
 
         ui.content = content;
-        ui.x = 0;
-        ui.y = 0;
         ui.x = modulus(cam.target().x,1)*8;
         ui.y = modulus(cam.target().y,1)*-8;
-        console.log(cam.target().x, info.left, info.top, ui.x);
     }
 }
