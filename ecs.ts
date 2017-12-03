@@ -16,7 +16,10 @@ enum ComponentType{
     FloorTexture,
     Joint,
     FlexibleConnection,
-    FixedConnection
+    FixedConnection,
+    CellPosition,
+    EntityGrid,
+    GridCell
 }
 
 class HealthComponent implements Component{

@@ -7,6 +7,7 @@
     }, 
     "files": [
         "../tools.ts",
+        "../tiles.ts",
         "colors.ts",
         "run.ts"
     ]

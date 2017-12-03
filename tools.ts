@@ -49,6 +49,18 @@ function combinations(arr:any[]) {
     return fn([], arr, []);
 }
 
+function hash(arr:number[]) {
+    var hash = 0;
+    if (arr.length == 0) {
+        return hash;
+    }
+    for (let idx = 0; idx < arr.length; idx++) {
+        hash = ((hash<<5)-hash)+arr[idx];
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
+}
+
 class NumberTreeMapNode<T>{
     public value:T;
     public children:{[key:number]:NumberTreeMapNode<T>};

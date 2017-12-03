@@ -718,5 +718,3 @@ class DungeonGenerator{
     render_component.content.height = dungeon_component.cell_height * dungeon_component.height;
   }
 }
-
-
