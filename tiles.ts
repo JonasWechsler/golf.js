@@ -61,9 +61,9 @@ class Tile{
 }
 
 class TileGrid{
-    private tiles:Tile[];
-    private tile_map:Tile[][];
-    private undecided:[number, number][];
+    private _tiles:Tile[];
+    private _tile_map:Tile[][];
+    private _undecided:[number, number][];
     constructor(tiles:Tile[], private _width:number, private _height:number){
         const tile_set = {};
         tiles.forEach((tile) => {
@@ -75,17 +75,17 @@ class TileGrid{
             }
         });
         
-        this.tiles = [];
+        this._tiles = [];
         for(const hash_key in tile_set){
-            this.tiles.push(tile_set[hash_key]);
+            this._tiles.push(tile_set[hash_key]);
         }
 
-        this.undecided = [];
-        this.tile_map = [];
+        this._undecided = [];
+        this._tile_map = [];
         for(let idx=0;idx<_height;idx++){
-            this.tile_map[idx] = [];
+            this._tile_map[idx] = [];
             for(let jdx=0;jdx<_width;jdx++){
-                this.undecided.push([idx, jdx]);
+                this._undecided.push([idx, jdx]);
             }
         }
     }
@@ -125,23 +125,23 @@ class TileGrid{
         const right = t1.clone();
 
         return left.get(2, 0) == right.get(0, 0) &&
-            left.get(2, 1) == right.get(0, 1) &&
-            left.get(2, 2) == right.get(0, 2);
+               left.get(2, 1) == right.get(0, 1) &&
+               left.get(2, 2) == right.get(0, 2);
     }
 
     valid_options(i:number, j:number){
         const self = this;
         const adjacent = [[i-1, j], [i+1, j], [i, j-1], [i, j+1]];
-        let options = this.tiles;
+        let options = this._tiles;
 
         adjacent.forEach((position:[number, number]) => {
             const pass = [];
 
-            if(!self.tile_map[position[0]] || !self.tile_map[position[0]][position[1]]){
+            if(!self._tile_map[position[0]] || !self._tile_map[position[0]][position[1]]){
                 return;
             }
 
-            const t1 = self.tile_map[position[0]][position[1]];
+            const t1 = self._tile_map[position[0]][position[1]];
 
             options.forEach((t0:Tile) => {
                 if(self.valid_adjacent(t0, i, j, t1, position[0], position[1])){
@@ -157,7 +157,7 @@ class TileGrid{
     get_tile(i:number, j:number):Tile{
         console.assert(this.contains(i, j), "0<=" + i + "<" + this._width +
                       " 0<=" + j + "<" + this._height);
-        return this.tile_map[i][j];
+        return this._tile_map[i][j];
     }
 
     get_id(i:number, j:number):number{
@@ -171,7 +171,7 @@ class TileGrid{
     set_tile(i:number, j:number, value:Tile):void{
         if(!this.contains(i,j))
             return;
-        this.tile_map[i][j] = value;
+        this._tile_map[i][j] = value;
     }
 
     undecided_tiles_on_map():boolean{
@@ -195,6 +195,10 @@ class TileGrid{
             }
         }
         return undecided;
+    }
+
+    get tiles() : Tile[]{
+        return this._tiles;
     }
 
     get tile_width():number{

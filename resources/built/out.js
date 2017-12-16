@@ -636,16 +636,16 @@ var TileGrid = (function () {
                 clone.rotate_cw();
             }
         });
-        this.tiles = [];
+        this._tiles = [];
         for (var hash_key in tile_set) {
-            this.tiles.push(tile_set[hash_key]);
+            this._tiles.push(tile_set[hash_key]);
         }
-        this.undecided = [];
-        this.tile_map = [];
+        this._undecided = [];
+        this._tile_map = [];
         for (var idx = 0; idx < _height; idx++) {
-            this.tile_map[idx] = [];
+            this._tile_map[idx] = [];
             for (var jdx = 0; jdx < _width; jdx++) {
-                this.undecided.push([idx, jdx]);
+                this._undecided.push([idx, jdx]);
             }
         }
     }
@@ -682,13 +682,13 @@ var TileGrid = (function () {
     TileGrid.prototype.valid_options = function (i, j) {
         var self = this;
         var adjacent = [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]];
-        var options = this.tiles;
+        var options = this._tiles;
         adjacent.forEach(function (position) {
             var pass = [];
-            if (!self.tile_map[position[0]] || !self.tile_map[position[0]][position[1]]) {
+            if (!self._tile_map[position[0]] || !self._tile_map[position[0]][position[1]]) {
                 return;
             }
-            var t1 = self.tile_map[position[0]][position[1]];
+            var t1 = self._tile_map[position[0]][position[1]];
             options.forEach(function (t0) {
                 if (self.valid_adjacent(t0, i, j, t1, position[0], position[1])) {
                     pass.push(t0.clone());
@@ -701,7 +701,7 @@ var TileGrid = (function () {
     TileGrid.prototype.get_tile = function (i, j) {
         console.assert(this.contains(i, j), "0<=" + i + "<" + this._width +
             " 0<=" + j + "<" + this._height);
-        return this.tile_map[i][j];
+        return this._tile_map[i][j];
     };
     TileGrid.prototype.get_id = function (i, j) {
         var tile_i = Math.floor(i / 3);
@@ -714,7 +714,7 @@ var TileGrid = (function () {
     TileGrid.prototype.set_tile = function (i, j, value) {
         if (!this.contains(i, j))
             return;
-        this.tile_map[i][j] = value;
+        this._tile_map[i][j] = value;
     };
     TileGrid.prototype.undecided_tiles_on_map = function () {
         for (var i = 0; i < this._width; i++) {
@@ -737,6 +737,13 @@ var TileGrid = (function () {
         }
         return undecided;
     };
+    Object.defineProperty(TileGrid.prototype, "tiles", {
+        get: function () {
+            return this._tiles;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(TileGrid.prototype, "tile_width", {
         get: function () {
             return this._width;
@@ -971,7 +978,6 @@ function render(canvas, scheme) {
         h += hsv[0];
         s += hsv[1];
         v += hsv[2];
-        console.log(hsv);
         context.fillRect(x, 0, block_width, canvas.height);
         x += block_width;
     }
@@ -1050,7 +1056,6 @@ render_all();
 var loaded = false;
 var img = document.createElement("img");
 img.onload = function () {
-    console.log(img, img.width, img.height);
     var canvas = document.createElement("canvas");
     canvas.width = img.width;
     canvas.height = img.height;
@@ -1086,7 +1091,6 @@ img.onload = function () {
                     var b = data[idx + 2];
                     if (r == 255 && g == 255 && b == 255)
                         break outer;
-                    console.log(r, g, b);
                     tile_values[di][dj] = ids[r][g][b];
                 }
             }
@@ -1104,38 +1108,7 @@ img.onload = function () {
     tile_canvas.width = tile_canvas.height = 500;
     var ctx = tile_canvas.getContext("2d");
     var colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"];
-    setInterval(function () {
-        var square_width = tile_canvas.width / tile_grid.id_width;
-        var square_height = tile_canvas.height / tile_grid.id_height;
-        for (var i = 0; i < tile_grid.id_width; i++) {
-            for (var j = 0; j < tile_grid.id_height; j++) {
-                if (tile_grid.get_id(i, j) === undefined) {
-                    ctx.fillStyle = "white";
-                    var options = tile_grid.valid_options(Math.floor(i / 3), Math.floor(j / 3));
-                    ctx.fillRect(i * square_width, j * square_height, square_width, square_height);
-                    ctx.fillStyle = "black";
-                    ctx.fillText("" + options.length, i * square_width, j * square_height + square_height / 2);
-                }
-                else {
-                    ctx.fillStyle = colors[tile_grid.get_id(i, j)];
-                    ctx.fillRect(i * square_width, j * square_height, square_width, square_height);
-                }
-            }
-        }
-        for (var i = 0; i < tile_grid.tile_width; i++) {
-            ctx.beginPath();
-            ctx.moveTo(i * square_width * 3, 0);
-            ctx.lineTo(i * square_width * 3, tile_canvas.height);
-            ctx.strokeStyle = "black";
-            ctx.stroke();
-            for (var j = 0; j < tile_grid.tile_height; j++) {
-                ctx.beginPath();
-                ctx.moveTo(0, j * square_height * 3);
-                ctx.lineTo(tile_canvas.width, j * square_height * 3);
-                ctx.strokeStyle = "black";
-                ctx.stroke();
-            }
-        }
+    function greedy_step() {
         if (tile_grid.undecided_tiles_on_map()) {
             var undecided_ij = tile_grid.get_undecided_tiles();
             for (var idx = 0; idx < undecided_ij.length; idx++) {
@@ -1162,6 +1135,153 @@ img.onload = function () {
             };
             clear_cell_1(i, j);
         }
+    }
+    var P = [];
+    for (var i = 0; i < tile_grid.tile_width; i++) {
+        P[i] = [];
+        for (var j = 0; j < tile_grid.tile_height; j++) {
+            P[i][j] = [];
+            for (var k = 0; k < tile_grid.tiles.length; k++) {
+                P[i][j][k] = true;
+            }
+        }
+    }
+    function update(i, j) {
+        console.assert(i >= 0 && j >= 0 && i < tile_grid.tile_width && j < tile_grid.tile_height);
+        var adj = [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]];
+        for (var k = 0; k < tile_grid.tiles.length; k++) {
+            var tile = tile_grid.tiles[k];
+            if (!P[i][j][k])
+                continue;
+            for (var y = 0; y < adj.length; y++) {
+                var adj_i = adj[y][0], adj_j = adj[y][1];
+                if (!tile_grid.contains(adj_i, adj_j))
+                    continue;
+                var any_good = false;
+                for (var l = 0; l < tile_grid.tiles.length; l++) {
+                    if (!P[adj_i][adj_j][l])
+                        continue;
+                    var adj_tile = tile_grid.tiles[l];
+                    if (tile_grid.valid_adjacent(tile, i, j, adj_tile, adj_i, adj_j)) {
+                        any_good = true;
+                    }
+                }
+                P[i][j][k] = P[i][j][k] && any_good;
+            }
+        }
+    }
+    function bfs_update(i, j) {
+        var Q = [
+            new Vector(i - 1, j),
+            new Vector(i + 1, j),
+            new Vector(i, j - 1),
+            new Vector(i, j + 1)
+        ];
+        var V = new VectorSet();
+        V.add(new Vector(i, j));
+        while (Q.length != 0) {
+            var B = Q.shift();
+            if (V.has(B) ||
+                B.x < 0 ||
+                B.y < 0 ||
+                B.x >= tile_grid.tile_width ||
+                B.y >= tile_grid.tile_height ||
+                B.distanceToSquared(new Vector(i, j)) > 9) {
+                continue;
+            }
+            V.add(B);
+            update(B.x, B.y);
+            Q.push(new Vector(B.x - 1, B.y));
+            Q.push(new Vector(B.x + 1, B.y));
+            Q.push(new Vector(B.x, B.y - 1));
+            Q.push(new Vector(B.x, B.y + 1));
+        }
+    }
+    function wave_collapse_step() {
+        if (tile_grid.undecided_tiles_on_map()) {
+            var min_entropy = tile_grid.tiles.length * 2;
+            var min_tile = [];
+            for (var i_2 = 0; i_2 < tile_grid.tile_width; i_2++) {
+                for (var j_2 = 0; j_2 < tile_grid.tile_height; j_2++) {
+                    var entropy = 0;
+                    var first_tile = 0;
+                    for (var k = 0; k < tile_grid.tiles.length; k++) {
+                        if (P[i_2][j_2][k]) {
+                            entropy++;
+                            first_tile = k;
+                        }
+                    }
+                    if (entropy == 0) {
+                        continue;
+                    }
+                    if (entropy == 1) {
+                        if (tile_grid.get_tile(i_2, j_2) == undefined) {
+                            tile_grid.set_tile(i_2, j_2, tile_grid.tiles[first_tile]);
+                        }
+                        continue;
+                    }
+                    if (entropy == min_entropy) {
+                        min_tile.push([i_2, j_2]);
+                    }
+                    else if (entropy < min_entropy) {
+                        min_tile = [[i_2, j_2]];
+                        min_entropy = entropy;
+                    }
+                }
+            }
+            if (min_tile.length == 0)
+                return;
+            var X = min_tile[Math.floor(Math.random() * min_tile.length)];
+            var i = X[0], j = X[1];
+            var options = [];
+            for (var k = 0; k < tile_grid.tiles.length; k++) {
+                if (P[i][j][k])
+                    options.push(k);
+            }
+            var collapsed = options[Math.floor(Math.random() * options.length)];
+            for (var k = 0; k < tile_grid.tiles.length; k++) {
+                P[i][j][k] = (k == collapsed) ? true : false;
+            }
+            bfs_update(i, j);
+        }
+    }
+    setInterval(function () {
+        var square_width = tile_canvas.width / tile_grid.id_width;
+        var square_height = tile_canvas.height / tile_grid.id_height;
+        for (var i = 0; i < tile_grid.id_width; i++) {
+            for (var j = 0; j < tile_grid.id_height; j++) {
+                if (tile_grid.get_id(i, j) === undefined) {
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(i * square_width, j * square_height, square_width, square_height);
+                    ctx.fillStyle = "black";
+                    var options = 0;
+                    var ii = Math.floor(i / 3), jj = Math.floor(j / 3);
+                    for (var k = 0; k < tiles.length; k++)
+                        if (P[ii][jj][k])
+                            options++;
+                    ctx.fillText("" + options, i * square_width, j * square_height + square_height / 2);
+                }
+                else {
+                    ctx.fillStyle = colors[tile_grid.get_id(i, j)];
+                    ctx.fillRect(i * square_width, j * square_height, square_width, square_height);
+                }
+            }
+        }
+        for (var i = 0; i < tile_grid.tile_width; i++) {
+            ctx.beginPath();
+            ctx.moveTo(i * square_width * 3, 0);
+            ctx.lineTo(i * square_width * 3, tile_canvas.height);
+            ctx.strokeStyle = "black";
+            ctx.stroke();
+            for (var j = 0; j < tile_grid.tile_height; j++) {
+                ctx.beginPath();
+                ctx.moveTo(0, j * square_height * 3);
+                ctx.lineTo(tile_canvas.width, j * square_height * 3);
+                ctx.strokeStyle = "black";
+                ctx.stroke();
+            }
+        }
+        wave_collapse_step();
     }, 25);
 };
 img.crossOrigin = "Anonymous";

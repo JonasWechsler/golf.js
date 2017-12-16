@@ -12,7 +12,6 @@ function render(canvas, scheme){
         h += hsv[0];
         s += hsv[1];
         v += hsv[2];
-        console.log(hsv);
         context.fillRect(x, 0, block_width, canvas.height);
         x += block_width;
     }
@@ -104,7 +103,6 @@ render_all();
 let loaded = false;
 const img = document.createElement("img");
 img.onload = () => {
-    console.log(img, img.width, img.height);
     const canvas = document.createElement("canvas");
     canvas.width = img.width;
     canvas.height = img.height;
@@ -144,7 +142,6 @@ img.onload = () => {
                     const b = data[idx+2];
                     if(r == 255 && g == 255 && b == 255) break outer;
 
-                    console.log(r,g,b);
                     tile_values[di][dj] = ids[r][g][b];
                 }
             }
@@ -164,40 +161,8 @@ img.onload = () => {
     tile_canvas.width = tile_canvas.height = 500;
     const ctx = tile_canvas.getContext("2d");
     const colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"];
-    setInterval(function(){
-        const square_width = tile_canvas.width / tile_grid.id_width;
-        const square_height = tile_canvas.height / tile_grid.id_height;
-        for(let i=0;i<tile_grid.id_width;i++){
-            for(let j=0;j<tile_grid.id_height;j++){
-                if(tile_grid.get_id(i, j) === undefined){
-                    ctx.fillStyle = "white";
-                    const options = tile_grid.valid_options(Math.floor(i/3), Math.floor(j/3));
-                    ctx.fillRect(i*square_width, j*square_height, square_width, square_height);
-                    ctx.fillStyle = "black";
-                    ctx.fillText("" + options.length, i*square_width, j*square_height + square_height/2);
-                }else{
-                    ctx.fillStyle = colors[tile_grid.get_id(i, j)];
-                    ctx.fillRect(i*square_width, j*square_height, square_width, square_height);
-                }
-            }
-        }
 
-        for(let i=0;i<tile_grid.tile_width;i++){
-            ctx.beginPath();
-            ctx.moveTo(i*square_width*3, 0);
-            ctx.lineTo(i*square_width*3, tile_canvas.height);
-            ctx.strokeStyle = "black";
-            ctx.stroke();
-            for(let j=0;j<tile_grid.tile_height;j++){
-                ctx.beginPath();
-                ctx.moveTo(0, j*square_height*3);
-                ctx.lineTo(tile_canvas.width, j*square_height*3);
-                ctx.strokeStyle = "black";
-                ctx.stroke();
-            }
-        }
-
-
+    function greedy_step(){
         if(tile_grid.undecided_tiles_on_map()){
             const undecided_ij = tile_grid.get_undecided_tiles();
             for(let idx = 0;idx < undecided_ij.length;idx++){
@@ -223,6 +188,166 @@ img.onload = () => {
             }
             clear_cell(i, j);
         }
+    }
+
+    const P:boolean[][][] = [];
+    for(let i=0;i<tile_grid.tile_width;i++){
+        P[i] = [];
+        for(let j=0;j<tile_grid.tile_height;j++){
+            P[i][j] = [];
+            for(let k=0;k<tile_grid.tiles.length;k++){
+                P[i][j][k] = true;
+            }
+        }
+    }
+    
+    function update(i, j){
+        console.assert(i >= 0 && j >= 0 && i < tile_grid.tile_width && j < tile_grid.tile_height);
+        const adj = [[i-1,j],[i+1,j],[i,j-1],[i,j+1]];
+        
+        for(let k=0;k<tile_grid.tiles.length;k++){
+            const tile = tile_grid.tiles[k];
+            if(!P[i][j][k]) continue;
+            for(let y=0;y<adj.length;y++){
+                const adj_i = adj[y][0], adj_j = adj[y][1];
+                if(!tile_grid.contains(adj_i, adj_j))
+                    continue;
+                let any_good = false;
+                for(let l=0;l<tile_grid.tiles.length;l++){
+                    if(!P[adj_i][adj_j][l])
+                        continue;
+                    const adj_tile = tile_grid.tiles[l];
+                    if(tile_grid.valid_adjacent(tile,i,j,adj_tile,adj_i,adj_j)){
+                        any_good = true;
+                    }
+                }
+                P[i][j][k] = P[i][j][k] && any_good;
+            }
+        }
+    }
+
+    function bfs_update(i, j){
+        const Q:Vector[] = [
+            new Vector(i-1,j),
+            new Vector(i+1,j),
+            new Vector(i, j-1),
+            new Vector(i, j+1)];
+
+        const V = new VectorSet();
+        V.add(new Vector(i,j));
+
+        while(Q.length != 0){
+            const B:Vector = Q.shift();
+
+            if(V.has(B) ||
+               B.x < 0 ||
+               B.y < 0 ||
+               B.x >= tile_grid.tile_width ||
+               B.y >= tile_grid.tile_height ||
+               B.distanceToSquared(new Vector(i, j)) > 9){
+                continue;
+            }
+
+            V.add(B);
+            update(B.x, B.y);
+
+            Q.push(new Vector(B.x-1,B.y));
+            Q.push(new Vector(B.x+1,B.y));
+            Q.push(new Vector(B.x,B.y-1));
+            Q.push(new Vector(B.x,B.y+1));
+        }
+    }
+
+    function wave_collapse_step(){
+        if(tile_grid.undecided_tiles_on_map()){
+            let min_entropy = tile_grid.tiles.length*2;
+            let min_tile = [];
+            for(let i=0;i<tile_grid.tile_width;i++){
+                for(let j=0;j<tile_grid.tile_height;j++){
+                    let entropy = 0;
+                    let first_tile = 0;
+                    for(let k=0;k<tile_grid.tiles.length;k++){
+                        if(P[i][j][k]){
+                            entropy++;
+                            first_tile = k;
+                        }
+                    }
+
+                    if(entropy == 0){
+                        continue;
+                    }
+
+                    if(entropy == 1){
+                        if(tile_grid.get_tile(i,j) == undefined){
+                            tile_grid.set_tile(i,j,tile_grid.tiles[first_tile]);
+                        }
+                        continue;
+                    }
+
+                    if(entropy == min_entropy){
+                        min_tile.push([i,j]);
+                    }else if(entropy < min_entropy){
+                        min_tile = [[i,j]];
+                        min_entropy = entropy;
+                    }
+                }
+            }
+            if(min_tile.length == 0)
+                return;
+
+            const X = min_tile[Math.floor(Math.random()*min_tile.length)];
+            const i = X[0], j = X[1];
+            const options = [];
+            for(let k=0;k<tile_grid.tiles.length;k++){
+                if(P[i][j][k]) options.push(k);
+            }
+            const collapsed = options[Math.floor(Math.random()*options.length)];
+            for(let k=0;k<tile_grid.tiles.length;k++){
+                P[i][j][k] = (k == collapsed)?true:false;
+            }
+
+            bfs_update(i, j);
+        }
+    }
+
+    setInterval(function(){
+        const square_width = tile_canvas.width / tile_grid.id_width;
+        const square_height = tile_canvas.height / tile_grid.id_height;
+        for(let i=0;i<tile_grid.id_width;i++){
+            for(let j=0;j<tile_grid.id_height;j++){
+                if(tile_grid.get_id(i, j) === undefined){
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(i*square_width, j*square_height, square_width, square_height);
+                    ctx.fillStyle = "black";
+                    let options = 0;
+                    const ii = Math.floor(i/3), jj = Math.floor(j/3);
+                    for(let k=0;k<tiles.length;k++)
+                        if(P[ii][jj][k]) options++;
+                    ctx.fillText("" + options, i*square_width, j*square_height + square_height/2);
+                }else{
+                    ctx.fillStyle = colors[tile_grid.get_id(i, j)];
+                    ctx.fillRect(i*square_width, j*square_height, square_width, square_height);
+                }
+            }
+        }
+
+        for(let i=0;i<tile_grid.tile_width;i++){
+            ctx.beginPath();
+            ctx.moveTo(i*square_width*3, 0);
+            ctx.lineTo(i*square_width*3, tile_canvas.height);
+            ctx.strokeStyle = "black";
+            ctx.stroke();
+            for(let j=0;j<tile_grid.tile_height;j++){
+                ctx.beginPath();
+                ctx.moveTo(0, j*square_height*3);
+                ctx.lineTo(tile_canvas.width, j*square_height*3);
+                ctx.strokeStyle = "black";
+                ctx.stroke();
+            }
+        }
+
+        wave_collapse_step();
+
     }, 25);
 }
 img.crossOrigin = "Anonymous";
