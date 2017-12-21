@@ -48,6 +48,11 @@
     * Value of death
 * Enemy types
     * 
+
+* Consider having screens instead of scrolling
+* Small tiles
+    * 
+
 TODO:
 
 1. Player Animation

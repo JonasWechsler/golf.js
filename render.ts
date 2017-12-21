@@ -46,6 +46,7 @@ class PhysicsRenderSystem implements System{
             target.content.width = bb.width + 6;
             target.content.height = bb.height + 6;
             const ctx = target.content.getContext("2d");
+            disableImageSmoothing(ctx);
             ctx.fillStyle = "black";
             ctx.strokeStyle = "black";
             ctx.lineWidth = 2;
@@ -67,10 +68,11 @@ class PhysicsRenderSystem implements System{
             target.x = content.position.x - content.r;
             target.y = content.position.y - content.r;
             const ctx = target.content.getContext("2d");
+            disableImageSmoothing(ctx);
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
             ctx.beginPath();
             ctx.arc(content.r, content.r, content.r, 0, 2*Math.PI);
-            ctx.stroke();
+            ctx.fill();
         });
     }
 

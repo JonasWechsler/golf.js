@@ -9,13 +9,17 @@ enum ComponentType{
     UI,
     Camera,
     FPS,
+    EntityInspector,
     KeyInput,
     WorldCell,
     Dungeon,
     FloorTexture,
     Joint,
     FlexibleConnection,
-    FixedConnection
+    FixedConnection,
+    CellPosition,
+    EntityGrid,
+    GridCell
 }
 
 class HealthComponent implements Component{

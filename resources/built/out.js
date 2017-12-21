@@ -17,6 +17,9 @@ function cantorPairing(x, y) {
     var py = (y >= 0) ? y * 2 : -y * 2 - 1;
     return .5 * (px + py) * (px + py + 1) + py;
 }
+function modulus(a, b) {
+    return ((a % b) + b) % b;
+}
 function disableImageSmoothing(context) {
     var ctx = context;
     ctx.mozImageSmoothingEnabled = false;
@@ -47,6 +50,17 @@ function combinations(arr) {
         return result;
     };
     return fn([], arr, []);
+}
+function hash(arr) {
+    var hash = 0;
+    if (arr.length == 0) {
+        return hash;
+    }
+    for (var idx = 0; idx < arr.length; idx++) {
+        hash = ((hash << 5) - hash) + arr[idx];
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
 }
 var NumberTreeMapNode = (function () {
     function NumberTreeMapNode() {
@@ -509,7 +523,9 @@ var CanvasCache = (function () {
                     new_canvas.height = this.CANVAS_WIDTH;
                     this.cache.map(idx, new_canvas);
                 }
-                this.cache.at(idx).getContext("2d").drawImage(canvas, left, top_1);
+                var ctx = this.cache.at(idx).getContext("2d");
+                disableImageSmoothing(ctx);
+                ctx.drawImage(canvas, left, top_1);
             }
         }
     };
@@ -518,24 +534,246 @@ var CanvasCache = (function () {
         result.width = view.width;
         result.height = view.height;
         var ctx = result.getContext("2d");
+        disableImageSmoothing(ctx);
         var position = new Vector(view.left, view.top).divided(this.CANVAS_WIDTH).apply(Math.floor);
         var dimensions = new Vector(view.width, view.height).divided(this.CANVAS_WIDTH).apply(Math.ceil);
+        var offset_x = this.mod(view.left, this.CANVAS_WIDTH);
+        var offset_y = this.mod(view.top, this.CANVAS_WIDTH);
         for (var i = 0; i < dimensions.x + 1; i++) {
             for (var j = 0; j < dimensions.y + 1; j++) {
-                var left = i * this.CANVAS_WIDTH - this.mod(view.left, this.CANVAS_WIDTH);
-                var top_2 = j * this.CANVAS_WIDTH - this.mod(view.top, this.CANVAS_WIDTH);
-                var idx = new Vector(position.x + i, position.y + j);
-                var img = this.cache.at(idx);
-                if (!img)
+                var left = i * this.CANVAS_WIDTH - offset_x;
+                var top_2 = j * this.CANVAS_WIDTH - offset_y;
+                var idx = position.plus(new Vector(i, j));
+                var img_1 = this.cache.at(idx);
+                if (!img_1)
                     continue;
-                ctx.drawImage(img, left, top_2);
+                /*
+                const sx = Math.max(-left, 0);
+                const sy = Math.max(-top, 0);
+                const sWidth = img.width - sx;
+                const sHeight = img.height - sy;
+                ctx.drawImage(img, sx, sy, sWidth, sHeight, left+sx, top+sx, sWidth, sHeight);
+               */
+                ctx.drawImage(img_1, left, top_2);
+                ctx.fillStyle = "red";
+                ctx.fillRect(left, top_2, 2, 2);
+                ctx.fillStyle = "green";
+                ctx.fillRect(left + img_1.width - 2, top_2 + img_1.height - 2, 2, 2);
             }
         }
         return result;
     };
     return CanvasCache;
 }());
-CanvasCache.DEFAULT_CANVAS_WIDTH = 1500; //TODO If this is 500, draw_image bugs out on images of size 512*16
+CanvasCache.DEFAULT_CANVAS_WIDTH = 1024; //TODO If this is 500, draw_image bugs out on images of size 512*16
+/* TileGenerator makes a grid of enums, where the values are cell types
+ * (wall, floor, door, lake, with specificity, i.e. wood floor, stone wall, water)
+ * GridGenerator makes a grid of GridCells, which are not components
+ * GridCells contain minimal information on their content
+ * GridParser transforms a grid into a world, and returns a list of entities?
+ *
+ */
+var Tile = (function () {
+    function Tile(values) {
+        this.values = values;
+        console.assert(values.length == 3);
+        console.assert(values[0].length == 3);
+    }
+    Tile.prototype.get = function (x, y) {
+        console.assert(x < 3);
+        console.assert(y < 3);
+        console.assert(x >= 0);
+        console.assert(y >= 0);
+        return this.values[x][y];
+    };
+    Tile.prototype.rotate_cw = function () {
+        var new_values = [[], [], []];
+        for (var i = 0; i < 3; i++) {
+            for (var j = 0; j < 3; j++) {
+                new_values[i][j] = this.values[j][2 - i];
+            }
+        }
+        this.values = new_values;
+    };
+    Tile.prototype.rotate_ccw = function () {
+        this.rotate_cw();
+        this.rotate_cw();
+        this.rotate_cw();
+    };
+    Tile.prototype.to_array = function () {
+        var result = [];
+        for (var j = 0; j < 3; j++) {
+            for (var i = 0; i < 3; i++) {
+                result.push(this.get(i, j));
+            }
+        }
+        return result;
+    };
+    Tile.prototype.clone = function () {
+        var new_values = [[], [], []];
+        for (var i = 0; i < 3; i++) {
+            for (var j = 0; j < 3; j++) {
+                new_values[i][j] = this.values[i][j];
+            }
+        }
+        return new Tile(new_values);
+    };
+    Tile.prototype.hash = function () {
+        return hash(this.to_array());
+    };
+    return Tile;
+}());
+var TileGrid = (function () {
+    function TileGrid(tiles, _width, _height) {
+        this._width = _width;
+        this._height = _height;
+        var tile_set = {};
+        tiles.forEach(function (tile) {
+            var add = function (t) { return tile_set[t.hash()] = t; };
+            var clone = tile.clone();
+            for (var i = 0; i < 4; i++) {
+                add(clone.clone());
+                clone.rotate_cw();
+            }
+        });
+        this._tiles = [];
+        for (var hash_key in tile_set) {
+            this._tiles.push(tile_set[hash_key]);
+        }
+        this._undecided = [];
+        this._tile_map = [];
+        for (var idx = 0; idx < _height; idx++) {
+            this._tile_map[idx] = [];
+            for (var jdx = 0; jdx < _width; jdx++) {
+                this._undecided.push([idx, jdx]);
+            }
+        }
+    }
+    TileGrid.prototype.contains = function (i0, j0) {
+        return i0 >= 0 && j0 >= 0 && i0 < this._width && j0 < this._width;
+    };
+    TileGrid.prototype.valid_adjacent = function (t0, i0, j0, t1, i1, j1) {
+        if (!this.contains(i0, j0) || !this.contains(i1, j1)) {
+            return true;
+        }
+        var di = Math.abs(i1 - i0);
+        var dj = Math.abs(j1 - j0);
+        console.assert(dj <= 1 && di <= 1);
+        console.assert(di != 1 || dj != 1);
+        console.assert(di != 0 || dj != 0);
+        if (i1 < i0 || j1 < j0) {
+            return this.valid_adjacent(t1, i1, j1, t0, i0, j0);
+        }
+        console.assert(i0 <= i1 && j0 <= j1);
+        if (i0 == i1 && j0 + 1 == j1) {
+            var top_3 = t0.clone();
+            top_3.rotate_cw(); //right
+            var bottom = t1.clone();
+            bottom.rotate_cw(); //left
+            return this.valid_adjacent(bottom, i0, j0, top_3, i0 + 1, j0);
+        }
+        console.assert(j0 == j1 && i0 + 1 == i1);
+        var left = t0.clone();
+        var right = t1.clone();
+        return left.get(2, 0) == right.get(0, 0) &&
+            left.get(2, 1) == right.get(0, 1) &&
+            left.get(2, 2) == right.get(0, 2);
+    };
+    TileGrid.prototype.valid_options = function (i, j) {
+        var self = this;
+        var adjacent = [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]];
+        var options = this._tiles;
+        adjacent.forEach(function (position) {
+            var pass = [];
+            if (!self._tile_map[position[0]] || !self._tile_map[position[0]][position[1]]) {
+                return;
+            }
+            var t1 = self._tile_map[position[0]][position[1]];
+            options.forEach(function (t0) {
+                if (self.valid_adjacent(t0, i, j, t1, position[0], position[1])) {
+                    pass.push(t0.clone());
+                }
+            });
+            options = pass;
+        });
+        return options;
+    };
+    TileGrid.prototype.get_tile = function (i, j) {
+        console.assert(this.contains(i, j), "0<=" + i + "<" + this._width +
+            " 0<=" + j + "<" + this._height);
+        return this._tile_map[i][j];
+    };
+    TileGrid.prototype.get_id = function (i, j) {
+        var tile_i = Math.floor(i / 3);
+        var tile_j = Math.floor(j / 3);
+        var tile = this.get_tile(tile_i, tile_j);
+        if (!tile)
+            return undefined;
+        return tile.get(i % 3, j % 3);
+    };
+    TileGrid.prototype.set_tile = function (i, j, value) {
+        if (!this.contains(i, j))
+            return;
+        this._tile_map[i][j] = value;
+    };
+    TileGrid.prototype.undecided_tiles_on_map = function () {
+        for (var i = 0; i < this._width; i++) {
+            for (var j = 0; j < this._height; j++) {
+                if (this.get_tile(i, j) === undefined) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    TileGrid.prototype.get_undecided_tiles = function () {
+        var undecided = [];
+        for (var i = 0; i < this._width; i++) {
+            for (var j = 0; j < this._height; j++) {
+                if (this.get_tile(i, j) === undefined) {
+                    undecided.push([i, j]);
+                }
+            }
+        }
+        return undecided;
+    };
+    Object.defineProperty(TileGrid.prototype, "tiles", {
+        get: function () {
+            return this._tiles;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(TileGrid.prototype, "tile_width", {
+        get: function () {
+            return this._width;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(TileGrid.prototype, "tile_height", {
+        get: function () {
+            return this._height;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(TileGrid.prototype, "id_width", {
+        get: function () {
+            return this._width * 3;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(TileGrid.prototype, "id_height", {
+        get: function () {
+            return this._height * 3;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return TileGrid;
+}());
 var COLORS = {
     "Sand1": "#565656",
     "Sand2": "#6e5457",
@@ -740,14 +978,12 @@ function render(canvas, scheme) {
         h += hsv[0];
         s += hsv[1];
         v += hsv[2];
-        console.log(hsv);
         context.fillRect(x, 0, block_width, canvas.height);
         x += block_width;
     }
     h /= scheme.length;
     s /= scheme.length;
     v /= scheme.length;
-    console.log(h, s, v);
 }
 function render_all() {
     var big_canvas = document.createElement("canvas");
@@ -817,4 +1053,237 @@ var RGB = (function () {
 }());
 //const rgb = new RGB();
 render_all();
+var loaded = false;
+var img = document.createElement("img");
+img.onload = function () {
+    var canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    var context = canvas.getContext("2d");
+    context.drawImage(img, 0, 0);
+    var data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    var ids = {};
+    var max_id = 0;
+    for (var i = 0; i < canvas.width; i++) {
+        var r = data[i * 4];
+        var g = data[i * 4 + 1];
+        var b = data[i * 4 + 2];
+        if (r == 255 && g == 255 && b == 255) {
+            break;
+        }
+        if (!ids[r])
+            ids[r] = {};
+        if (!ids[r][g])
+            ids[r][g] = {};
+        ids[r][g][b] = max_id;
+        max_id++;
+    }
+    console.log(ids);
+    var tiles = [];
+    outer: for (var j = 1; j < canvas.height - 2; j += 3) {
+        for (var i = 0; i < canvas.width - 2; i += 3) {
+            var tile_values = [[], [], []];
+            for (var dj = 0; dj < 3; dj++) {
+                for (var di = 0; di < 3; di++) {
+                    var idx = (i + di + (j + dj) * canvas.width) * 4;
+                    var r = data[idx];
+                    var g = data[idx + 1];
+                    var b = data[idx + 2];
+                    if (r == 255 && g == 255 && b == 255)
+                        break outer;
+                    tile_values[di][dj] = ids[r][g][b];
+                }
+            }
+            tiles.push(new Tile(tile_values));
+        }
+    }
+    var t0 = new Tile([[0, 0, 0], [0, 0, 0], [0, 0, 0]]);
+    var t1 = new Tile([[0, 0, 0], [1, 1, 1], [0, 0, 0]]);
+    var t2 = new Tile([[0, 1, 0], [0, 1, 0], [0, 1, 0]]);
+    var t3 = new Tile([[0, 0, 0], [0, 1, 0], [0, 1, 0]]);
+    var t4 = new Tile([[0, 1, 0], [1, 1, 1], [0, 1, 0]]);
+    var tile_grid = new TileGrid(tiles, 20, 20);
+    var tile_canvas = document.createElement("canvas");
+    document.body.appendChild(tile_canvas);
+    tile_canvas.width = tile_canvas.height = 500;
+    var ctx = tile_canvas.getContext("2d");
+    var colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"];
+    function greedy_step() {
+        if (tile_grid.undecided_tiles_on_map()) {
+            var undecided_ij = tile_grid.get_undecided_tiles();
+            for (var idx = 0; idx < undecided_ij.length; idx++) {
+                var i_1 = undecided_ij[idx][0];
+                var j_1 = undecided_ij[idx][1];
+                var options = tile_grid.valid_options(i_1, j_1);
+                if (options.length == 0)
+                    continue;
+                var choice = options[Math.floor(options.length * Math.random())];
+                tile_grid.set_tile(i_1, j_1, choice);
+                return;
+            }
+            var random_undecidable = undecided_ij[Math.floor(undecided_ij.length * Math.random())];
+            var i = random_undecidable[0], j = random_undecidable[1];
+            var clear_cell_1 = function (i, j) {
+                [[i + 1, j], [i, j - 1], [i - 1, j], [i, j + 1]].forEach(function (position) {
+                    if (!tile_grid.contains(position[0], position[1]))
+                        return;
+                    tile_grid.set_tile(position[0], position[1], undefined);
+                    if (tile_grid.valid_options(position[0], position[1]).length == 1) {
+                        clear_cell_1(position[0], position[1]);
+                    }
+                });
+            };
+            clear_cell_1(i, j);
+        }
+    }
+    var P = [];
+    for (var i = 0; i < tile_grid.tile_width; i++) {
+        P[i] = [];
+        for (var j = 0; j < tile_grid.tile_height; j++) {
+            P[i][j] = [];
+            for (var k = 0; k < tile_grid.tiles.length; k++) {
+                P[i][j][k] = true;
+            }
+        }
+    }
+    function update(i, j) {
+        console.assert(i >= 0 && j >= 0 && i < tile_grid.tile_width && j < tile_grid.tile_height);
+        var adj = [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]];
+        for (var k = 0; k < tile_grid.tiles.length; k++) {
+            var tile = tile_grid.tiles[k];
+            if (!P[i][j][k])
+                continue;
+            for (var y = 0; y < adj.length; y++) {
+                var adj_i = adj[y][0], adj_j = adj[y][1];
+                if (!tile_grid.contains(adj_i, adj_j))
+                    continue;
+                var any_good = false;
+                for (var l = 0; l < tile_grid.tiles.length; l++) {
+                    if (!P[adj_i][adj_j][l])
+                        continue;
+                    var adj_tile = tile_grid.tiles[l];
+                    if (tile_grid.valid_adjacent(tile, i, j, adj_tile, adj_i, adj_j)) {
+                        any_good = true;
+                    }
+                }
+                P[i][j][k] = P[i][j][k] && any_good;
+            }
+        }
+    }
+    function bfs_update(i, j) {
+        var Q = [
+            new Vector(i - 1, j),
+            new Vector(i + 1, j),
+            new Vector(i, j - 1),
+            new Vector(i, j + 1)
+        ];
+        var V = new VectorSet();
+        V.add(new Vector(i, j));
+        while (Q.length != 0) {
+            var B = Q.shift();
+            if (V.has(B) ||
+                B.x < 0 ||
+                B.y < 0 ||
+                B.x >= tile_grid.tile_width ||
+                B.y >= tile_grid.tile_height ||
+                B.distanceToSquared(new Vector(i, j)) > 9) {
+                continue;
+            }
+            V.add(B);
+            update(B.x, B.y);
+            Q.push(new Vector(B.x - 1, B.y));
+            Q.push(new Vector(B.x + 1, B.y));
+            Q.push(new Vector(B.x, B.y - 1));
+            Q.push(new Vector(B.x, B.y + 1));
+        }
+    }
+    function wave_collapse_step() {
+        if (tile_grid.undecided_tiles_on_map()) {
+            var min_entropy = tile_grid.tiles.length * 2;
+            var min_tile = [];
+            for (var i_2 = 0; i_2 < tile_grid.tile_width; i_2++) {
+                for (var j_2 = 0; j_2 < tile_grid.tile_height; j_2++) {
+                    var entropy = 0;
+                    var first_tile = 0;
+                    for (var k = 0; k < tile_grid.tiles.length; k++) {
+                        if (P[i_2][j_2][k]) {
+                            entropy++;
+                            first_tile = k;
+                        }
+                    }
+                    if (entropy == 0) {
+                        continue;
+                    }
+                    if (entropy == 1) {
+                        if (tile_grid.get_tile(i_2, j_2) == undefined) {
+                            tile_grid.set_tile(i_2, j_2, tile_grid.tiles[first_tile]);
+                        }
+                        continue;
+                    }
+                    if (entropy == min_entropy) {
+                        min_tile.push([i_2, j_2]);
+                    }
+                    else if (entropy < min_entropy) {
+                        min_tile = [[i_2, j_2]];
+                        min_entropy = entropy;
+                    }
+                }
+            }
+            if (min_tile.length == 0)
+                return;
+            var X = min_tile[Math.floor(Math.random() * min_tile.length)];
+            var i = X[0], j = X[1];
+            var options = [];
+            for (var k = 0; k < tile_grid.tiles.length; k++) {
+                if (P[i][j][k])
+                    options.push(k);
+            }
+            var collapsed = options[Math.floor(Math.random() * options.length)];
+            for (var k = 0; k < tile_grid.tiles.length; k++) {
+                P[i][j][k] = (k == collapsed) ? true : false;
+            }
+            bfs_update(i, j);
+        }
+    }
+    setInterval(function () {
+        var square_width = tile_canvas.width / tile_grid.id_width;
+        var square_height = tile_canvas.height / tile_grid.id_height;
+        for (var i = 0; i < tile_grid.id_width; i++) {
+            for (var j = 0; j < tile_grid.id_height; j++) {
+                if (tile_grid.get_id(i, j) === undefined) {
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(i * square_width, j * square_height, square_width, square_height);
+                    ctx.fillStyle = "black";
+                    var options = 0;
+                    var ii = Math.floor(i / 3), jj = Math.floor(j / 3);
+                    for (var k = 0; k < tiles.length; k++)
+                        if (P[ii][jj][k])
+                            options++;
+                    ctx.fillText("" + options, i * square_width, j * square_height + square_height / 2);
+                }
+                else {
+                    ctx.fillStyle = colors[tile_grid.get_id(i, j)];
+                    ctx.fillRect(i * square_width, j * square_height, square_width, square_height);
+                }
+            }
+        }
+        for (var i = 0; i < tile_grid.tile_width; i++) {
+            ctx.beginPath();
+            ctx.moveTo(i * square_width * 3, 0);
+            ctx.lineTo(i * square_width * 3, tile_canvas.height);
+            ctx.strokeStyle = "black";
+            ctx.stroke();
+            for (var j = 0; j < tile_grid.tile_height; j++) {
+                ctx.beginPath();
+                ctx.moveTo(0, j * square_height * 3);
+                ctx.lineTo(tile_canvas.width, j * square_height * 3);
+                ctx.strokeStyle = "black";
+                ctx.stroke();
+            }
+        }
+        wave_collapse_step();
+    }, 25);
+};
+img.crossOrigin = "Anonymous";
+img.src = "tiles.png";
 //# sourceMappingURL=out.js.map

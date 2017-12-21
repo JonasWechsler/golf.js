@@ -16,11 +16,11 @@
        "physics.ts",
        "dom.ts",
        "camera.ts",
-       "worldinfo.ts",
        "joints.ts",
        "generators.ts",
        "render.ts",
        "inputs.ts",
+       "world.ts",
        "run.ts"
     ]
 }
