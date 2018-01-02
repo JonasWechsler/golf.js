@@ -66,15 +66,17 @@ enum GridGeneratorMethod{
 
 class GridGenerator{
     private tile_grid:TileGrid;
-    private P:boolean[][][];
+    private tile_possibilities:boolean[][][];
 
-    constructor(private _tiles:Tile[],
-                private _width:number,
-               private _height:number,
-               private _method:GridGeneratorMethod,
-               private _complete_callback:(gg:GridGenerator)=>void = ()=>0,
-               private _generate_callback:(gg:GridGenerator)=>void = ()=>0){
-        this.tile_grid = new TileGrid(_tiles, _width, _height);
+    constructor(private _TILES:Tile[],
+                private _WIDTH:number,
+               private _HEIGHT:number,
+               private _METHOD:GridGeneratorMethod,
+               private _COMPLETE_CALLBACK:(gg:GridGenerator)=>void = ()=>0,
+               private _GENERATE_CALLBACK:(gg:GridGenerator)=>void = ()=>0,
+               private _LOOKAHEAD:number = 5,
+               private _ASYNC_LOOPS:number = 20){
+        this.tile_grid = new TileGrid(_TILES, _WIDTH, _HEIGHT);
         this.generate();
     }
 
@@ -112,14 +114,14 @@ class GridGenerator{
     }
 
     private setup_wave_collapse(){
-        this.P = [];
+        this.tile_possibilities = [];
 
         for(let i=0;i<this.tile_grid.tile_width;i++){
-            this.P[i] = [];
+            this.tile_possibilities[i] = [];
             for(let j=0;j<this.tile_grid.tile_height;j++){
-                this.P[i][j] = [];
+                this.tile_possibilities[i][j] = [];
                 for(let k=0;k<this.tile_grid.tiles.length;k++){
-                    this.P[i][j][k] = true;
+                    this.tile_possibilities[i][j][k] = true;
                 }
             }
         }
@@ -135,7 +137,7 @@ class GridGenerator{
         
         for(let k=0;k<this.tile_grid.tiles.length;k++){
             const tile = this.tile_grid.tiles[k];
-            if(!this.P[i][j][k])
+            if(!this.tile_possibilities[i][j][k])
                 continue;
             for(let y=0;y<adj.length;y++){
                 const adj_i = adj[y][0], adj_j = adj[y][1];
@@ -143,7 +145,7 @@ class GridGenerator{
                     continue;
                 let any_good = false;
                 for(let l=0;l<this.tile_grid.tiles.length;l++){
-                    if(!this.P[adj_i][adj_j][l])
+                    if(!this.tile_possibilities[adj_i][adj_j][l])
                         continue;
                     const adj_tile = this.tile_grid.tiles[l];
                     if(this.tile_grid.valid_adjacent(tile,i,j,adj_tile,adj_i,adj_j)){
@@ -151,7 +153,7 @@ class GridGenerator{
                         break;
                     }
                 }
-                this.P[i][j][k] = this.P[i][j][k] && any_good;
+                this.tile_possibilities[i][j][k] = this.tile_possibilities[i][j][k] && any_good;
             }
         }
     }
@@ -191,7 +193,7 @@ class GridGenerator{
     wave_entropy(i:number, j:number){
         let entropy = 0;
         for(let k=0;k<this.tile_grid.tiles.length;k++){
-            if(this.P[i][j][k]){
+            if(this.tile_possibilities[i][j][k]){
                 entropy++;
             }
         }
@@ -202,7 +204,7 @@ class GridGenerator{
         const options = [];
 
         for(let k=0;k<this.tile_grid.tiles.length;k++){
-            if(this.P[i][j][k]){
+            if(this.tile_possibilities[i][j][k]){
                 options.push(k);
             }
         }
@@ -211,10 +213,10 @@ class GridGenerator{
 
         for(let k=0;k<this.tile_grid.tiles.length;k++){
             if(k == collapsed){
-                this.P[i][j][k] = true;
+                this.tile_possibilities[i][j][k] = true;
                 this.tile_grid.set_tile(i, j, this.tile_grid.tiles[k]);
             }else{
-                this.P[i][j][k] = false;
+                this.tile_possibilities[i][j][k] = false;
             }
         }
     }
@@ -261,33 +263,33 @@ class GridGenerator{
     private ASYNC_LOOPS = 5;
     private generate(){
         const self = this;
-        if(this._method == GridGeneratorMethod.Greedy){
+        if(this._METHOD == GridGeneratorMethod.Greedy){
             const looper = () => {
                 for(let loop=0; loop<self.ASYNC_LOOPS; loop++){
                     const loop_again = self.greedy_step();
 
                     if(!loop_again){
-                        self._complete_callback(self);
+                        self._COMPLETE_CALLBACK(self);
                         return;
                     }
                 }
-                self._generate_callback(self);
+                self._GENERATE_CALLBACK(self);
                 requestAnimationFrame(looper);
             }
             looper();
         }
 
-        if(this._method == GridGeneratorMethod.WaveCollapse){
+        if(this._METHOD == GridGeneratorMethod.WaveCollapse){
             const looper = () => {
                 for(let loop = 0; loop < self.ASYNC_LOOPS; loop++){
                     const loop_again = this.wave_collapse_step();
 
                     if(!loop_again){
-                        self._complete_callback(self);
+                        self._COMPLETE_CALLBACK(self);
                         return;
                     }
                 }
-                self._generate_callback(self);
+                self._GENERATE_CALLBACK(self);
                 requestAnimationFrame(looper);
             }
             this.setup_wave_collapse();
@@ -299,9 +301,9 @@ class GridGenerator{
         return this.tile_grid;
     }
     get WIDTH():number{
-        return this._width;
+        return this._WIDTH;
     }
     get HEIGHT():number{
-        return this._height;
+        return this._HEIGHT;
     }
 }

@@ -155,10 +155,10 @@ img.onload = () => {
     const t3 = new Tile([[0, 0, 0],[0, 1, 0],[0, 1, 0]]);
     const t4 = new Tile([[0, 1, 0],[1, 1, 1],[0, 1, 0]]);
 
-    const tile_grid = new TileGrid(tiles, 20, 20);
+    const tile_grid = new TileGrid(tiles, 40, 40);
     const tile_canvas = document.createElement("canvas");
     document.body.appendChild(tile_canvas);
-    tile_canvas.width = tile_canvas.height = 500;
+    tile_canvas.width = tile_canvas.height = 750;
     const ctx = tile_canvas.getContext("2d");
     const colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"];
 
@@ -219,6 +219,7 @@ img.onload = () => {
                     const adj_tile = tile_grid.tiles[l];
                     if(tile_grid.valid_adjacent(tile,i,j,adj_tile,adj_i,adj_j)){
                         any_good = true;
+                        break;
                     }
                 }
                 P[i][j][k] = P[i][j][k] && any_good;
@@ -310,21 +311,56 @@ img.onload = () => {
         }
     }
 
+    let t = 0;
+    const render_grid = (gg:GridGenerator) => {
+        const gg_tile_grid = gg.TILES;
+        const square_width = tile_canvas.width /   gg_tile_grid.id_width;
+        const square_height = tile_canvas.height / gg_tile_grid.id_height;
+        ctx.clearRect(0, 0, tile_canvas.width, tile_canvas.height);
+        for(let i=0;i<gg_tile_grid.id_width;i++){
+            for(let j=0;j<gg_tile_grid.id_height;j++){
+                if(gg_tile_grid.get_id(i, j) !== undefined){
+                    ctx.fillStyle = colors[gg_tile_grid.get_id(i, j)];
+                    ctx.fillRect(i*square_width, j*square_height, square_width, square_height);
+                }
+            }
+        }
+
+        /*
+        for(let i=0;i<tile_grid.tile_width;i++){
+            ctx.beginPath();
+            ctx.moveTo(i*square_width*3, 0);
+            ctx.lineTo(i*square_width*3, tile_canvas.height);
+            ctx.strokeStyle = "black";
+            ctx.stroke();
+            for(let j=0;j<tile_grid.tile_height;j++){
+                ctx.beginPath();
+                ctx.moveTo(0, j*square_height*3);
+                ctx.lineTo(tile_canvas.width, j*square_height*3);
+                ctx.strokeStyle = "black";
+                ctx.stroke();
+            }
+        }
+       */
+
+        t = 1-t;
+        ctx.fillStyle = ["red", "green"][t];
+        ctx.fillRect(t*10, 0, 10, 10);
+    }
+    console.log("Startng...");
+    const gg = new GridGenerator(tiles,
+                                40,
+                                40,
+                                GridGeneratorMethod.WaveCollapse,
+                                render_grid,
+                                render_grid);
+    /*
     setInterval(function(){
         const square_width = tile_canvas.width / tile_grid.id_width;
         const square_height = tile_canvas.height / tile_grid.id_height;
         for(let i=0;i<tile_grid.id_width;i++){
             for(let j=0;j<tile_grid.id_height;j++){
-                if(tile_grid.get_id(i, j) === undefined){
-                    ctx.fillStyle = "white";
-                    ctx.fillRect(i*square_width, j*square_height, square_width, square_height);
-                    ctx.fillStyle = "black";
-                    let options = 0;
-                    const ii = Math.floor(i/3), jj = Math.floor(j/3);
-                    for(let k=0;k<tiles.length;k++)
-                        if(P[ii][jj][k]) options++;
-                    ctx.fillText("" + options, i*square_width, j*square_height + square_height/2);
-                }else{
+                if(tile_grid.get_id(i, j) !== undefined){
                     ctx.fillStyle = colors[tile_grid.get_id(i, j)];
                     ctx.fillRect(i*square_width, j*square_height, square_width, square_height);
                 }
@@ -347,8 +383,10 @@ img.onload = () => {
         }
 
         wave_collapse_step();
+    }, 1);
+    */
 
-    }, 25);
+    
 }
 img.crossOrigin = "Anonymous";
 img.src = "tiles.png";
