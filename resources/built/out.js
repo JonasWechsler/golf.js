@@ -1086,7 +1086,8 @@ var GridGenerator = (function () {
             }
         }
     };
-    GridGenerator.prototype.update = function (i, j) {
+    GridGenerator.prototype.update = function (v) {
+        var i = v.x, j = v.y;
         console.assert(i >= 0);
         console.assert(j >= 0);
         console.assert(i < this.tile_grid.tile_width);
@@ -1114,15 +1115,9 @@ var GridGenerator = (function () {
             }
         }
     };
-    GridGenerator.prototype.bfs_update = function (i, j) {
-        var Q = [
-            new Vector(i - 1, j),
-            new Vector(i + 1, j),
-            new Vector(i, j - 1),
-            new Vector(i, j + 1)
-        ];
+    GridGenerator.prototype.bfs_update = function (v) {
+        var Q = [v];
         var V = new VectorSet();
-        V.add(new Vector(i, j));
         while (Q.length != 0) {
             var B = Q.shift();
             if (V.has(B) ||
@@ -1130,11 +1125,11 @@ var GridGenerator = (function () {
                 B.y < 0 ||
                 B.x >= this.tile_grid.tile_width ||
                 B.y >= this.tile_grid.tile_height ||
-                B.distanceToSquared(new Vector(i, j)) > 25) {
+                B.distanceToSquared(v) > 25) {
                 continue;
             }
             V.add(B);
-            this.update(B.x, B.y);
+            this.update(B);
             Q.push(new Vector(B.x - 1, B.y));
             Q.push(new Vector(B.x + 1, B.y));
             Q.push(new Vector(B.x, B.y - 1));
@@ -1150,7 +1145,8 @@ var GridGenerator = (function () {
         }
         return entropy;
     };
-    GridGenerator.prototype.collapse = function (i, j) {
+    GridGenerator.prototype.collapse = function (v) {
+        var i = v.x, j = v.y;
         var options = [];
         for (var k = 0; k < this.tile_grid.tiles.length; k++) {
             if (this.tile_possibilities[i][j][k]) {
@@ -1173,20 +1169,21 @@ var GridGenerator = (function () {
             return false;
         var min_entropy = this.tile_grid.tiles.length * 2;
         var min_tile = [];
-        for (var i_2 = 0; i_2 < this.tile_grid.tile_width; i_2++) {
-            for (var j_2 = 0; j_2 < this.tile_grid.tile_height; j_2++) {
-                if (this.tile_grid.get_tile(i_2, j_2) !== undefined) {
+        for (var i = 0; i < this.tile_grid.tile_width; i++) {
+            for (var j = 0; j < this.tile_grid.tile_height; j++) {
+                var v_1 = new Vector(i, j);
+                if (this.tile_grid.get_tile(i, j) !== undefined) {
                     continue;
                 }
-                var entropy = this.wave_entropy(i_2, j_2);
+                var entropy = this.wave_entropy(i, j);
                 if (entropy == 0) {
                     continue;
                 }
                 if (entropy == min_entropy) {
-                    min_tile.push([i_2, j_2]);
+                    min_tile.push(v_1);
                 }
                 else if (entropy < min_entropy) {
-                    min_tile = [[i_2, j_2]];
+                    min_tile = [v_1];
                     min_entropy = entropy;
                 }
             }
@@ -1195,9 +1192,8 @@ var GridGenerator = (function () {
         if (min_tile.length == 0)
             return false;
         var X = min_tile[Math.floor(Math.random() * min_tile.length)];
-        var i = X[0], j = X[1];
-        this.collapse(i, j);
-        this.bfs_update(i, j);
+        this.collapse(X);
+        this.bfs_update(X);
         return true;
     };
     GridGenerator.prototype.generate = function () {
@@ -1404,13 +1400,13 @@ img.onload = function () {
         if (tile_grid.undecided_tiles_on_map()) {
             var undecided_ij = tile_grid.get_undecided_tiles();
             for (var idx = 0; idx < undecided_ij.length; idx++) {
-                var i_3 = undecided_ij[idx][0];
-                var j_3 = undecided_ij[idx][1];
-                var options = tile_grid.valid_options(i_3, j_3);
+                var i_2 = undecided_ij[idx][0];
+                var j_2 = undecided_ij[idx][1];
+                var options = tile_grid.valid_options(i_2, j_2);
                 if (options.length == 0)
                     continue;
                 var choice = options[Math.floor(options.length * Math.random())];
-                tile_grid.set_tile(i_3, j_3, choice);
+                tile_grid.set_tile(i_2, j_2, choice);
                 return;
             }
             var random_undecidable = undecided_ij[Math.floor(undecided_ij.length * Math.random())];
@@ -1494,12 +1490,12 @@ img.onload = function () {
         if (tile_grid.undecided_tiles_on_map()) {
             var min_entropy = tile_grid.tiles.length * 2;
             var min_tile = [];
-            for (var i_4 = 0; i_4 < tile_grid.tile_width; i_4++) {
-                for (var j_4 = 0; j_4 < tile_grid.tile_height; j_4++) {
+            for (var i_3 = 0; i_3 < tile_grid.tile_width; i_3++) {
+                for (var j_3 = 0; j_3 < tile_grid.tile_height; j_3++) {
                     var entropy = 0;
                     var first_tile = 0;
                     for (var k = 0; k < tile_grid.tiles.length; k++) {
-                        if (P[i_4][j_4][k]) {
+                        if (P[i_3][j_3][k]) {
                             entropy++;
                             first_tile = k;
                         }
@@ -1508,16 +1504,16 @@ img.onload = function () {
                         continue;
                     }
                     if (entropy == 1) {
-                        if (tile_grid.get_tile(i_4, j_4) == undefined) {
-                            tile_grid.set_tile(i_4, j_4, tile_grid.tiles[first_tile]);
+                        if (tile_grid.get_tile(i_3, j_3) == undefined) {
+                            tile_grid.set_tile(i_3, j_3, tile_grid.tiles[first_tile]);
                         }
                         continue;
                     }
                     if (entropy == min_entropy) {
-                        min_tile.push([i_4, j_4]);
+                        min_tile.push([i_3, j_3]);
                     }
                     else if (entropy < min_entropy) {
-                        min_tile = [[i_4, j_4]];
+                        min_tile = [[i_3, j_3]];
                         min_entropy = entropy;
                     }
                 }
@@ -1568,6 +1564,7 @@ img.onload = function () {
             }
         }
        */
+        t = 1 - t;
         ctx.fillStyle = ["red", "green"][t];
         ctx.fillRect(t * 10, 0, 10, 10);
     };

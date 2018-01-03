@@ -127,7 +127,8 @@ class GridGenerator{
         }
     }
 
-    private update(i:number, j:number){
+    private update(v:Vector){
+        const i = v.x, j = v.y;
         console.assert(i >= 0);
         console.assert(j >= 0);
         console.assert(i < this.tile_grid.tile_width);
@@ -158,15 +159,9 @@ class GridGenerator{
         }
     }
 
-    private bfs_update(i:number, j:number){
-        const Q:Vector[] = [
-            new Vector(i-1,j),
-            new Vector(i+1,j),
-            new Vector(i, j-1),
-            new Vector(i, j+1)];
-
+    private bfs_update(v:Vector){
+        const Q:Vector[] = [v];
         const V = new VectorSet();
-        V.add(new Vector(i,j));
 
         while(Q.length != 0){
             const B:Vector = Q.shift();
@@ -176,12 +171,12 @@ class GridGenerator{
                B.y < 0 ||
                B.x >= this.tile_grid.tile_width ||
                B.y >= this.tile_grid.tile_height ||
-               B.distanceToSquared(new Vector(i, j)) > 25){
+               B.distanceToSquared(v) > 25){
                 continue;
             }
 
             V.add(B);
-            this.update(B.x, B.y);
+            this.update(B);
 
             Q.push(new Vector(B.x-1,B.y));
             Q.push(new Vector(B.x+1,B.y));
@@ -200,7 +195,8 @@ class GridGenerator{
         return entropy;
     }
 
-    private collapse(i:number, j:number){
+    private collapse(v:Vector){
+        const i = v.x, j = v.y;
         const options = [];
 
         for(let k=0;k<this.tile_grid.tiles.length;k++){
@@ -226,9 +222,10 @@ class GridGenerator{
             return false;
 
         let min_entropy = this.tile_grid.tiles.length*2;
-        let min_tile = [];
+        let min_tile:Vector[] = [];
         for(let i=0;i<this.tile_grid.tile_width;i++){
             for(let j=0;j<this.tile_grid.tile_height;j++){
+                const v = new Vector(i, j);
                 if(this.tile_grid.get_tile(i, j) !== undefined){
                     continue;
                 }
@@ -240,9 +237,9 @@ class GridGenerator{
                 }
 
                 if(entropy == min_entropy){
-                    min_tile.push([i,j]);
+                    min_tile.push(v);
                 }else if(entropy < min_entropy){
-                    min_tile = [[i,j]];
+                    min_tile = [v];
                     min_entropy = entropy;
                 }
             }
@@ -253,9 +250,8 @@ class GridGenerator{
             return false;
 
         const X = min_tile[Math.floor(Math.random()*min_tile.length)];
-        const i = X[0], j = X[1];
-        this.collapse(i, j);
-        this.bfs_update(i, j);
+        this.collapse(X);
+        this.bfs_update(X);
 
         return true;
     }
