@@ -322,38 +322,47 @@ img.onload = () => {
                 if(gg_tile_grid.get_id(i, j) !== undefined){
                     ctx.fillStyle = colors[gg_tile_grid.get_id(i, j)];
                     ctx.fillRect(i*square_width, j*square_height, square_width, square_height);
+                }else{
+                    //ctx.fillStyle = "black";
+                    //const txt = gg.wave_entropy(Math.floor(i/3), Math.floor(j/3));
+                    //ctx.fillText("" + txt, i*square_width, (j+1)*square_height);
                 }
             }
         }
 
-        /*
-        for(let i=0;i<tile_grid.tile_width;i++){
-            ctx.beginPath();
-            ctx.moveTo(i*square_width*3, 0);
-            ctx.lineTo(i*square_width*3, tile_canvas.height);
-            ctx.strokeStyle = "black";
-            ctx.stroke();
-            for(let j=0;j<tile_grid.tile_height;j++){
-                ctx.beginPath();
-                ctx.moveTo(0, j*square_height*3);
-                ctx.lineTo(tile_canvas.width, j*square_height*3);
-                ctx.strokeStyle = "black";
-                ctx.stroke();
-            }
-        }
-       */
+        //for(let i=0;i<tile_grid.tile_width;i++){
+        //    ctx.beginPath();
+        //    ctx.moveTo(i*square_width*3, 0);
+        //    ctx.lineTo(i*square_width*3, tile_canvas.height);
+        //    ctx.strokeStyle = "black";
+        //    ctx.stroke();
+        //    for(let j=0;j<tile_grid.tile_height;j++){
+        //        ctx.beginPath();
+        //        ctx.moveTo(0, j*square_height*3);
+        //        ctx.lineTo(tile_canvas.width, j*square_height*3);
+        //        ctx.strokeStyle = "black";
+        //        ctx.stroke();
+        //    }
+        //}
 
         t = 1-t;
         ctx.fillStyle = ["red", "green"][t];
         ctx.fillRect(t*10, 0, 10, 10);
     }
+
+    function initiate(gg:GridGenerator){
+        gg.wave_set_tile(new Vector(3, 3), 0);
+        gg.wave_set_tile(new Vector(gg.WIDTH-3, gg.HEIGHT-3), gg.TILES.tiles.length-1);
+    }
+
     console.log("Startng...");
     const gg = new GridGenerator(tiles,
                                 40,
                                 40,
                                 GridGeneratorMethod.WaveCollapse,
                                 render_grid,
-                                render_grid);
+                                render_grid,
+                                initiate, 5, 1);
     /*
     setInterval(function(){
         const square_width = tile_canvas.width / tile_grid.id_width;

@@ -26,6 +26,7 @@ class Tile{
                 new_values[i][j] = this.values[j][2-i];
             }
         }
+
         this.values = new_values;
     }
 
@@ -91,7 +92,7 @@ class TileGrid{
     }
 
     public contains(i0:number, j0:number){
-        return i0 >= 0 && j0 >= 0 && i0 < this._width && j0 < this._width;
+        return i0 >= 0 && j0 >= 0 && i0 < this._width && j0 < this._height;
     }
 
     valid_adjacent(t0:Tile, i0:number, j0:number, t1:Tile, i1:number, j1:number):boolean{
@@ -101,6 +102,7 @@ class TileGrid{
 
         const di = Math.abs(i1 - i0);
         const dj = Math.abs(j1 - j0);
+
         console.assert(dj <= 1 && di <= 1);
         console.assert(di != 1 || dj != 1);
         console.assert(di != 0 || dj != 0);
@@ -121,8 +123,8 @@ class TileGrid{
 
         console.assert(j0 == j1 && i0+1 == i1);
 
-        const left = t0.clone();
-        const right = t1.clone();
+        const left = t0;
+        const right = t1;
 
         return left.get(2, 0) == right.get(0, 0) &&
                left.get(2, 1) == right.get(0, 1) &&

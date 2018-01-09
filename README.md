@@ -46,12 +46,15 @@
 * Horror Game elements?
     * Fear of death
     * Value of death
-* Enemy types
-    * 
-
-* Consider having screens instead of scrolling
-* Small tiles
-    * 
+* Generation
+    * Read 3x3 tiles, wave generate map
+    * Some tiles are enemies / drops / etc?
+    * Or place enemies procedurally afterward
+    * Grid of tiles with list of entities at each tile
+    * Entities are enemies, items, machines (levers, pressure plates, etc)
+        * Source and destination machines
+        * Can be both or multiple
+        * Attach sources to nearest destinations
 
 TODO:
 

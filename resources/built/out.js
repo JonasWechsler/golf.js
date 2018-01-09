@@ -650,7 +650,7 @@ var TileGrid = (function () {
         }
     }
     TileGrid.prototype.contains = function (i0, j0) {
-        return i0 >= 0 && j0 >= 0 && i0 < this._width && j0 < this._width;
+        return i0 >= 0 && j0 >= 0 && i0 < this._width && j0 < this._height;
     };
     TileGrid.prototype.valid_adjacent = function (t0, i0, j0, t1, i1, j1) {
         if (!this.contains(i0, j0) || !this.contains(i1, j1)) {
@@ -673,8 +673,8 @@ var TileGrid = (function () {
             return this.valid_adjacent(bottom, i0, j0, top_3, i0 + 1, j0);
         }
         console.assert(j0 == j1 && i0 + 1 == i1);
-        var left = t0.clone();
-        var right = t1.clone();
+        var left = t0;
+        var right = t1;
         return left.get(2, 0) == right.get(0, 0) &&
             left.get(2, 1) == right.get(0, 1) &&
             left.get(2, 2) == right.get(0, 2);
@@ -1027,9 +1027,10 @@ var GridGeneratorMethod;
     GridGeneratorMethod[GridGeneratorMethod["WaveCollapse"] = 1] = "WaveCollapse";
 })(GridGeneratorMethod || (GridGeneratorMethod = {}));
 var GridGenerator = (function () {
-    function GridGenerator(_TILES, _WIDTH, _HEIGHT, _METHOD, _COMPLETE_CALLBACK, _GENERATE_CALLBACK, _LOOKAHEAD, _ASYNC_LOOPS) {
+    function GridGenerator(_TILES, _WIDTH, _HEIGHT, _METHOD, _COMPLETE_CALLBACK, _GENERATE_CALLBACK, _INITIATE_CALLBACK, _LOOKAHEAD, _ASYNC_LOOPS) {
         if (_COMPLETE_CALLBACK === void 0) { _COMPLETE_CALLBACK = function () { return 0; }; }
         if (_GENERATE_CALLBACK === void 0) { _GENERATE_CALLBACK = function () { return 0; }; }
+        if (_INITIATE_CALLBACK === void 0) { _INITIATE_CALLBACK = function () { return 0; }; }
         if (_LOOKAHEAD === void 0) { _LOOKAHEAD = 5; }
         if (_ASYNC_LOOPS === void 0) { _ASYNC_LOOPS = 20; }
         this._TILES = _TILES;
@@ -1038,6 +1039,7 @@ var GridGenerator = (function () {
         this._METHOD = _METHOD;
         this._COMPLETE_CALLBACK = _COMPLETE_CALLBACK;
         this._GENERATE_CALLBACK = _GENERATE_CALLBACK;
+        this._INITIATE_CALLBACK = _INITIATE_CALLBACK;
         this._LOOKAHEAD = _LOOKAHEAD;
         this._ASYNC_LOOPS = _ASYNC_LOOPS;
         this.ASYNC_LOOPS = 5;
@@ -1086,6 +1088,29 @@ var GridGenerator = (function () {
             }
         }
     };
+    GridGenerator.prototype.valid_adj = function (id0, i0, j0, id1, i1, j1) {
+        if (!this.adj_cache) {
+            this.adj_cache = [];
+            for (var i_2 = -1; i_2 < 3; i_2++) {
+                this.adj_cache[i_2] = [];
+                for (var j_2 = -1; j_2 < 3; j_2++) {
+                    this.adj_cache[i_2][j_2] = [];
+                    for (var k = 0; k < this.tile_grid.tiles.length; k++) {
+                        this.adj_cache[i_2][j_2][k] = [];
+                    }
+                }
+            }
+        }
+        var i = i1 - i0;
+        var j = j1 - j0;
+        var valid = this.adj_cache[i][j][id0][id1];
+        if (valid == undefined) {
+            var tile0 = this.tile_grid.tiles[id0];
+            var tile1 = this.tile_grid.tiles[id1];
+            this.adj_cache[i][j][id0][id1] = this.tile_grid.valid_adjacent(tile0, i0, j0, tile1, i1, j1);
+        }
+        return this.adj_cache[i][j][id0][id1];
+    };
     GridGenerator.prototype.update = function (v) {
         var i = v.x, j = v.y;
         console.assert(i >= 0);
@@ -1094,24 +1119,27 @@ var GridGenerator = (function () {
         console.assert(j < this.tile_grid.tile_height);
         var adj = [[i - 1, j], [i + 1, j], [i, j - 1], [i, j + 1]];
         for (var k = 0; k < this.tile_grid.tiles.length; k++) {
-            var tile = this.tile_grid.tiles[k];
             if (!this.tile_possibilities[i][j][k])
                 continue;
             for (var y = 0; y < adj.length; y++) {
                 var adj_i = adj[y][0], adj_j = adj[y][1];
                 if (!this.tile_grid.contains(adj_i, adj_j))
                     continue;
+                if (this.wave_entropy(adj_i, adj_j) == 0)
+                    continue;
                 var any_good = false;
                 for (var l = 0; l < this.tile_grid.tiles.length; l++) {
                     if (!this.tile_possibilities[adj_i][adj_j][l])
                         continue;
-                    var adj_tile = this.tile_grid.tiles[l];
-                    if (this.tile_grid.valid_adjacent(tile, i, j, adj_tile, adj_i, adj_j)) {
+                    if (this.valid_adj(k, i, j, l, adj_i, adj_j)) {
                         any_good = true;
                         break;
                     }
                 }
-                this.tile_possibilities[i][j][k] = this.tile_possibilities[i][j][k] && any_good;
+                if (!any_good) {
+                    this.tile_possibilities[i][j][k] = false;
+                    break;
+                }
             }
         }
     };
@@ -1125,7 +1153,7 @@ var GridGenerator = (function () {
                 B.y < 0 ||
                 B.x >= this.tile_grid.tile_width ||
                 B.y >= this.tile_grid.tile_height ||
-                B.distanceToSquared(v) > 25) {
+                B.manhattanDistance(v) > this._LOOKAHEAD) {
                 continue;
             }
             V.add(B);
@@ -1144,6 +1172,13 @@ var GridGenerator = (function () {
             }
         }
         return entropy;
+    };
+    GridGenerator.prototype.wave_set_tile = function (v, id) {
+        console.assert(this._METHOD == GridGeneratorMethod.WaveCollapse);
+        for (var k = 0; k < this.tile_grid.tiles.length; k++) {
+            this.tile_possibilities[v.x][v.y][k] = id == k;
+        }
+        this.bfs_update(v);
     };
     GridGenerator.prototype.collapse = function (v) {
         var i = v.x, j = v.y;
@@ -1226,6 +1261,7 @@ var GridGenerator = (function () {
                 requestAnimationFrame(looper_2);
             };
             this.setup_wave_collapse();
+            this._INITIATE_CALLBACK(this);
             looper_2();
         }
     };
@@ -1400,13 +1436,13 @@ img.onload = function () {
         if (tile_grid.undecided_tiles_on_map()) {
             var undecided_ij = tile_grid.get_undecided_tiles();
             for (var idx = 0; idx < undecided_ij.length; idx++) {
-                var i_2 = undecided_ij[idx][0];
-                var j_2 = undecided_ij[idx][1];
-                var options = tile_grid.valid_options(i_2, j_2);
+                var i_3 = undecided_ij[idx][0];
+                var j_3 = undecided_ij[idx][1];
+                var options = tile_grid.valid_options(i_3, j_3);
                 if (options.length == 0)
                     continue;
                 var choice = options[Math.floor(options.length * Math.random())];
-                tile_grid.set_tile(i_2, j_2, choice);
+                tile_grid.set_tile(i_3, j_3, choice);
                 return;
             }
             var random_undecidable = undecided_ij[Math.floor(undecided_ij.length * Math.random())];
@@ -1490,12 +1526,12 @@ img.onload = function () {
         if (tile_grid.undecided_tiles_on_map()) {
             var min_entropy = tile_grid.tiles.length * 2;
             var min_tile = [];
-            for (var i_3 = 0; i_3 < tile_grid.tile_width; i_3++) {
-                for (var j_3 = 0; j_3 < tile_grid.tile_height; j_3++) {
+            for (var i_4 = 0; i_4 < tile_grid.tile_width; i_4++) {
+                for (var j_4 = 0; j_4 < tile_grid.tile_height; j_4++) {
                     var entropy = 0;
                     var first_tile = 0;
                     for (var k = 0; k < tile_grid.tiles.length; k++) {
-                        if (P[i_3][j_3][k]) {
+                        if (P[i_4][j_4][k]) {
                             entropy++;
                             first_tile = k;
                         }
@@ -1504,16 +1540,16 @@ img.onload = function () {
                         continue;
                     }
                     if (entropy == 1) {
-                        if (tile_grid.get_tile(i_3, j_3) == undefined) {
-                            tile_grid.set_tile(i_3, j_3, tile_grid.tiles[first_tile]);
+                        if (tile_grid.get_tile(i_4, j_4) == undefined) {
+                            tile_grid.set_tile(i_4, j_4, tile_grid.tiles[first_tile]);
                         }
                         continue;
                     }
                     if (entropy == min_entropy) {
-                        min_tile.push([i_3, j_3]);
+                        min_tile.push([i_4, j_4]);
                     }
                     else if (entropy < min_entropy) {
-                        min_tile = [[i_3, j_3]];
+                        min_tile = [[i_4, j_4]];
                         min_entropy = entropy;
                     }
                 }
@@ -1546,30 +1582,37 @@ img.onload = function () {
                     ctx.fillStyle = colors[gg_tile_grid.get_id(i, j)];
                     ctx.fillRect(i * square_width, j * square_height, square_width, square_height);
                 }
+                else {
+                    //ctx.fillStyle = "black";
+                    //const txt = gg.wave_entropy(Math.floor(i/3), Math.floor(j/3));
+                    //ctx.fillText("" + txt, i*square_width, (j+1)*square_height);
+                }
             }
         }
-        /*
-        for(let i=0;i<tile_grid.tile_width;i++){
-            ctx.beginPath();
-            ctx.moveTo(i*square_width*3, 0);
-            ctx.lineTo(i*square_width*3, tile_canvas.height);
-            ctx.strokeStyle = "black";
-            ctx.stroke();
-            for(let j=0;j<tile_grid.tile_height;j++){
-                ctx.beginPath();
-                ctx.moveTo(0, j*square_height*3);
-                ctx.lineTo(tile_canvas.width, j*square_height*3);
-                ctx.strokeStyle = "black";
-                ctx.stroke();
-            }
-        }
-       */
+        //for(let i=0;i<tile_grid.tile_width;i++){
+        //    ctx.beginPath();
+        //    ctx.moveTo(i*square_width*3, 0);
+        //    ctx.lineTo(i*square_width*3, tile_canvas.height);
+        //    ctx.strokeStyle = "black";
+        //    ctx.stroke();
+        //    for(let j=0;j<tile_grid.tile_height;j++){
+        //        ctx.beginPath();
+        //        ctx.moveTo(0, j*square_height*3);
+        //        ctx.lineTo(tile_canvas.width, j*square_height*3);
+        //        ctx.strokeStyle = "black";
+        //        ctx.stroke();
+        //    }
+        //}
         t = 1 - t;
         ctx.fillStyle = ["red", "green"][t];
         ctx.fillRect(t * 10, 0, 10, 10);
     };
+    function initiate(gg) {
+        gg.wave_set_tile(new Vector(3, 3), 0);
+        gg.wave_set_tile(new Vector(gg.WIDTH - 3, gg.HEIGHT - 3), gg.TILES.tiles.length - 1);
+    }
     console.log("Startng...");
-    var gg = new GridGenerator(tiles, 40, 40, GridGeneratorMethod.WaveCollapse, render_grid, render_grid);
+    var gg = new GridGenerator(tiles, 40, 40, GridGeneratorMethod.WaveCollapse, render_grid, render_grid, initiate, 5, 1);
     /*
     setInterval(function(){
         const square_width = tile_canvas.width / tile_grid.id_width;

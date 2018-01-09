@@ -74,6 +74,7 @@ class GridGenerator{
                private _METHOD:GridGeneratorMethod,
                private _COMPLETE_CALLBACK:(gg:GridGenerator)=>void = ()=>0,
                private _GENERATE_CALLBACK:(gg:GridGenerator)=>void = ()=>0,
+               private _INITIATE_CALLBACK:(gg:GridGenerator)=>void = ()=>0,
                private _LOOKAHEAD:number = 5,
                private _ASYNC_LOOPS:number = 20){
         this.tile_grid = new TileGrid(_TILES, _WIDTH, _HEIGHT);
@@ -127,6 +128,33 @@ class GridGenerator{
         }
     }
 
+    private adj_cache:boolean[][][][];
+    private valid_adj(id0:number, i0:number, j0:number,
+                     id1:number, i1:number, j1:number){
+        if(!this.adj_cache){
+                this.adj_cache = [];
+            for(let i=-1;i<3;i++){
+                this.adj_cache[i] = [];
+                for(let j=-1;j<3;j++){
+                    this.adj_cache[i][j] = [];
+                    for(let k=0;k<this.tile_grid.tiles.length;k++){
+                        this.adj_cache[i][j][k] = []
+                    }
+                }
+            }
+        }
+
+        const i = i1 - i0;
+        const j = j1 - j0;
+        const valid = this.adj_cache[i][j][id0][id1];
+        if(valid == undefined){
+            const tile0 = this.tile_grid.tiles[id0];
+            const tile1 = this.tile_grid.tiles[id1];
+            this.adj_cache[i][j][id0][id1] = this.tile_grid.valid_adjacent(tile0, i0, j0, tile1, i1, j1);
+        }
+        return this.adj_cache[i][j][id0][id1];
+    }
+
     private update(v:Vector){
         const i = v.x, j = v.y;
         console.assert(i >= 0);
@@ -137,24 +165,27 @@ class GridGenerator{
         const adj = [[i-1,j],[i+1,j],[i,j-1],[i,j+1]];
         
         for(let k=0;k<this.tile_grid.tiles.length;k++){
-            const tile = this.tile_grid.tiles[k];
             if(!this.tile_possibilities[i][j][k])
                 continue;
             for(let y=0;y<adj.length;y++){
                 const adj_i = adj[y][0], adj_j = adj[y][1];
                 if(!this.tile_grid.contains(adj_i, adj_j))
                     continue;
+                if(this.wave_entropy(adj_i, adj_j) == 0)
+                    continue;
                 let any_good = false;
                 for(let l=0;l<this.tile_grid.tiles.length;l++){
                     if(!this.tile_possibilities[adj_i][adj_j][l])
                         continue;
-                    const adj_tile = this.tile_grid.tiles[l];
-                    if(this.tile_grid.valid_adjacent(tile,i,j,adj_tile,adj_i,adj_j)){
+                    if(this.valid_adj(k,i,j,l,adj_i,adj_j)){
                         any_good = true;
                         break;
                     }
                 }
-                this.tile_possibilities[i][j][k] = this.tile_possibilities[i][j][k] && any_good;
+                if(!any_good){
+                    this.tile_possibilities[i][j][k] = false;
+                    break;
+                }
             }
         }
     }
@@ -171,7 +202,7 @@ class GridGenerator{
                B.y < 0 ||
                B.x >= this.tile_grid.tile_width ||
                B.y >= this.tile_grid.tile_height ||
-               B.distanceToSquared(v) > 25){
+               B.manhattanDistance(v) > this._LOOKAHEAD){
                 continue;
             }
 
@@ -193,6 +224,14 @@ class GridGenerator{
             }
         }
         return entropy;
+    }
+
+    public wave_set_tile(v:Vector, id:number){
+        console.assert(this._METHOD == GridGeneratorMethod.WaveCollapse);
+        for(let k=0;k<this.tile_grid.tiles.length;k++){
+            this.tile_possibilities[v.x][v.y][k] = id == k;
+        }
+        this.bfs_update(v);
     }
 
     private collapse(v:Vector){
@@ -289,6 +328,7 @@ class GridGenerator{
                 requestAnimationFrame(looper);
             }
             this.setup_wave_collapse();
+            this._INITIATE_CALLBACK(this);
             looper();
         }
     }
