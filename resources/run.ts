@@ -23,17 +23,17 @@ function render(canvas, scheme){
 function render_all(){
     const big_canvas = document.createElement("canvas");
     const big_context = big_canvas.getContext("2d");
-    big_canvas.width = 1000;
-    big_canvas.height = 1000;
+    big_canvas.width = 250;
+    big_canvas.height = 250;
     let y = 0;
     for(let scheme_name in COLOR_SCHEME){
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
-        canvas.width = 1000;
-        canvas.height = 100;
+        canvas.width = big_canvas.width;
+        canvas.height = big_canvas.height/10;
         render(canvas, COLOR_SCHEME[scheme_name]);
         big_context.drawImage(canvas, 0, y);
-        y += 100;
+        y += big_canvas.height/10;
     }
     document.body.appendChild(big_canvas);
 }
@@ -158,9 +158,11 @@ img.onload = () => {
     const tile_grid = new TileGrid(tiles, 40, 40);
     const tile_canvas = document.createElement("canvas");
     document.body.appendChild(tile_canvas);
-    tile_canvas.width = tile_canvas.height = 750;
+    tile_canvas.width = tile_canvas.height = 250;
     const ctx = tile_canvas.getContext("2d");
-    const colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"];
+    let colors = [];
+    for(let i=0;i<COLOR_SCHEME["Mesa"].length;i++)
+        colors.push(COLOR_SCHEME["Mesa"][i][0]);
 
     function greedy_step(){
         if(tile_grid.undecided_tiles_on_map()){
