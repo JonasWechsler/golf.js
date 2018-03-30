@@ -7,7 +7,14 @@
  */
 
 class Tile{
-    constructor(private values:number[][]){
+    static get OMIT_TAG_IDX() : number{
+        return 0;
+    }
+    static get WEIGHT_TAG_IDX() : number{
+        return 1;
+    }
+
+    constructor(private values:number[][], private _tags:number[]){
         console.assert(values.length == 3);
         console.assert(values[0].length == 3);
     }
@@ -19,6 +26,11 @@ class Tile{
 
         return this.values[x][y];
     }
+
+    public get_tag(x:number):number{
+        return this._tags[x];
+    }
+
     public rotate_cw(){
         const new_values = [[],[],[]];
         for(let i=0;i<3;i++){
@@ -53,7 +65,10 @@ class Tile{
                 new_values[i][j] = this.values[i][j];
             }
         }
-        return new Tile(new_values);
+        const new_tags = [];
+        for(let i=0;i<this._tags.length;i++)
+            new_tags[i] = this._tags[i];
+        return new Tile(new_values, new_tags);
     }
 
     public hash():number{
@@ -68,6 +83,11 @@ class TileGrid{
     constructor(tiles:Tile[], private _width:number, private _height:number){
         const tile_set = {};
         tiles.forEach((tile) => {
+            console.log(tile.get_tag(Tile.OMIT_TAG_IDX), tile.get_tag(Tile.OMIT_TAG_IDX) ? 1 : 0);
+            if(tile.get_tag(Tile.OMIT_TAG_IDX)){
+                return;
+            }
+
             const add = (t) => tile_set[t.hash()]=t;
             const clone = tile.clone();
             for(let i=0;i<4;i++){
