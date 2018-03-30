@@ -83,7 +83,6 @@ class TileGrid{
     constructor(tiles:Tile[], private _width:number, private _height:number){
         const tile_set = {};
         tiles.forEach((tile) => {
-            console.log(tile.get_tag(Tile.OMIT_TAG_IDX), tile.get_tag(Tile.OMIT_TAG_IDX) ? 1 : 0);
             if(tile.get_tag(Tile.OMIT_TAG_IDX)){
                 return;
             }

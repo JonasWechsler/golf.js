@@ -148,24 +148,48 @@ img.onload = () => {
     }
 
     function initiate(gg:GridGenerator){
-        let id = -1;
+        let id_water = -1;
         outer:for(let i=0;i<gg.TILES.tiles.length;i++){
             const arr = gg.TILES.tiles[i];
             for(let j=0;j<3;j++)
             for(let k=0;k<3;k++)
             if(arr.get(j, k) != 5)
                 continue outer;
-            id = i;
+            id_water = i;
             break;
         }
         for(let i=0;i<gg.WIDTH;i++){
-            gg.wave_set_tile(new Vector(i, 0), id);
-            gg.wave_set_tile(new Vector(i, gg.HEIGHT-1), id);
+            gg.wave_set_tile(new Vector(i, 0), id_water);
+            gg.wave_set_tile(new Vector(i, gg.HEIGHT-1), id_water);
         }
         for(let i=0;i<gg.HEIGHT;i++){
-            gg.wave_set_tile(new Vector(0, i), id);
-            gg.wave_set_tile(new Vector(gg.WIDTH-1, i), id);
+            gg.wave_set_tile(new Vector(0, i), id_water);
+            gg.wave_set_tile(new Vector(gg.WIDTH-1, i), id_water);
         }
+        let id_mountain = -1;
+        outer:for(let i=0;i<gg.TILES.tiles.length;i++){
+            const arr = gg.TILES.tiles[i];
+            for(let j=0;j<3;j++)
+            for(let k=0;k<3;k++)
+            if(arr.get(j, k) != 6)
+                continue outer;
+            id_mountain = i;
+            break;
+        }
+        console.log(id_mountain);
+        gg.wave_set_tile(new Vector(10, 10), id_mountain);
+        let id_cave = -1;
+        outer:for(let i=0;i<gg.TILES.tiles.length;i++){
+            const arr = gg.TILES.tiles[i];
+            for(let j=0;j<3;j++)
+            for(let k=0;k<3;k++)
+            if(arr.get(j, k) != 4)
+                continue outer;
+            id_cave = i;
+            break;
+        }
+        console.log(id_cave);
+        gg.wave_set_tile(new Vector(30, 30), id_cave);
     }
 
     const tiles = new TileSet(img).TILES;

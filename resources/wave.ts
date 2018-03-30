@@ -56,6 +56,7 @@ class TileSet{
                 }
 
                 /*Tags are the 7 pixels surrounding the 3x3 grid*/
+                /*A tag with value 1 is set to floating point epsilon*/
                 let tags = [];
                 for(let dt=0;dt<4;dt++){
                     const x = i + dt;
@@ -68,7 +69,7 @@ class TileSet{
                     else
                         tags[dt] = r;
                 }
-                if(!tags[0])console.log(tags[1]);
+
                 for(let dt=0;dt<3;dt++){
                     const x = i + 3;
                     const y = j + dt;
@@ -271,7 +272,6 @@ class GridGenerator{
         tiles.forEach((tile) => {
             sum_of_weights += tile.get_tag(Tile.WEIGHT_TAG_IDX);
         });
-        console.log(sum_of_weights);
 
         const select = Math.random()*sum_of_weights;
         let sum = 0;
