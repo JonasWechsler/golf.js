@@ -14,6 +14,7 @@ class KeySystem implements System{
         if(KeySystem.has_setup) return;
         const self = this;
         function handle_down(event: KeyboardEvent){
+            event.preventDefault();
             if(self.keys_down[event.keyCode]){
                 return;
             }
@@ -21,6 +22,7 @@ class KeySystem implements System{
             self.keys_down[event.keyCode] = true;
         }
         function handle_up(event: KeyboardEvent){
+            event.preventDefault();
             self.keys_down[event.keyCode] = false;
         }
         document.addEventListener('keydown', handle_down, false);

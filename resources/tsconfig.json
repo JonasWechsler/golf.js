@@ -9,7 +9,7 @@
         "../tools.ts",
         "../tiles.ts",
         "colors.ts",
-        "wave.ts",
+        "../wave.ts",
         "run.ts"
     ]
 }

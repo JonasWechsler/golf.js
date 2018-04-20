@@ -1,17 +1,20 @@
 class TileSet{
     private _tiles:Tile[];
+
     constructor(img:HTMLImageElement){
         this.set_image(img);
     }
     
     private set_image(img:HTMLImageElement){
+        console.log(img);
         const canvas = document.createElement("canvas");
         canvas.width = img.width;
         canvas.height = img.height;
         const context = canvas.getContext("2d");
+        document.body.appendChild(canvas);
 
         context.drawImage(img, 0, 0);
-        const data = context.getImageData(0, 0, canvas.width, canvas.height);
+        const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
         const ids = {};
         let max_id = 0;
 
@@ -32,13 +35,16 @@ class TileSet{
 
         /*Read tiles, stop when one contains white*/
         const tiles = [];
+        const tags = [];
 
-        outer: for(let j=1;j<canvas.height-2;j+=3){
-            for(let i=0;i<canvas.width-2;i+=3){
+        outer: for(let j=1;j<canvas.height-2;j+=4){
+            for(let i=0;i<canvas.width-2;i+=4){
                 const tile_values = [[],[],[]];
                 for(let dj=0;dj<3;dj++){
                     for(let di=0;di<3;di++){
-                        const idx = (i + di + (j + dj)*canvas.width)*4;
+                        const x = i + di;
+                        const y = j + dj;
+                        const idx = (x + y*canvas.width)*4;
 
                         const r = data[idx];
                         const g = data[idx+1];
@@ -48,33 +54,58 @@ class TileSet{
                         tile_values[di][dj] = ids[r][g][b];
                     }
                 }
-                tiles.push(new Tile(tile_values));
+
+                /*Tags are the 7 pixels surrounding the 3x3 grid*/
+                /*A tag with value 1 is set to floating point epsilon*/
+                let tags = [];
+                for(let dt=0;dt<4;dt++){
+                    const x = i + dt;
+                    const y = j + 3;
+                    const idx = (x + y*canvas.width)*4;
+
+                    const r = data[idx];
+                    if(r == 1)
+                        tags[dt] = Math.pow(2, -24);
+                    else
+                        tags[dt] = r;
+                }
+
+                for(let dt=0;dt<3;dt++){
+                    const x = i + 3;
+                    const y = j + dt;
+                    const idx = (x + y*canvas.width)*4;
+
+                    const r = data[idx];
+                    tags[dt+4] = r/255;
+                }
+
+                tiles.push(new Tile(tile_values, tags));
             }
         }
 
-        this._tiles = [];
+        this._tiles = tiles;
     }
 
-    get tiles(){
+    get TILES(){
         return this._tiles;
     }
 }
 
-enum GridGeneratorMethod{
+enum TileGeneratorMethod{
     Greedy, WaveCollapse
 }
 
-class GridGenerator{
+class TileGenerator{
     private tile_grid:TileGrid;
     private tile_possibilities:boolean[][][];
 
     constructor(private _TILES:Tile[],
                 private _WIDTH:number,
                private _HEIGHT:number,
-               private _METHOD:GridGeneratorMethod,
-               private _COMPLETE_CALLBACK:(gg:GridGenerator)=>void = ()=>0,
-               private _GENERATE_CALLBACK:(gg:GridGenerator)=>void = ()=>0,
-               private _INITIATE_CALLBACK:(gg:GridGenerator)=>void = ()=>0,
+               private _METHOD:TileGeneratorMethod,
+               private _COMPLETE_CALLBACK:(gg:TileGenerator)=>void = ()=>0,
+               private _GENERATE_CALLBACK:(gg:TileGenerator)=>void = ()=>0,
+               private _INITIATE_CALLBACK:(gg:TileGenerator)=>void = ()=>0,
                private _LOOKAHEAD:number = 5,
                private _ASYNC_LOOPS:number = 20){
         this.tile_grid = new TileGrid(_TILES, _WIDTH, _HEIGHT);
@@ -155,6 +186,7 @@ class GridGenerator{
         return this.adj_cache[i][j][id0][id1];
     }
 
+    //wave update block
     private update(v:Vector){
         const i = v.x, j = v.y;
         console.assert(i >= 0);
@@ -227,27 +259,49 @@ class GridGenerator{
     }
 
     public wave_set_tile(v:Vector, id:number){
-        console.assert(this._METHOD == GridGeneratorMethod.WaveCollapse);
+        console.assert(this._METHOD == TileGeneratorMethod.WaveCollapse);
         for(let k=0;k<this.tile_grid.tiles.length;k++){
             this.tile_possibilities[v.x][v.y][k] = id == k;
         }
         this.bfs_update(v);
     }
 
-    private collapse(v:Vector){
-        const i = v.x, j = v.y;
-        const options = [];
 
-        for(let k=0;k<this.tile_grid.tiles.length;k++){
-            if(this.tile_possibilities[i][j][k]){
-                options.push(k);
+    private select_tile(tiles:Tile[]):Tile{
+        let sum_of_weights = 0;
+        tiles.forEach((tile) => {
+            sum_of_weights += tile.get_tag(Tile.WEIGHT_TAG_IDX);
+        });
+
+        const select = Math.random()*sum_of_weights;
+        let sum = 0;
+        for(let idx = 0; idx < tiles.length; idx++){
+            const tile = tiles[idx];
+            sum += tile.get_tag(Tile.WEIGHT_TAG_IDX);
+            if(sum > select){
+                return tile;
             }
         }
 
-        const collapsed = options[Math.floor(Math.random()*options.length)];
+        console.assert(false);
+        return undefined;
+    }
+
+    private collapse(v:Vector){
+        const i = v.x, j = v.y;
+        const options:Tile[] = [];
 
         for(let k=0;k<this.tile_grid.tiles.length;k++){
-            if(k == collapsed){
+            if(this.tile_possibilities[i][j][k]){
+                options.push(this.tile_grid.tiles[k]);
+            }
+        }
+
+        //const collapsed = options[Math.floor(Math.random()*options.length)];
+        const collapsed = this.select_tile(options);
+
+        for(let k=0;k<this.tile_grid.tiles.length;k++){
+            if(this.tile_grid.tiles[k] === collapsed){
                 this.tile_possibilities[i][j][k] = true;
                 this.tile_grid.set_tile(i, j, this.tile_grid.tiles[k]);
             }else{
@@ -285,8 +339,10 @@ class GridGenerator{
         }
 
         console.assert(min_tile.length != 0);
-        if(min_tile.length == 0)
+        if(min_tile.length == 0){
+            console.log("no options");
             return false;
+        }
 
         const X = min_tile[Math.floor(Math.random()*min_tile.length)];
         this.collapse(X);
@@ -298,7 +354,7 @@ class GridGenerator{
     private ASYNC_LOOPS = 5;
     private generate(){
         const self = this;
-        if(this._METHOD == GridGeneratorMethod.Greedy){
+        if(this._METHOD == TileGeneratorMethod.Greedy){
             const looper = () => {
                 for(let loop=0; loop<self.ASYNC_LOOPS; loop++){
                     const loop_again = self.greedy_step();
@@ -314,7 +370,7 @@ class GridGenerator{
             looper();
         }
 
-        if(this._METHOD == GridGeneratorMethod.WaveCollapse){
+        if(this._METHOD == TileGeneratorMethod.WaveCollapse){
             const looper = () => {
                 for(let loop = 0; loop < self.ASYNC_LOOPS; loop++){
                     const loop_again = this.wave_collapse_step();
