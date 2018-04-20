@@ -20,6 +20,8 @@
        "generators.ts",
        "render.ts",
        "inputs.ts",
+       "tiles.ts",
+       "wave.ts",
        "world.ts",
        "run.ts"
     ]

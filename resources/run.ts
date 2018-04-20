@@ -109,7 +109,7 @@ img.onload = () => {
     const ctx = tile_canvas.getContext("2d");
     const colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet", "darkgreen"];
     let t = 0;
-    const render_grid = (gg:GridGenerator) => {
+    const render_grid = (gg:TileGenerator) => {
         const gg_tile_grid = gg.TILES;
         const square_width = tile_canvas.width /   gg_tile_grid.id_width;
         const square_height = tile_canvas.height / gg_tile_grid.id_height;
@@ -147,7 +147,7 @@ img.onload = () => {
         ctx.fillRect(t*10, 0, 10, 10);
     }
 
-    function initiate(gg:GridGenerator){
+    function initiate(gg:TileGenerator){
         let id_water = -1;
         outer:for(let i=0;i<gg.TILES.tiles.length;i++){
             const arr = gg.TILES.tiles[i];
@@ -194,10 +194,10 @@ img.onload = () => {
 
     const tiles = new TileSet(img).TILES;
     console.log(tiles);
-    const gg = new GridGenerator(tiles,
+    const gg = new TileGenerator(tiles,
                                 40,
                                 40,
-                                GridGeneratorMethod.WaveCollapse,
+                                TileGeneratorMethod.WaveCollapse,
                                 () => console.log("donezo"),
                                 render_grid,
                                 initiate, 5, 1);

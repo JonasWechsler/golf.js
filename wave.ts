@@ -91,21 +91,21 @@ class TileSet{
     }
 }
 
-enum GridGeneratorMethod{
+enum TileGeneratorMethod{
     Greedy, WaveCollapse
 }
 
-class GridGenerator{
+class TileGenerator{
     private tile_grid:TileGrid;
     private tile_possibilities:boolean[][][];
 
     constructor(private _TILES:Tile[],
                 private _WIDTH:number,
                private _HEIGHT:number,
-               private _METHOD:GridGeneratorMethod,
-               private _COMPLETE_CALLBACK:(gg:GridGenerator)=>void = ()=>0,
-               private _GENERATE_CALLBACK:(gg:GridGenerator)=>void = ()=>0,
-               private _INITIATE_CALLBACK:(gg:GridGenerator)=>void = ()=>0,
+               private _METHOD:TileGeneratorMethod,
+               private _COMPLETE_CALLBACK:(gg:TileGenerator)=>void = ()=>0,
+               private _GENERATE_CALLBACK:(gg:TileGenerator)=>void = ()=>0,
+               private _INITIATE_CALLBACK:(gg:TileGenerator)=>void = ()=>0,
                private _LOOKAHEAD:number = 5,
                private _ASYNC_LOOPS:number = 20){
         this.tile_grid = new TileGrid(_TILES, _WIDTH, _HEIGHT);
@@ -259,7 +259,7 @@ class GridGenerator{
     }
 
     public wave_set_tile(v:Vector, id:number){
-        console.assert(this._METHOD == GridGeneratorMethod.WaveCollapse);
+        console.assert(this._METHOD == TileGeneratorMethod.WaveCollapse);
         for(let k=0;k<this.tile_grid.tiles.length;k++){
             this.tile_possibilities[v.x][v.y][k] = id == k;
         }
@@ -354,7 +354,7 @@ class GridGenerator{
     private ASYNC_LOOPS = 5;
     private generate(){
         const self = this;
-        if(this._METHOD == GridGeneratorMethod.Greedy){
+        if(this._METHOD == TileGeneratorMethod.Greedy){
             const looper = () => {
                 for(let loop=0; loop<self.ASYNC_LOOPS; loop++){
                     const loop_again = self.greedy_step();
@@ -370,7 +370,7 @@ class GridGenerator{
             looper();
         }
 
-        if(this._METHOD == GridGeneratorMethod.WaveCollapse){
+        if(this._METHOD == TileGeneratorMethod.WaveCollapse){
             const looper = () => {
                 for(let loop = 0; loop < self.ASYNC_LOOPS; loop++){
                     const loop_again = this.wave_collapse_step();

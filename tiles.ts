@@ -3,7 +3,6 @@
  * GridGenerator makes a grid of GridCells, which are not components
  * GridCells contain minimal information on their content
  * GridParser transforms a grid into a world, and returns a list of entities?
- *
  */
 
 class Tile{
