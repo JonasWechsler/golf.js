@@ -39,6 +39,7 @@ class CameraComponent implements Component{
 
 class CameraSystem implements System{
     private canvas_cache:CanvasCache = new CanvasCache();
+    private static SCALE:number = 8;
 
     public static camera_info() : Square {
         const targets = EntityManager.current.get_entities([ComponentType.UI, ComponentType.Camera]);
@@ -46,8 +47,8 @@ class CameraSystem implements System{
         const target = targets[0];
         const ui = target.get_component<UIComponent>(ComponentType.UI);
         const camera = target.get_component<CameraComponent>(ComponentType.Camera);
-        const width = Math.floor(DOMManager.canvas.width/8);
-        const height = Math.floor(DOMManager.canvas.height/8);
+        const width = Math.floor(DOMManager.canvas.width/CameraSystem.SCALE);
+        const height = Math.floor(DOMManager.canvas.height/CameraSystem.SCALE);
 
         let left, top;
         if(camera.target){
@@ -64,8 +65,8 @@ class CameraSystem implements System{
             top = top_norm * shift_height;
         }
 
-        left = Math.round(left);
-        top = Math.round(top);
+        //left = Math.round(left);
+        //top = Math.round(top);
 
         return new Square(left, top, width, height);
     }
@@ -121,7 +122,7 @@ class CameraSystem implements System{
         const static_cache = this.canvas_cache.get_image(info);
         console.assert(static_cache.width == info.width);
         console.assert(static_cache.height == info.height);
-        ctx.drawImage(static_cache, 0, 0);
+        ctx.drawImage(static_cache, 0, 0, content.width, content.height);
 
         //Draw dynamic entities
         const visible_entities = entity_manager.get_entities([ComponentType.DynamicRender]);
@@ -147,7 +148,7 @@ class CameraSystem implements System{
         ctx.translate(info.left, info.top);
 
         ui.content = content;
-        ui.x = modulus(cam.target().x,1)*8;
-        ui.y = modulus(cam.target().y,1)*-8;
+        ui.x = modulus(info.left,1)*CameraSystem.SCALE;
+        ui.y = modulus(info.top,1)*CameraSystem.SCALE;
     }
 }
