@@ -23,17 +23,17 @@ function render(canvas, scheme){
 function render_all(){
     const big_canvas = document.createElement("canvas");
     const big_context = big_canvas.getContext("2d");
-    big_canvas.width = 250;
-    big_canvas.height = 250;
+    big_canvas.width = 1000;
+    big_canvas.height = 1000;
     let y = 0;
     for(let scheme_name in COLOR_SCHEME){
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
-        canvas.width = big_canvas.width;
-        canvas.height = big_canvas.height/10;
+        canvas.width = 1000;
+        canvas.height = 100;
         render(canvas, COLOR_SCHEME[scheme_name]);
         big_context.drawImage(canvas, 0, y);
-        y += big_canvas.height/10;
+        y += 100;
     }
     document.body.appendChild(big_canvas);
 }
@@ -103,218 +103,13 @@ render_all();
 let loaded = false;
 const img = document.createElement("img");
 img.onload = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const context = canvas.getContext("2d");
-    
-    context.drawImage(img, 0, 0);
-    const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
-    const ids = {};
-    let max_id = 0;
-
-    for(let i=0;i<canvas.width;i++){
-        const r = data[i*4];
-        const g = data[i*4+1];
-        const b = data[i*4+2];
-        if(r == 255 && g == 255 && b == 255){
-            break;
-        }
-        if(!ids[r]) ids[r] = {}
-        if(!ids[r][g]) ids[r][g] = {}
-        ids[r][g][b] = max_id;
-        max_id++;
-    }
-
-    console.log(ids);
-
-    const tiles = [];
-
-    outer: for(let j=1;j<canvas.height-2;j+=3){
-        for(let i=0;i<canvas.width-2;i+=3){
-            const tile_values = [[],[],[]];
-            for(let dj=0;dj<3;dj++){
-                for(let di=0;di<3;di++){
-                    const idx = (i + di + (j + dj)*canvas.width)*4;
-
-                    const r = data[idx];
-                    const g = data[idx+1];
-                    const b = data[idx+2];
-                    if(r == 255 && g == 255 && b == 255) break outer;
-
-                    tile_values[di][dj] = ids[r][g][b];
-                }
-            }
-            tiles.push(new Tile(tile_values));
-        }
-    }
-
-    const t0 = new Tile([[0, 0, 0],[0, 0, 0],[0, 0, 0]]);
-    const t1 = new Tile([[0, 0, 0],[1, 1, 1],[0, 0, 0]]);
-    const t2 = new Tile([[0, 1, 0],[0, 1, 0],[0, 1, 0]]);
-    const t3 = new Tile([[0, 0, 0],[0, 1, 0],[0, 1, 0]]);
-    const t4 = new Tile([[0, 1, 0],[1, 1, 1],[0, 1, 0]]);
-
-    const tile_grid = new TileGrid(tiles, 40, 40);
     const tile_canvas = document.createElement("canvas");
+    tile_canvas.width = tile_canvas.height = 750;
     document.body.appendChild(tile_canvas);
-    tile_canvas.width = tile_canvas.height = 250;
     const ctx = tile_canvas.getContext("2d");
-    let colors = [];
-    for(let i=0;i<COLOR_SCHEME["Mesa"].length;i++)
-        colors.push(COLOR_SCHEME["Mesa"][i][0]);
-
-    function greedy_step(){
-        if(tile_grid.undecided_tiles_on_map()){
-            const undecided_ij = tile_grid.get_undecided_tiles();
-            for(let idx = 0;idx < undecided_ij.length;idx++){
-                const i = undecided_ij[idx][0];
-                const j = undecided_ij[idx][1];
-                const options = tile_grid.valid_options(i, j);
-                if(options.length == 0) continue;
-                const choice = options[Math.floor(options.length*Math.random())];
-                tile_grid.set_tile(i, j, choice);
-                return;
-            }
-
-            const random_undecidable = undecided_ij[Math.floor(undecided_ij.length*Math.random())];
-            const i = random_undecidable[0], j = random_undecidable[1];
-            const clear_cell = (i,j) => {
-                [[i+1,j],[i,j-1],[i-1,j],[i,j+1]].forEach((position) => {
-                    if(!tile_grid.contains(position[0], position[1])) return;
-                    tile_grid.set_tile(position[0], position[1], undefined);
-                    if(tile_grid.valid_options(position[0], position[1]).length == 1){
-                        clear_cell(position[0], position[1]);
-                    }
-                });
-            }
-            clear_cell(i, j);
-        }
-    }
-
-    const P:boolean[][][] = [];
-    for(let i=0;i<tile_grid.tile_width;i++){
-        P[i] = [];
-        for(let j=0;j<tile_grid.tile_height;j++){
-            P[i][j] = [];
-            for(let k=0;k<tile_grid.tiles.length;k++){
-                P[i][j][k] = true;
-            }
-        }
-    }
-    
-    function update(i, j){
-        console.assert(i >= 0 && j >= 0 && i < tile_grid.tile_width && j < tile_grid.tile_height);
-        const adj = [[i-1,j],[i+1,j],[i,j-1],[i,j+1]];
-        
-        for(let k=0;k<tile_grid.tiles.length;k++){
-            const tile = tile_grid.tiles[k];
-            if(!P[i][j][k]) continue;
-            for(let y=0;y<adj.length;y++){
-                const adj_i = adj[y][0], adj_j = adj[y][1];
-                if(!tile_grid.contains(adj_i, adj_j))
-                    continue;
-                let any_good = false;
-                for(let l=0;l<tile_grid.tiles.length;l++){
-                    if(!P[adj_i][adj_j][l])
-                        continue;
-                    const adj_tile = tile_grid.tiles[l];
-                    if(tile_grid.valid_adjacent(tile,i,j,adj_tile,adj_i,adj_j)){
-                        any_good = true;
-                        break;
-                    }
-                }
-                P[i][j][k] = P[i][j][k] && any_good;
-            }
-        }
-    }
-
-    function bfs_update(i, j){
-        const Q:Vector[] = [
-            new Vector(i-1,j),
-            new Vector(i+1,j),
-            new Vector(i, j-1),
-            new Vector(i, j+1)];
-
-        const V = new VectorSet();
-        V.add(new Vector(i,j));
-
-        while(Q.length != 0){
-            const B:Vector = Q.shift();
-
-            if(V.has(B) ||
-               B.x < 0 ||
-               B.y < 0 ||
-               B.x >= tile_grid.tile_width ||
-               B.y >= tile_grid.tile_height ||
-               B.distanceToSquared(new Vector(i, j)) > 9){
-                continue;
-            }
-
-            V.add(B);
-            update(B.x, B.y);
-
-            Q.push(new Vector(B.x-1,B.y));
-            Q.push(new Vector(B.x+1,B.y));
-            Q.push(new Vector(B.x,B.y-1));
-            Q.push(new Vector(B.x,B.y+1));
-        }
-    }
-
-    function wave_collapse_step(){
-        if(tile_grid.undecided_tiles_on_map()){
-            let min_entropy = tile_grid.tiles.length*2;
-            let min_tile = [];
-            for(let i=0;i<tile_grid.tile_width;i++){
-                for(let j=0;j<tile_grid.tile_height;j++){
-                    let entropy = 0;
-                    let first_tile = 0;
-                    for(let k=0;k<tile_grid.tiles.length;k++){
-                        if(P[i][j][k]){
-                            entropy++;
-                            first_tile = k;
-                        }
-                    }
-
-                    if(entropy == 0){
-                        continue;
-                    }
-
-                    if(entropy == 1){
-                        if(tile_grid.get_tile(i,j) == undefined){
-                            tile_grid.set_tile(i,j,tile_grid.tiles[first_tile]);
-                        }
-                        continue;
-                    }
-
-                    if(entropy == min_entropy){
-                        min_tile.push([i,j]);
-                    }else if(entropy < min_entropy){
-                        min_tile = [[i,j]];
-                        min_entropy = entropy;
-                    }
-                }
-            }
-            if(min_tile.length == 0)
-                return;
-
-            const X = min_tile[Math.floor(Math.random()*min_tile.length)];
-            const i = X[0], j = X[1];
-            const options = [];
-            for(let k=0;k<tile_grid.tiles.length;k++){
-                if(P[i][j][k]) options.push(k);
-            }
-            const collapsed = options[Math.floor(Math.random()*options.length)];
-            for(let k=0;k<tile_grid.tiles.length;k++){
-                P[i][j][k] = (k == collapsed)?true:false;
-            }
-
-            bfs_update(i, j);
-        }
-    }
-
+    const colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet", "darkgreen"];
     let t = 0;
-    const render_grid = (gg:GridGenerator) => {
+    const render_grid = (gg:TileGenerator) => {
         const gg_tile_grid = gg.TILES;
         const square_width = tile_canvas.width /   gg_tile_grid.id_width;
         const square_height = tile_canvas.height / gg_tile_grid.id_height;
@@ -352,52 +147,60 @@ img.onload = () => {
         ctx.fillRect(t*10, 0, 10, 10);
     }
 
-    function initiate(gg:GridGenerator){
-        gg.wave_set_tile(new Vector(3, 3), 0);
-        gg.wave_set_tile(new Vector(gg.WIDTH-3, gg.HEIGHT-3), gg.TILES.tiles.length-1);
+    function initiate(gg:TileGenerator){
+        let id_water = -1;
+        outer:for(let i=0;i<gg.TILES.tiles.length;i++){
+            const arr = gg.TILES.tiles[i];
+            for(let j=0;j<3;j++)
+            for(let k=0;k<3;k++)
+            if(arr.get(j, k) != 5)
+                continue outer;
+            id_water = i;
+            break;
+        }
+        for(let i=0;i<gg.WIDTH;i++){
+            gg.wave_set_tile(new Vector(i, 0), id_water);
+            gg.wave_set_tile(new Vector(i, gg.HEIGHT-1), id_water);
+        }
+        for(let i=0;i<gg.HEIGHT;i++){
+            gg.wave_set_tile(new Vector(0, i), id_water);
+            gg.wave_set_tile(new Vector(gg.WIDTH-1, i), id_water);
+        }
+        let id_mountain = -1;
+        outer:for(let i=0;i<gg.TILES.tiles.length;i++){
+            const arr = gg.TILES.tiles[i];
+            for(let j=0;j<3;j++)
+            for(let k=0;k<3;k++)
+            if(arr.get(j, k) != 6)
+                continue outer;
+            id_mountain = i;
+            break;
+        }
+        console.log(id_mountain);
+        gg.wave_set_tile(new Vector(10, 10), id_mountain);
+        let id_cave = -1;
+        outer:for(let i=0;i<gg.TILES.tiles.length;i++){
+            const arr = gg.TILES.tiles[i];
+            for(let j=0;j<3;j++)
+            for(let k=0;k<3;k++)
+            if(arr.get(j, k) != 4)
+                continue outer;
+            id_cave = i;
+            break;
+        }
+        console.log(id_cave);
+        gg.wave_set_tile(new Vector(30, 30), id_cave);
     }
 
-    console.log("Startng...");
-    const gg = new GridGenerator(tiles,
+    const tiles = new TileSet(img).TILES;
+    console.log(tiles);
+    const gg = new TileGenerator(tiles,
                                 40,
                                 40,
-                                GridGeneratorMethod.WaveCollapse,
-                                render_grid,
+                                TileGeneratorMethod.WaveCollapse,
+                                () => console.log("donezo"),
                                 render_grid,
                                 initiate, 5, 1);
-    /*
-    setInterval(function(){
-        const square_width = tile_canvas.width / tile_grid.id_width;
-        const square_height = tile_canvas.height / tile_grid.id_height;
-        for(let i=0;i<tile_grid.id_width;i++){
-            for(let j=0;j<tile_grid.id_height;j++){
-                if(tile_grid.get_id(i, j) !== undefined){
-                    ctx.fillStyle = colors[tile_grid.get_id(i, j)];
-                    ctx.fillRect(i*square_width, j*square_height, square_width, square_height);
-                }
-            }
-        }
-
-        for(let i=0;i<tile_grid.tile_width;i++){
-            ctx.beginPath();
-            ctx.moveTo(i*square_width*3, 0);
-            ctx.lineTo(i*square_width*3, tile_canvas.height);
-            ctx.strokeStyle = "black";
-            ctx.stroke();
-            for(let j=0;j<tile_grid.tile_height;j++){
-                ctx.beginPath();
-                ctx.moveTo(0, j*square_height*3);
-                ctx.lineTo(tile_canvas.width, j*square_height*3);
-                ctx.strokeStyle = "black";
-                ctx.stroke();
-            }
-        }
-
-        wave_collapse_step();
-    }, 1);
-    */
-
-    
 }
 img.crossOrigin = "Anonymous";
-img.src = "tiles.png";
+img.src = "tiles-reformatted.png";
