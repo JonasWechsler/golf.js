@@ -1,6 +1,6 @@
 /* TileGenerator makes a grid of enums, where the values are cell types
  * (wall, floor, door, lake, with specificity, i.e. wood floor, stone wall, water)
- * GridGenerator makes a grid of GridCells, which are not components
+ * GridGenerator makes a EntityGridComponent full of entities with a GridCellComponent
  * GridCells contain minimal information on their content
  * GridParser transforms a grid into a world, and returns a list of entities?
  */

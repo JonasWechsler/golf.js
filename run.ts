@@ -39,12 +39,15 @@ player.add_component(new DynamicRenderComponent(0, 0, player_canvas));
 //const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
 
 function floor(){
-    for(let i=0;i<5;i++){
-        const ent = new ECSEntity();
-        const texture = new FloorTextureComponent(new MarbleTexture(16).generate());
-        ent.add_component(texture);
-        EntityManager.current.add_entity(ent);
-    }
+    const wood_ent = new ECSEntity();
+    const wood_texture = new FloorTextureComponent(new WoodGrainTexture(16).generate());
+    wood_ent.add_component(wood_texture);
+    EntityManager.current.add_entity(wood_ent);
+
+    const marble_ent = new ECSEntity();
+    const marble_texture = new FloorTextureComponent(new MarbleTexture(16).generate());
+    marble_ent.add_component(marble_texture);
+    EntityManager.current.add_entity(marble_ent);
 }
 floor();
 
@@ -86,7 +89,7 @@ function joints(){
     const joints_list:ECSEntity[] = [player, fixed_connection_entity];
 
     let last_j = player_joint;
-    for(let i=1;i<5;i++){
+    for(let i=1;i<6;i++){
         const e = new ECSEntity();
         const jc = new JointComponent(new Vector(player_joint.position.x, player_joint.position.y+i*3));
         e.add_component(jc);
@@ -118,15 +121,6 @@ function joints(){
 }
 joints();
 
-DungeonGenerator.CELL_WIDTH=32;
-DungeonGenerator.CELL_HEIGHT=32;
-DungeonGenerator.HEIGHT=20;
-DungeonGenerator.WIDTH=20;
-DungeonGenerator.LEFT_POS=-.5*DungeonGenerator.WIDTH*DungeonGenerator.CELL_WIDTH+16;
-DungeonGenerator.TOP_POS=-.5*DungeonGenerator.HEIGHT*DungeonGenerator.CELL_HEIGHT+16;
-DungeonGenerator.START_POS = new Vector(DungeonGenerator.WIDTH/2, DungeonGenerator.HEIGHT/2);
-DungeonGenerator.generate();
-
 for(let i=0;ComponentType[i];i++)
     console.log(i, ComponentType[i]);
 console.log(system_manager);
@@ -145,14 +139,21 @@ const fps = new ECSEntity();
 fps.add_component(new FPSComponent());
 fps.add_component(new UIComponent(0, 0, document.createElement("canvas")));
 
+const settings_entity = new ECSEntity();
+settings_entity.add_component(new SettingsComponent(32, 32, 4));
+EntityManager.current.add_entity(settings_entity);
+
+GridGeneratorSystem.make_grid(5, 5);
+GridGeneratorSystem.create_room(new Square(1, 1, 3, 3));
+GridParserSystem.parse_grids();
+
 system_manager.entity_manager.add_entity(camera);
 system_manager.entity_manager.add_entity(fps);
 system_manager.entity_manager.add_entity(entity_inspector);
 system_manager.entity_manager.add_entity(player);
 system_manager.add(new KeySystem());
 system_manager.add(new ControlSystem());
-system_manager.add(new DungeonRenderSystem());
-//system_manager.add(new PhysicsRenderSystem(false));
+system_manager.add(new PhysicsRenderSystem(true));
 system_manager.add(new JointMovementSystem());
 system_manager.add(new JointRenderSystem());
 system_manager.add(new CameraSystem());

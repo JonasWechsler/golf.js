@@ -12,6 +12,7 @@
        "noise.ts",
        "textures.ts",
        "ecs.ts",
+       "settings.ts",
        "entity.ts",
        "physics.ts",
        "dom.ts",

@@ -39,7 +39,7 @@ class CameraComponent implements Component{
 
 class CameraSystem implements System{
     private canvas_cache:CanvasCache = new CanvasCache();
-    private static SCALE:number = 8;
+    private static SCALE:number = 6;
 
     public static camera_info() : Square {
         const targets = EntityManager.current.get_entities([ComponentType.UI, ComponentType.Camera]);

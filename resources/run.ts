@@ -98,7 +98,7 @@ class RGB{
 }
 
 //const rgb = new RGB();
-render_all();
+//render_all();
 
 let loaded = false;
 const img = document.createElement("img");

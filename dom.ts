@@ -1,11 +1,29 @@
 class DOMManager{
     static canvas : HTMLCanvasElement;
     static context : CanvasRenderingContext2D;
+    static CANVAS_WIDTH:number = 750;
+    static CANVAS_HEIGHT:number = 750;
     static make_canvas() : void {
         this.canvas = document.createElement("canvas");
         document.body.appendChild(this.canvas);
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+
+        if(DOMManager.CANVAS_WIDTH == -1){
+            this.canvas.width = window.innerWidth;
+        } else {
+            this.canvas.width = DOMManager.CANVAS_WIDTH;
+        }
+
+        if(DOMManager.CANVAS_HEIGHT == -1){
+            this.canvas.height = window.innerHeight;
+        } else {
+            this.canvas.height = DOMManager.CANVAS_HEIGHT;
+        }
+
+        this.canvas.style.position = "absolute";
+        this.canvas.style.left = "50%";
+        this.canvas.style.top = "50%";
+        this.canvas.style.marginTop = -DOMManager.CANVAS_WIDTH/2 + "px";
+        this.canvas.style.marginLeft = -DOMManager.CANVAS_HEIGHT/2 + "px";
         this.context = this.canvas.getContext('2d');
         disableImageSmoothing(this.context);
     }

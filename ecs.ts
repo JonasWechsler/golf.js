@@ -19,7 +19,10 @@ enum ComponentType{
     FixedConnection,
     CellPosition,
     EntityGrid,
-    GridCell
+    GridCell,
+    TileGrid,
+    IDCellMap,
+    Settings
 }
 
 class HealthComponent implements Component{
@@ -94,10 +97,14 @@ class EntityManager{
             }
         );
     }
-    public get_entities(types:ComponentType[]){
-        return this.entities.get(types);
+    public get_entities(types:ComponentType[]):ECSEntity[]{
+        const entities = this.entities.get(types);
+        if(entities == undefined){
+            return [];
+        }
+        return entities;
     }
-    public has_entities(types:ComponentType[]){
+    public has_entities(types:ComponentType[]):boolean{
         return this.entities.get(types)?true:false;
     }
 }

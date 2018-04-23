@@ -26,6 +26,25 @@ class TileTexture implements TextureGenerator{
     }
 }
 
+class SolidColorTexture implements TextureGenerator{
+    constructor(private _WIDTH:number, private _COLOR:Color = new Color(0, 0, 0)){}
+
+    get WIDTH():number{
+        return this._WIDTH;
+    }
+
+    generate(): HTMLCanvasElement{
+        const texture_canvas:HTMLCanvasElement = document.createElement("canvas");
+        texture_canvas.width = texture_canvas.height = this.WIDTH;
+        const ctx = texture_canvas.getContext("2d");
+
+        ctx.fillStyle = this._COLOR.to_str();
+        ctx.fillRect(0, 0, this._WIDTH, this._WIDTH);
+
+        return texture_canvas;
+    }
+}
+
 class MarbleTexture implements TextureGenerator{
     public PERIOD = 4;
     SCHEME:[string, number][] = COLOR_SCHEME["Marble"];

@@ -1,0 +1,9 @@
+{
+    0: () => new GridCellComponent(0, false, undefined, "red");
+    1: () => new GridCellComponent(1, false, undefined, "orange");
+    2: () => new GridCellComponent(2, false, undefined, "yellow");
+    3: () => new GridCellComponent(4, false, undefined, "green");
+    4: () => new GridCellComponent(5, false, undefined, "blue");
+    5: () => new GridCellComponent(6, false, undefined, "indigo");
+    6: () => new GridCellComponent(7, false, undefined, "violet");
+}
