@@ -11,7 +11,6 @@ class TileSet{
         canvas.width = img.width;
         canvas.height = img.height;
         const context = canvas.getContext("2d");
-        document.body.appendChild(canvas);
 
         context.drawImage(img, 0, 0);
         const data = context.getImageData(0, 0, canvas.width, canvas.height).data;

@@ -36,18 +36,34 @@ const player_canvas = document.createElement("canvas");
 player_canvas.width = player_canvas.height = 6;
 player.add_component(new DynamicRenderComponent(0, 0, player_canvas));
 
+const settings_entity = new ECSEntity();
+const settings_component = new SettingsComponent(8, 8, 4);
+settings_entity.add_component(settings_component);
+EntityManager.current.add_entity(settings_entity);
+
 //const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
 
 function floor(){
-    const wood_ent = new ECSEntity();
-    const wood_texture = new FloorTextureComponent(new WoodGrainTexture(16).generate());
-    wood_ent.add_component(wood_texture);
-    EntityManager.current.add_entity(wood_ent);
+    const colors = ["#ff0000", "#ffa500", "#ffff00", "#00ff00", "#0000ff", "#4b0082", "#8a2be2", "#006400"];
+    for(let idx=0;idx<colors.length;idx++){
+        const val = colors[idx];
+        const color_ent = new ECSEntity();
+        const color = new Color(val);
+        console.log(color.to_str());
+        const color_texture = new FloorTextureComponent(new SolidColorTexture(8, color).generate());
+        color_ent.add_component(color_texture);
+        EntityManager.current.add_entity(color_ent);
+    }
+    
+    //const wood_ent = new ECSEntity();
+    //const wood_texture = new FloorTextureComponent(new WoodGrainTexture(8).generate());
+    //wood_ent.add_component(wood_texture);
+    //EntityManager.current.add_entity(wood_ent);
 
-    const marble_ent = new ECSEntity();
-    const marble_texture = new FloorTextureComponent(new MarbleTexture(16).generate());
-    marble_ent.add_component(marble_texture);
-    EntityManager.current.add_entity(marble_ent);
+    //const marble_ent = new ECSEntity();
+    //const marble_texture = new FloorTextureComponent(new MarbleTexture(8).generate());
+    //marble_ent.add_component(marble_texture);
+    //EntityManager.current.add_entity(marble_ent);
 }
 floor();
 
@@ -121,44 +137,128 @@ function joints(){
 }
 joints();
 
+
+function initiate(gg:TileGenerator){
+    let id_water = -1;
+    outer:for(let i=0;i<gg.TILES.tiles.length;i++){
+        const arr = gg.TILES.tiles[i];
+        for(let j=0;j<3;j++)
+        for(let k=0;k<3;k++)
+        if(arr.get(j, k) != 5)
+            continue outer;
+        id_water = i;
+        break;
+    }
+    for(let i=0;i<gg.WIDTH;i++){
+        gg.wave_set_tile(new Vector(i, 0), id_water);
+        gg.wave_set_tile(new Vector(i, gg.HEIGHT-1), id_water);
+    }
+    for(let i=0;i<gg.HEIGHT;i++){
+        gg.wave_set_tile(new Vector(0, i), id_water);
+        gg.wave_set_tile(new Vector(gg.WIDTH-1, i), id_water);
+    }
+    let id_mountain = -1;
+    outer:for(let i=0;i<gg.TILES.tiles.length;i++){
+        const arr = gg.TILES.tiles[i];
+        for(let j=0;j<3;j++)
+        for(let k=0;k<3;k++)
+        if(arr.get(j, k) != 6)
+            continue outer;
+        id_mountain = i;
+        break;
+    }
+    console.log(id_mountain);
+    gg.wave_set_tile(new Vector(10, 10), id_mountain);
+    let id_cave = -1;
+    outer:for(let i=0;i<gg.TILES.tiles.length;i++){
+        const arr = gg.TILES.tiles[i];
+        for(let j=0;j<3;j++)
+        for(let k=0;k<3;k++)
+        if(arr.get(j, k) != 4)
+            continue outer;
+        id_cave = i;
+        break;
+    }
+    console.log(id_cave);
+    gg.wave_set_tile(new Vector(30, 30), id_cave);
+}
+
 for(let i=0;ComponentType[i];i++)
     console.log(i, ComponentType[i]);
 console.log(system_manager);
 
 //WorldInfo.mesh = new NonintersectingFiniteGridNavigationMesh(20, 0, 500, 0, 500, WorldInfo.physics);
+const data:{ [key:number]:() => GridCellComponent; } = {
+    0: () => new GridCellComponent(0, true, undefined, "red"),
+    1: () => new GridCellComponent(1, false, undefined, "orange"),
+    2: () => new GridCellComponent(2, false, undefined, "yellow"),
+    3: () => new GridCellComponent(4, false, undefined, "green"),
+    4: () => new GridCellComponent(5, false, undefined, "blue"),
+    5: () => new GridCellComponent(6, false, undefined, "indigo"),
+    6: () => new GridCellComponent(7, false, undefined, "violet")
+};
 
-const camera = new ECSEntity();
-const ui_component = new UIComponent(0, 0, document.createElement("canvas"),
-                                     DOMManager.canvas.width, DOMManager.canvas.height);
-const camera_component = new CameraComponent();
-camera_component.target = () => player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position;
-camera.add_component(camera_component);
-camera.add_component(ui_component);
+const entity = new ECSEntity();
+entity.add_component(new IDCellMapComponent(data));
+EntityManager.current.add_entity(entity);
+load_tiles();
 
-const fps = new ECSEntity();
-fps.add_component(new FPSComponent());
-fps.add_component(new UIComponent(0, 0, document.createElement("canvas")));
+function load_tiles(){
+    const img = document.createElement("img");
+    img.onload = () => {
+        const tiles = new TileSet(img).TILES;
+        console.log(tiles);
+        const tile_grid = new TileGenerator(tiles,
+                                    40,
+                                    40,
+                                    TileGeneratorMethod.WaveCollapse,
+                                    on_complete,
+                                    () => 0,
+                                    initiate, 5, 1);
+    }
+    
+    img.crossOrigin = "Anonymous";
+    img.src = "resources/tiles-reformatted.png";
+}
 
-const settings_entity = new ECSEntity();
-settings_entity.add_component(new SettingsComponent(32, 32, 4));
-EntityManager.current.add_entity(settings_entity);
+function on_complete(gg:TileGenerator){
+    console.log("donezo");
+    const tile_grid = gg.TILES;
+    const tile_grid_entity = new ECSEntity();
+    tile_grid_entity.add_component(new TileGridComponent(tile_grid));
+    EntityManager.current.add_entity(tile_grid_entity);
 
-GridGeneratorSystem.make_grid(5, 5);
-GridGeneratorSystem.create_room(new Square(1, 1, 3, 3));
-GridParserSystem.parse_grids();
+    GridGeneratorSystem.generate_from_tile_grid();
+    GridParserSystem.parse_grids();
 
-system_manager.entity_manager.add_entity(camera);
-system_manager.entity_manager.add_entity(fps);
-system_manager.entity_manager.add_entity(entity_inspector);
-system_manager.entity_manager.add_entity(player);
-system_manager.add(new KeySystem());
-system_manager.add(new ControlSystem());
-system_manager.add(new PhysicsRenderSystem(true));
-system_manager.add(new JointMovementSystem());
-system_manager.add(new JointRenderSystem());
-system_manager.add(new CameraSystem());
-system_manager.add(new UIRenderSystem());
-system_manager.add(new FPSSystem());
-system_manager.add(new EntityInspectorRenderSystem());
-system_manager.add(new PhysicsSystem());
-system_manager.start();
+    //GridGeneratorSystem.make_grid(5, 5);
+    //GridGeneratorSystem.create_room(new Square(1, 1, 3, 3));
+
+    const camera = new ECSEntity();
+    const ui_component = new UIComponent(0, 0, document.createElement("canvas"),
+                                         DOMManager.canvas.width, DOMManager.canvas.height);
+    const camera_component = new CameraComponent();
+    camera_component.target = () => player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position;
+    camera.add_component(camera_component);
+    camera.add_component(ui_component);
+    
+    const fps = new ECSEntity();
+    fps.add_component(new FPSComponent());
+    fps.add_component(new UIComponent(0, 0, document.createElement("canvas")));
+
+    system_manager.entity_manager.add_entity(camera);
+    system_manager.entity_manager.add_entity(fps);
+    system_manager.entity_manager.add_entity(entity_inspector);
+    system_manager.entity_manager.add_entity(player);
+    system_manager.add(new KeySystem());
+    system_manager.add(new ControlSystem());
+    system_manager.add(new PhysicsRenderSystem(true));
+    system_manager.add(new JointMovementSystem());
+    system_manager.add(new JointRenderSystem());
+    system_manager.add(new CameraSystem());
+    system_manager.add(new UIRenderSystem());
+    system_manager.add(new FPSSystem());
+    system_manager.add(new EntityInspectorRenderSystem());
+    system_manager.add(new PhysicsSystem());
+    system_manager.start();
+}

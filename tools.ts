@@ -61,6 +61,30 @@ function hash(arr:number[]) {
     return hash;
 }
 
+/* From https://stackoverflow.com/questions/9838812/how-can-i-open-a-json-file-in-javascript-without-jquery */
+function loadJSON(path, success, error){
+    return load(path, (data) => success(JSON.parse(data)), error);
+}
+
+function load(path, success, error)
+{
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function()
+    {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status === 200) {
+                if (success)
+                    success(xhr.responseText);
+            } else {
+                if (error)
+                    error(xhr);
+            }
+        }
+    };
+    xhr.open("GET", path, true);
+    xhr.send();
+}
+
 class NumberTreeMapNode<T>{
     public value:T;
     public children:{[key:number]:NumberTreeMapNode<T>};

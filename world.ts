@@ -78,7 +78,7 @@ class GridGeneratorSystem implements System{
         for(let x=0;x<tile_grid.id_width;x++){
             for(let y=0;y<tile_grid.id_height;y++){
                 const id = tile_grid.get_id(x, y);
-                const cell:GridCellComponent = map[id]();
+                const cell:GridCellComponent = map[id%7]();
                 const cell_entity = new ECSEntity();
                 cell_entity.add_component(cell);
                 grid.grid.set(x,y,cell_entity);

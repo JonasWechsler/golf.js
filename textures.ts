@@ -71,11 +71,11 @@ class MarbleTexture implements TextureGenerator{
         const COLOR0 = new Color(this.SCHEME[0][0]);
         const COLOR1 = new Color(this.SCHEME[1][0]);
 
-        Perlin2D.WIDTH = this.WIDTH;
+        Perlin2D.WIDTH = this.WIDTH/4;
         const perlin = Perlin2D.generate();
         const texture_canvas:HTMLCanvasElement = document.createElement("canvas");
-        texture_canvas.width = this.WIDTH*4;
-        texture_canvas.height = this.WIDTH*4;
+        texture_canvas.width = this.WIDTH;
+        texture_canvas.height = this.WIDTH;
         const texture = texture_canvas.getContext("2d");
         for(let i=0;i<perlin.length;i++){
             for(let j=0;j<perlin[i].length;j++){
@@ -117,11 +117,11 @@ class WoodGrainTexture implements TextureGenerator{
         const COLOR0 = new Color(this.SCHEME[0][0]);
         const COLOR1 = new Color(this.SCHEME[1][0]);
 
-        Perlin2D.WIDTH = this.WIDTH;
+        Perlin2D.WIDTH = this.WIDTH/4;
         const perlin = Perlin2D.generate();
         const texture_canvas:HTMLCanvasElement = document.createElement("canvas");
-        texture_canvas.width = this.WIDTH*4;
-        texture_canvas.height = this.WIDTH*4;
+        texture_canvas.width = this.WIDTH;
+        texture_canvas.height = this.WIDTH;
         const texture = texture_canvas.getContext("2d");
         for(let i=0;i<perlin.length;i++){
             for(let j=0;j<perlin[i].length;j++){
