@@ -34,8 +34,10 @@ function enableImageSmoothing(context: CanvasRenderingContext2D){
 
 function combinations(arr:any[]) {
     const fn = (active:any[], rest:any[], result:any[][]):any[][] => {
-        if (active.length == 0 && rest.length == 0)
+        if (active.length == 0 && rest.length == 0){
+            result.push([]);
             return result;
+        }
         if (rest.length == 0) {
             result.push(active);
         } else {

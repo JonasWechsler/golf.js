@@ -1,44 +1,17 @@
-//var data = [
-//    [0, 0],
-//    [0, 100],
-//    [100, 0],
-//];
-//
-//var voronoi = d3.voronoi(data);
-//
-//
-//var contour = [
-//        new poly2tri.Point(100, 100),
-//        new poly2tri.Point(100, 300),
-//        new poly2tri.Point(300, 300),
-//        new poly2tri.Point(300, 100)
-//];
-//var swctx = new poly2tri.SweepContext(contour);
-//swctx.triangulate();
-//var triangles = swctx.getTriangles();
-//triangles.forEach(function(t) {
-//    t.getPoints().forEach(function(p) {
-//        console.log(p.x, p.y);
-//    });
-//});
-//
-
 const system_manager = new SystemManager(new EntityManager());
-
 MouseInfo.setup();
 DOMManager.make_canvas();
 
-//const player = new Player(new Vector(30, 30), 20,new Vector(0, 0));
 const player = new ECSEntity();
 player.add_component(new DynamicPhysicsComponent(new Vector(60, 60), 3));
 player.add_component(new KeyInputComponent());
+
 const player_canvas = document.createElement("canvas");
 player_canvas.width = player_canvas.height = 6;
 player.add_component(new DynamicRenderComponent(0, 0, player_canvas));
 
 const settings_entity = new ECSEntity();
-const settings_component = new SettingsComponent(8, 8, 4);
-settings_entity.add_component(settings_component);
+settings_entity.add_component(new SettingsComponent(8, 8, 4));
 EntityManager.current.add_entity(settings_entity);
 
 //const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
@@ -80,6 +53,8 @@ function background(){
     EntityManager.current.add_entity(ent);
 }
 background();
+
+const DISCRETE_SCREENS = true;
 
 let entity_inspector;
 function joints(){
@@ -135,7 +110,8 @@ function joints(){
     entity_inspector.add_component(entity_inspector_component);
     entity_inspector.add_component(entity_inspector_ui);
 }
-joints();
+if(!DISCRETE_SCREENS)
+    joints();
 
 
 function initiate(gg:TileGenerator){
@@ -192,16 +168,28 @@ const data:{ [key:number]:() => GridCellComponent; } = {
     0: () => new GridCellComponent(0, true, undefined, "red"),
     1: () => new GridCellComponent(1, false, undefined, "orange"),
     2: () => new GridCellComponent(2, false, undefined, "yellow"),
-    3: () => new GridCellComponent(4, false, undefined, "green"),
-    4: () => new GridCellComponent(5, false, undefined, "blue"),
-    5: () => new GridCellComponent(6, false, undefined, "indigo"),
-    6: () => new GridCellComponent(7, false, undefined, "violet")
+    3: () => new GridCellComponent(3, false, undefined, "green"),
+    4: () => new GridCellComponent(4, false, undefined, "blue"),
+    5: () => new GridCellComponent(5, false, undefined, "indigo"),
+    6: () => new GridCellComponent(6, false, undefined, "violet"),
+    7: () => new GridCellComponent(7, false, undefined, "red0"),
+    8: () => new GridCellComponent(8, false, undefined, "orange0"),
+    9: () => new GridCellComponent(9, false, undefined, "yellow0"),
+    10: () => new GridCellComponent(10, false, undefined, "green0"),
+    11: () => new GridCellComponent(11, false, undefined, "blue0"),
+    12: () => new GridCellComponent(12, false, undefined, "indigo0"),
+    13: () => new GridCellComponent(13, false, undefined, "violet0")
 };
 
 const entity = new ECSEntity();
 entity.add_component(new IDCellMapComponent(data));
 EntityManager.current.add_entity(entity);
-load_tiles();
+//load_tiles();
+
+load('./resources/grid.txt',function(result){
+    WorldStateSystem.parse_entity_grid(result);
+    on_complete();
+},load_tiles);
 
 function load_tiles(){
     const img = document.createElement("img");
@@ -212,7 +200,7 @@ function load_tiles(){
                                     40,
                                     40,
                                     TileGeneratorMethod.WaveCollapse,
-                                    on_complete,
+                                    parse_grids,
                                     () => 0,
                                     initiate, 5, 1);
     }
@@ -221,7 +209,7 @@ function load_tiles(){
     img.src = "resources/tiles-reformatted.png";
 }
 
-function on_complete(gg:TileGenerator){
+function parse_grids(gg:TileGenerator){
     console.log("donezo");
     const tile_grid = gg.TILES;
     const tile_grid_entity = new ECSEntity();
@@ -229,8 +217,12 @@ function on_complete(gg:TileGenerator){
     EntityManager.current.add_entity(tile_grid_entity);
 
     GridGeneratorSystem.generate_from_tile_grid();
-    GridParserSystem.parse_grids();
 
+    on_complete();
+}
+
+function on_complete(){
+    GridParserSystem.parse_grids();
     //GridGeneratorSystem.make_grid(5, 5);
     //GridGeneratorSystem.create_room(new Square(1, 1, 3, 3));
 
@@ -238,7 +230,11 @@ function on_complete(gg:TileGenerator){
     const ui_component = new UIComponent(0, 0, document.createElement("canvas"),
                                          DOMManager.canvas.width, DOMManager.canvas.height);
     const camera_component = new CameraComponent();
-    camera_component.target = () => player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position;
+    if(DISCRETE_SCREENS){
+        camera_component.target = () => player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position.divided(CameraSystem.WIDTH).apply(Math.floor).times(CameraSystem.WIDTH).plus(CameraSystem.WIDTH/2+3);
+    }else{
+        camera_component.target = () => player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position;
+    }
     camera.add_component(camera_component);
     camera.add_component(ui_component);
     
@@ -248,7 +244,8 @@ function on_complete(gg:TileGenerator){
 
     system_manager.entity_manager.add_entity(camera);
     system_manager.entity_manager.add_entity(fps);
-    system_manager.entity_manager.add_entity(entity_inspector);
+    if(entity_inspector)
+        system_manager.entity_manager.add_entity(entity_inspector);
     system_manager.entity_manager.add_entity(player);
     system_manager.add(new KeySystem());
     system_manager.add(new ControlSystem());

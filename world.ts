@@ -62,6 +62,7 @@ class IDCellMapComponent implements Component{
 class GridGeneratorSystem implements System{
      constructor(){}
 
+     /*Gets TileGrid and IDCellMap and inserts into a EntityGrid*/
      static generate_from_tile_grid(){
         const tile_grid_entities = EntityManager.current.get_entities([ComponentType.TileGrid]);
         console.assert(tile_grid_entities.length == 1);
@@ -78,7 +79,8 @@ class GridGeneratorSystem implements System{
         for(let x=0;x<tile_grid.id_width;x++){
             for(let y=0;y<tile_grid.id_height;y++){
                 const id = tile_grid.get_id(x, y);
-                const cell:GridCellComponent = map[id%7]();
+                const size = Object.keys(map).length;
+                const cell:GridCellComponent = map[id%size]();
                 const cell_entity = new ECSEntity();
                 cell_entity.add_component(cell);
                 grid.grid.set(x,y,cell_entity);
@@ -86,7 +88,7 @@ class GridGeneratorSystem implements System{
         }
      }
 
-     private static get_grid():EntityGridComponent{
+     static get_grid():EntityGridComponent{
         const grid_entities = EntityManager.current.get_entities([ComponentType.EntityGrid]);
         console.assert(grid_entities.length == 1);
         const grid_entity = grid_entities[0];

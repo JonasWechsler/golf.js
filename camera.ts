@@ -41,6 +41,13 @@ class CameraSystem implements System{
     private canvas_cache:CanvasCache = new CanvasCache();
     private static SCALE:number = 6;
 
+    public static get WIDTH() : number{
+        return Math.floor(DOMManager.canvas.width/CameraSystem.SCALE);
+    }
+    public static get HEIGHT() : number{
+        return Math.floor(DOMManager.canvas.height/CameraSystem.SCALE);
+    }
+
     public static camera_info() : Square {
         const targets = EntityManager.current.get_entities([ComponentType.UI, ComponentType.Camera]);
         console.assert(targets.length == 1);
@@ -105,6 +112,10 @@ class CameraSystem implements System{
     public step(){
         const entity_manager = EntityManager.current;
         const targets = entity_manager.get_entities([ComponentType.UI, ComponentType.Camera]);
+
+        if(targets.length == 0)
+            return;
+
         console.assert(targets.length == 1);
         const target = targets[0];
         const ui = target.get_component<UIComponent>(ComponentType.UI);

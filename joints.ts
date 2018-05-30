@@ -33,7 +33,7 @@ class JointMovementSystem implements System{
         root.mark = true;
         root.position = position;
         root.adjacent_flexible.forEach(function(connection){
-            const joint = (connection.first == root?connection.second:connection.first);
+            const joint = (connection.first == root ? connection.second : connection.first);
             if(joint.mark) return;
 
             const di:Vector = root.position.minus(joint.position);

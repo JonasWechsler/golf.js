@@ -22,7 +22,9 @@ enum ComponentType{
     GridCell,
     TileGrid,
     IDCellMap,
-    Settings
+    Settings,
+    SaveOmit,
+    WorldState
 }
 
 class HealthComponent implements Component{
