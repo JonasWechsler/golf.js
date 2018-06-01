@@ -27,7 +27,7 @@ class JointComponent implements Component {
 }
 
 class JointMovementSystem implements System{
-    moveTo(root:JointComponent, position:Vector){
+    private moveTo(root:JointComponent, position:Vector){
         const self = this;
 
         root.mark = true;
@@ -59,7 +59,7 @@ class JointMovementSystem implements System{
         root.mark = false;
     }
 
-    move(root:JointComponent, change:Vector){
+    private move(root:JointComponent, change:Vector){
         this.moveTo(root, root.position.plusEquals(change));
     }
 

@@ -253,7 +253,7 @@ class Vector extends Point{
     if (this.length() == 0) {
       return new Vector(0, 0);
     }
-    return this.dividedEquals(this.length()).timesEquals(scalar);
+    return this.dividedEquals(this.length()).times(scalar);
   }
   clampTo(max: number): Vector{
     if(this.length() > max){

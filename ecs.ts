@@ -24,7 +24,8 @@ enum ComponentType{
     IDCellMap,
     Settings,
     SaveOmit,
-    WorldState
+    WorldState,
+    AIInput
 }
 
 class HealthComponent implements Component{

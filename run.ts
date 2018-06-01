@@ -2,20 +2,33 @@ const system_manager = new SystemManager(new EntityManager());
 MouseInfo.setup();
 DOMManager.make_canvas();
 
-const player = new ECSEntity();
-player.add_component(new DynamicPhysicsComponent(new Vector(60, 60), 3));
-player.add_component(new KeyInputComponent());
-
-const player_canvas = document.createElement("canvas");
-player_canvas.width = player_canvas.height = 6;
-player.add_component(new DynamicRenderComponent(0, 0, player_canvas));
-
 const settings_entity = new ECSEntity();
 settings_entity.add_component(new SettingsComponent(8, 8, 4));
 EntityManager.current.add_entity(settings_entity);
 
-//const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
 
+const data:{ [key:number]:() => GridCellComponent; } = {
+    0: () => new GridCellComponent(0, true, undefined, "red"),
+    1: () => new GridCellComponent(1, false, undefined, "orange"),
+    2: () => new GridCellComponent(2, false, undefined, "yellow"),
+    3: () => new GridCellComponent(3, false, undefined, "green"),
+    4: () => new GridCellComponent(4, false, undefined, "blue"),
+    5: () => new GridCellComponent(5, false, undefined, "indigo"),
+    6: () => new GridCellComponent(6, false, undefined, "violet"),
+    7: () => new GridCellComponent(7, false, undefined, "red0"),
+    8: () => new GridCellComponent(8, false, undefined, "orange0"),
+    9: () => new GridCellComponent(9, false, undefined, "yellow0"),
+    10: () => new GridCellComponent(10, false, undefined, "green0"),
+    11: () => new GridCellComponent(11, false, undefined, "blue0"),
+    12: () => new GridCellComponent(12, false, undefined, "indigo0"),
+    13: () => new GridCellComponent(13, false, undefined, "violet0")
+};
+
+const entity = new ECSEntity();
+entity.add_component(new IDCellMapComponent(data));
+EntityManager.current.add_entity(entity);
+
+//load_tiles();
 function floor(){
     const colors = ["#ff0000", "#ffa500", "#ffff00", "#00ff00", "#0000ff", "#4b0082", "#8a2be2", "#006400"];
     for(let idx=0;idx<colors.length;idx++){
@@ -27,16 +40,6 @@ function floor(){
         color_ent.add_component(color_texture);
         EntityManager.current.add_entity(color_ent);
     }
-    
-    //const wood_ent = new ECSEntity();
-    //const wood_texture = new FloorTextureComponent(new WoodGrainTexture(8).generate());
-    //wood_ent.add_component(wood_texture);
-    //EntityManager.current.add_entity(wood_ent);
-
-    //const marble_ent = new ECSEntity();
-    //const marble_texture = new FloorTextureComponent(new MarbleTexture(8).generate());
-    //marble_ent.add_component(marble_texture);
-    //EntityManager.current.add_entity(marble_ent);
 }
 floor();
 
@@ -110,9 +113,25 @@ function joints(){
     entity_inspector.add_component(entity_inspector_component);
     entity_inspector.add_component(entity_inspector_ui);
 }
+
+const player = new ECSEntity();
+player.add_component(new DynamicPhysicsComponent(new Vector(60, 60), 3));
+player.add_component(new KeyInputComponent());
+
+const player_canvas = document.createElement("canvas");
+player_canvas.width = player_canvas.height = 6;
+player.add_component(new DynamicRenderComponent(0, 0, player_canvas));
+
 if(!DISCRETE_SCREENS)
     joints();
 
+const ai = new ECSEntity();
+ai.add_component(new AIInputComponent(new Vector(60, 60)));
+ai.add_component(new DynamicPhysicsComponent(new Vector(60, 60), 3));
+ai.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
+
+EntityManager.current.add_entity(player);
+EntityManager.current.add_entity(ai);
 
 function initiate(gg:TileGenerator){
     let id_water = -1;
@@ -164,27 +183,7 @@ for(let i=0;ComponentType[i];i++)
 console.log(system_manager);
 
 //WorldInfo.mesh = new NonintersectingFiniteGridNavigationMesh(20, 0, 500, 0, 500, WorldInfo.physics);
-const data:{ [key:number]:() => GridCellComponent; } = {
-    0: () => new GridCellComponent(0, true, undefined, "red"),
-    1: () => new GridCellComponent(1, false, undefined, "orange"),
-    2: () => new GridCellComponent(2, false, undefined, "yellow"),
-    3: () => new GridCellComponent(3, false, undefined, "green"),
-    4: () => new GridCellComponent(4, false, undefined, "blue"),
-    5: () => new GridCellComponent(5, false, undefined, "indigo"),
-    6: () => new GridCellComponent(6, false, undefined, "violet"),
-    7: () => new GridCellComponent(7, false, undefined, "red0"),
-    8: () => new GridCellComponent(8, false, undefined, "orange0"),
-    9: () => new GridCellComponent(9, false, undefined, "yellow0"),
-    10: () => new GridCellComponent(10, false, undefined, "green0"),
-    11: () => new GridCellComponent(11, false, undefined, "blue0"),
-    12: () => new GridCellComponent(12, false, undefined, "indigo0"),
-    13: () => new GridCellComponent(13, false, undefined, "violet0")
-};
-
-const entity = new ECSEntity();
-entity.add_component(new IDCellMapComponent(data));
-EntityManager.current.add_entity(entity);
-//load_tiles();
+//const ai = new AI(new Vector(360, 360), 20, new Vector(0, 0));
 
 load('./resources/grid.txt',function(result){
     WorldStateSystem.parse_entity_grid(result);
@@ -231,7 +230,7 @@ function on_complete(){
                                          DOMManager.canvas.width, DOMManager.canvas.height);
     const camera_component = new CameraComponent();
     if(DISCRETE_SCREENS){
-        camera_component.target = () => player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position.divided(CameraSystem.WIDTH).apply(Math.floor).times(CameraSystem.WIDTH).plus(CameraSystem.WIDTH/2+3);
+        camera_component.target = () => player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position.divided(CameraSystem.WIDTH).apply(Math.floor).times(CameraSystem.WIDTH).plus(CameraSystem.WIDTH/2);
     }else{
         camera_component.target = () => player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position;
     }
@@ -246,10 +245,11 @@ function on_complete(){
     system_manager.entity_manager.add_entity(fps);
     if(entity_inspector)
         system_manager.entity_manager.add_entity(entity_inspector);
-    system_manager.entity_manager.add_entity(player);
     system_manager.add(new KeySystem());
     system_manager.add(new ControlSystem());
-    system_manager.add(new PhysicsRenderSystem(true));
+    system_manager.add(new AIMovementSystem());
+    system_manager.add(new AIGuidanceSystem());
+    system_manager.add(new PhysicsRenderSystem(false));
     system_manager.add(new JointMovementSystem());
     system_manager.add(new JointRenderSystem());
     system_manager.add(new CameraSystem());
