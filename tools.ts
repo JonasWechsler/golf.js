@@ -599,3 +599,98 @@ class CanvasCache {
         return result;
     }
 }
+
+class PriorityQueue<T> {
+    private heap = [];
+    private left = i => 2*i + 1;
+    private right = i => 2*i + 2;
+    private top = 0;
+    private parent = i => (i%2)?(i-1)/2:(i-2)/2;
+    constructor(private comparator:(a:T,b:T)=>boolean = (a, b) => a > b){}
+
+    private swap(a,b){
+        console.log("swap " + a + " with " + b + " " + this.heap);
+        const tmp = this.heap[a];
+        this.heap[a] = this.heap[b];
+        this.heap[b] = tmp;
+    }
+
+    private greater(a,b){
+        return this.comparator(this.heap[a], this.heap[b]);
+    }
+
+    private sift_down(){
+        let node = this.top;
+        while((this.left(node) < this.length && this.greater(this.left(node), node)) ||
+              (this.right(node) < this.length && this.greater(this.right(node), node))){
+            if(this.left(node) >= this.length){
+                this.swap(node, this.right(node));
+                node = this.right(node);
+            }else if(this.right(node) >= this.length){
+                this.swap(node, this.left(node));
+                node = this.left(node);
+            }else if(this.greater(this.left(node), this.right(node))){
+                this.swap(node, this.left(node));
+                node = this.left(node);
+            }else{
+                this.swap(node, this.right(node));
+                node = this.right(node);
+            }
+        }
+    }
+
+    private sift_up(){
+        let node = this.length-1;
+        while( node != this.top && this.greater(node, this.parent(node))){
+            this.swap(node, this.parent(node));
+            node = this.parent(node);
+        }
+    }
+
+    private is_valid(node){
+        return node >= 0 && node < this.length;
+    }
+
+    private validate(){
+        for(let i=0;i<this.length;i++){
+            console.assert(!this.is_valid(this.parent(i)) || this.greater(this.parent(i), i));
+            console.assert(!this.is_valid(this.left(i)) || this.greater(i, this.left(i)));
+            console.assert(!this.is_valid(this.right(i)) || this.greater(i, this.right(i)));
+        }
+    }
+
+    empty():boolean{
+        return this.length == 0;
+    }
+
+    peek():T{
+        return this.heap[this.top];
+    }
+
+    pop():T{
+        const result = this.peek();
+
+        if(this.length == 1){
+            this.heap.pop();
+            return result;
+        }
+
+        const bottom = this.length-1;
+        this.swap(this.top, bottom);
+        this.heap.pop();
+        this.sift_down();
+        this.validate();
+        return result;
+    }
+
+    push(value:T){
+        this.heap.push(value);
+        this.sift_up();
+        this.validate();
+    }
+
+    get length(){
+        return this.heap.length;
+    }
+}
+
