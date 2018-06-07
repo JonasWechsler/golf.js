@@ -7,6 +7,7 @@
     }, 
     "files": [
         "lib/d3-voronoi.d.ts",
+        "lib/cookies.ts",
        "tools.ts",
        "resources/colors.ts",
        "noise.ts",
@@ -16,14 +17,18 @@
        "entity.ts",
        "physics.ts",
        "dom.ts",
+       "ai.ts",
        "camera.ts",
        "joints.ts",
        "generators.ts",
+       "health.ts",
+       "navigationmesh.ts",
        "render.ts",
        "inputs.ts",
        "tiles.ts",
        "wave.ts",
        "world.ts",
+       "save.ts",
        "run.ts"
     ]
 }

@@ -340,24 +340,30 @@ function randomInt(max: number) {
 
 class VectorMap<T>{
   struc: T[][] = [];
+  items: number = 0;
+  constructor(private default_value:T = undefined){}
   map(p: Vector, val: T) {
     if (!this.struc[p.x]) {
       this.struc[p.x] = [];
+    }
+    if (!this.has(p)) {
+        this.items++;
     }
     this.struc[p.x][p.y] = val;
   }
   unmap(p: Vector) {
     if (!this.has(p)) return;
     this.struc[p.x][p.y] = undefined;
+    this.items--;
   }
   has(p: Vector): boolean{
     if (!this.struc[p.x]) {
       return false;
     }
-    return this.struc[p.x][p.y]?true:false;
+    return this.struc[p.x][p.y] != undefined?true:false;
   }
   at(p: Vector): T{
-    if (!this.has(p)) return undefined;
+    if (!this.has(p)) return this.default_value;
     return this.struc[p.x][p.y];
   }
   spread(): Vector[]{
@@ -368,6 +374,13 @@ class VectorMap<T>{
       }
     }
     return result;
+  }
+  get length(){
+    assert(this.spread().length == this.items);
+    return this.items;
+  }
+  empty(): boolean{
+    return this.length == 0;
   }
 }
 
@@ -381,6 +394,12 @@ class VectorSet{
   }
   has(p: Vector): boolean{
     return this.struc.has(p);
+  }
+  get length(){
+    return this.struc.length;
+  }
+  empty(): boolean{
+    return this.struc.length != 0;
   }
 }
 
@@ -609,7 +628,6 @@ class PriorityQueue<T> {
     constructor(private comparator:(a:T,b:T)=>boolean = (a, b) => a > b){}
 
     private swap(a,b){
-        console.log("swap " + a + " with " + b + " " + this.heap);
         const tmp = this.heap[a];
         this.heap[a] = this.heap[b];
         this.heap[b] = tmp;
@@ -653,9 +671,12 @@ class PriorityQueue<T> {
 
     private validate(){
         for(let i=0;i<this.length;i++){
-            console.assert(!this.is_valid(this.parent(i)) || this.greater(this.parent(i), i));
-            console.assert(!this.is_valid(this.left(i)) || this.greater(i, this.left(i)));
-            console.assert(!this.is_valid(this.right(i)) || this.greater(i, this.right(i)));
+            if(this.is_valid(this.parent(i)) && !this.greater(this.parent(i), i))
+                console.log(this.heap);
+            if(this.is_valid(this.left(i)) && !this.greater(i, this.left(i)))
+                console.log(this.heap);
+            if(this.is_valid(this.right(i)) && !this.greater(i, this.right(i)))
+                console.log(this.heap);
         }
     }
 

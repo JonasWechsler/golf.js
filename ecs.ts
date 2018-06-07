@@ -3,7 +3,6 @@ enum ComponentType{
     StaticPhysics,
     Projectile,
     Timer,
-    Health,
     DynamicRender,
     StaticRender,
     UI,
@@ -25,12 +24,10 @@ enum ComponentType{
     Settings,
     SaveOmit,
     WorldState,
-    AIInput
-}
-
-class HealthComponent implements Component{
-    type:ComponentType = ComponentType.Health;
-    constructor(public amount:number){}
+    AIInput,
+    NavigationMesh,
+    Health,
+    NavigationPath
 }
 
 class ECSEntity{

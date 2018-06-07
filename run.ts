@@ -29,7 +29,7 @@ entity.add_component(new IDCellMapComponent(data));
 EntityManager.current.add_entity(entity);
 
 //load_tiles();
-function floor(){
+(function(){
     const colors = ["#ff0000", "#ffa500", "#ffff00", "#00ff00", "#0000ff", "#4b0082", "#8a2be2", "#006400"];
     for(let idx=0;idx<colors.length;idx++){
         const val = colors[idx];
@@ -40,10 +40,9 @@ function floor(){
         color_ent.add_component(color_texture);
         EntityManager.current.add_entity(color_ent);
     }
-}
-floor();
+})();
 
-function background(){
+(function(){
     const ent = new ECSEntity();
     const view = new StaticRenderComponent(0, 0, document.createElement("canvas"), -2);
     view.content.width = view.content.height = 256*8;
@@ -54,8 +53,7 @@ function background(){
     ctx.drawImage(img, 0, 0, view.content.width, view.content.height);
     ent.add_component(view);
     EntityManager.current.add_entity(ent);
-}
-background();
+})();
 
 const DISCRETE_SCREENS = true;
 
@@ -119,19 +117,14 @@ player.add_component(new DynamicPhysicsComponent(new Vector(60, 60), 3));
 player.add_component(new KeyInputComponent());
 
 const player_canvas = document.createElement("canvas");
-player_canvas.width = player_canvas.height = 6;
+player_canvas.width = player_canvas.height = 12;
 player.add_component(new DynamicRenderComponent(0, 0, player_canvas));
+player.add_component(new HealthComponent(90, 100));
 
 if(!DISCRETE_SCREENS)
     joints();
 
-const ai = new ECSEntity();
-ai.add_component(new AIInputComponent(new Vector(60, 60)));
-ai.add_component(new DynamicPhysicsComponent(new Vector(60, 60), 3));
-ai.add_component(new DynamicRenderComponent(0, 0, document.createElement("canvas")));
-
 EntityManager.current.add_entity(player);
-EntityManager.current.add_entity(ai);
 
 function initiate(gg:TileGenerator){
     let id_water = -1;
@@ -222,8 +215,37 @@ function parse_grids(gg:TileGenerator){
 
 function on_complete(){
     GridParserSystem.parse_grids();
-    //GridGeneratorSystem.make_grid(5, 5);
-    //GridGeneratorSystem.create_room(new Square(1, 1, 3, 3));
+
+    (function(){
+        const mesh_entity = new ECSEntity();
+        const mesh = NavigationMeshSystem.make_navigation_mesh(44, 764, 115, 829);
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = canvas.height = 500;
+        mesh.vertices.forEach((v) => 
+                              {
+                                  mesh.adjacent_map.at(v).forEach((v0) => {
+                                     ctx.moveTo(v.x - 44, v.y - 763);
+                                     ctx.lineTo(v0.x - 44, v0.y - 763);
+                                     ctx.stroke();
+                                  });
+                              });
+        const vis_ent = new ECSEntity();
+        player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position = new Vector(44, 763);
+        vis_ent.add_component(new StaticRenderComponent(44, 763, canvas, 5));
+        EntityManager.current.add_entity(vis_ent);
+
+        const ai = new ECSEntity();
+        ai.add_component(new AIInputComponent(new Vector(44, 763)));
+        ai.add_component(new DynamicPhysicsComponent(new Vector(44, 763), 3));
+        const ai_canvas = document.createElement("canvas");
+        ai_canvas.width = ai_canvas.height = 12;
+        ai.add_component(new DynamicRenderComponent(0, 0, ai_canvas));
+        ai.add_component(mesh);
+        ai.add_component(new NavigationPathComponent());
+        EntityManager.current.add_entity(ai);
+    })();
 
     const camera = new ECSEntity();
     const ui_component = new UIComponent(0, 0, document.createElement("canvas"),
@@ -247,11 +269,14 @@ function on_complete(){
         system_manager.entity_manager.add_entity(entity_inspector);
     system_manager.add(new KeySystem());
     system_manager.add(new ControlSystem());
+    system_manager.add(new NavigationMeshSystem());
     system_manager.add(new AIMovementSystem());
     system_manager.add(new AIGuidanceSystem());
+    system_manager.add(new StupidAISystem());
     system_manager.add(new PhysicsRenderSystem(false));
     system_manager.add(new JointMovementSystem());
     system_manager.add(new JointRenderSystem());
+    system_manager.add(new HealthRenderingSystem());
     system_manager.add(new CameraSystem());
     system_manager.add(new UIRenderSystem());
     system_manager.add(new FPSSystem());

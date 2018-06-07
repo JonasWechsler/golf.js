@@ -1,31 +1,3 @@
-class HealthRenderer{
-    public RADIUS : number = 60;
-    private t:number = 0;
-
-    public draw(ctx:CanvasRenderingContext2D, center: Vector, hp:number, maxhp:number){
-        for(let i=0;i<maxhp;i++){
-            const dt = this.t/10;
-            const incr = Math.PI*2/maxhp;
-            const theta = incr*i+dt;
-            if(i > hp - 1){
-                ctx.beginPath();
-                ctx.arc(center.x, center.y, this.RADIUS, theta, theta+incr);
-                ctx.stroke();
-            }else{
-                ctx.beginPath();
-                ctx.arc(center.x, center.y, this.RADIUS, theta, theta+incr/2);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(Math.cos(theta+incr*3/4)*this.RADIUS + center.x,
-                        Math.sin(theta+incr*3/4)*this.RADIUS + center.y,
-                        5, 0, 2*Math.PI);
-                ctx.stroke();
-            }
-        }
-        this.t++;
-    }
-}
-
 class PhysicsRenderSystem implements System{
     constructor(render_statics:boolean=true){
         if(render_statics) this.render_statics();
@@ -65,13 +37,14 @@ class PhysicsRenderSystem implements System{
         dynamics.forEach((s) => {
             const target = s.get_component<DynamicRenderComponent>(ComponentType.DynamicRender);
             const content = s.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
-            target.x = content.position.x - content.r;
-            target.y = content.position.y - content.r;
+            const center = target.content.width/2;
+            target.x = content.position.x - center;
+            target.y = content.position.y - center;
             const ctx = target.content.getContext("2d");
             disableImageSmoothing(ctx);
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
             ctx.beginPath();
-            ctx.arc(content.r, content.r, content.r, 0, 2*Math.PI);
+            ctx.arc(center, center, content.r, 0, 2*Math.PI);
             ctx.fill();
         });
     }

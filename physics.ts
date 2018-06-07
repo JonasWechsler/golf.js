@@ -47,7 +47,7 @@ class PhysicsSystem implements System{
         return sides;
     }
 
-    public lineOfSight(segment:LineSegment):boolean{
+    public static lineOfSight(segment:LineSegment):boolean{
         const statics = EntityManager.current.get_entities([ComponentType.StaticPhysics]);
         for(let i=0;i<statics.length;i++){
             const stat_seg = statics[i].get_component<StaticPhysicsComponent>(ComponentType.StaticPhysics);
@@ -58,10 +58,10 @@ class PhysicsSystem implements System{
         return true;
     }
 
-    public lineOfSightDistance(segment:LineSegment, distance:number):boolean{
+    public static lineOfSightDistance(segment:LineSegment, distance:number):boolean{
         const statics = EntityManager.current.get_entities([ComponentType.StaticPhysics]);
         for(let i=0;i<statics.length;i++){
-            const stat_seg = statics[i].get_component<StaticPhysicsComponent>(ComponentType.DynamicPhysics);
+            const stat_seg = statics[i].get_component<StaticPhysicsComponent>(ComponentType.StaticPhysics);
             if(PhysicsSystem.intersectSegSegDist(segment, stat_seg, distance)){
                 return false;
             }
@@ -69,7 +69,7 @@ class PhysicsSystem implements System{
         return true;
     }
 
-    private stepDynamics() {
+    private static stepDynamics() {
         const dynamics = EntityManager.current.get_entities([ComponentType.DynamicPhysics]);
         dynamics.forEach((entity) => {
             const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
@@ -78,9 +78,7 @@ class PhysicsSystem implements System{
         });
     }
 
-    private resolveCollision(dynamic:DynamicPhysicsComponent, stat:StaticPhysicsComponent){
-        const self = this;
-
+    private static resolveCollision(dynamic:DynamicPhysicsComponent, stat:StaticPhysicsComponent){
         const v0:Vector = stat.v0;
         const v1:Vector = stat.v1;
 
@@ -117,19 +115,19 @@ class PhysicsSystem implements System{
         dynamic.speed.timesEquals(1 - stat.material.friction);
     }
 
-    private processBall(ball_entity: ECSEntity){
+    private static processBall(ball_entity: ECSEntity){
         if(!ball_entity.has_component(ComponentType.DynamicPhysics)){
             throw "Entity must have DynamicPhysics component";
         }
         const ball = ball_entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
         const statics = EntityManager.current.get_entities([ComponentType.StaticPhysics]);
         const dynamics = EntityManager.current.get_entities([ComponentType.DynamicPhysics]);
-        const self = this;
+
         statics.forEach((entity) => {
             const stat = entity.get_component<StaticPhysicsComponent>(ComponentType.StaticPhysics);
             var collision = PhysicsSystem.intersectSegBall(stat, ball);
             if (collision) {
-                self.resolveCollision(ball, stat);
+                PhysicsSystem.resolveCollision(ball, stat);
                 if(ball_entity.has_component(ComponentType.Projectile)){
                     EntityManager.current.remove_entity(ball_entity);
                 }
@@ -142,19 +140,18 @@ class PhysicsSystem implements System{
 
             if(ball_entity.has_component(ComponentType.Projectile) && entity.has_component(ComponentType.Health)){
                 const dmg = ball_entity.get_component<ProjectileComponent>(ComponentType.Projectile).damage;
-                entity.get_component<HealthComponent>(ComponentType.Health).amount -= dmg;
+                entity.get_component<HealthComponent>(ComponentType.Health).hp -= dmg;
             }
 
             if(entity.has_component(ComponentType.Projectile) && ball_entity.has_component(ComponentType.Health)){
                 const dmg = ball_entity.get_component<ProjectileComponent>(ComponentType.Projectile).damage;
-                entity.get_component<HealthComponent>(ComponentType.Health).amount -= dmg;
+                entity.get_component<HealthComponent>(ComponentType.Health).hp -= dmg;
             }
         });
     }
-    private processDynamics():void{
-        var self = this;
+    private static processDynamics():void{
         const dynamics = EntityManager.current.get_entities([ComponentType.DynamicPhysics]);
-        dynamics.forEach((entity:ECSEntity) => self.processBall(entity));
+        dynamics.forEach((entity:ECSEntity) => PhysicsSystem.processBall(entity));
     }
 
     public step():void {
@@ -163,8 +160,8 @@ class PhysicsSystem implements System{
          * 2 check for dynamic on static collisions
          * 3 move all fixeds according to their specific rules.
          */
-        this.stepDynamics();
-        this.processDynamics();
+        PhysicsSystem.stepDynamics();
+        PhysicsSystem.processDynamics();
     }
 
     public static intersectSegBall(seg:LineSegment, ball:Ball):boolean{
