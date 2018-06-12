@@ -218,22 +218,25 @@ function on_complete(){
 
     (function(){
         const mesh_entity = new ECSEntity();
-        const mesh = NavigationMeshSystem.make_navigation_mesh(44, 764, 115, 829);
+        const mesh = NavigationMeshSystem.make_navigation_mesh(4, 4, 200, 900);
 
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        canvas.width = canvas.height = 500;
+        canvas.width = 200;
+        canvas.height = 900;
+        /*
         mesh.vertices.forEach((v) => 
                               {
                                   mesh.adjacent_map.at(v).forEach((v0) => {
-                                     ctx.moveTo(v.x - 44, v.y - 763);
-                                     ctx.lineTo(v0.x - 44, v0.y - 763);
+                                     ctx.moveTo(v.x, v.y);
+                                     ctx.lineTo(v0.x, v0.y);
                                      ctx.stroke();
                                   });
                               });
+                             */
         const vis_ent = new ECSEntity();
         player.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position = new Vector(44, 763);
-        vis_ent.add_component(new StaticRenderComponent(44, 763, canvas, 5));
+        vis_ent.add_component(new StaticRenderComponent(0, 0, canvas, 5));
         EntityManager.current.add_entity(vis_ent);
 
         const ai = new ECSEntity();
