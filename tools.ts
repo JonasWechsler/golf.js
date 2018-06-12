@@ -669,17 +669,6 @@ class PriorityQueue<T> {
         return node >= 0 && node < this.length;
     }
 
-    private validate(){
-        for(let i=0;i<this.length;i++){
-            if(this.is_valid(this.parent(i)) && !this.greater(this.parent(i), i))
-                console.log(this.heap);
-            if(this.is_valid(this.left(i)) && !this.greater(i, this.left(i)))
-                console.log(this.heap);
-            if(this.is_valid(this.right(i)) && !this.greater(i, this.right(i)))
-                console.log(this.heap);
-        }
-    }
-
     empty():boolean{
         return this.length == 0;
     }
@@ -700,14 +689,12 @@ class PriorityQueue<T> {
         this.swap(this.top, bottom);
         this.heap.pop();
         this.sift_down();
-        this.validate();
         return result;
     }
 
     push(value:T){
         this.heap.push(value);
         this.sift_up();
-        this.validate();
     }
 
     get length(){
