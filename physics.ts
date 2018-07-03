@@ -78,6 +78,7 @@ class PhysicsSystem implements System{
         });
     }
 
+    //http://doswa.com/2009/07/13/circle-segment-intersectioncollision.html
     private static resolveCollision(dynamic:DynamicPhysicsComponent, stat:StaticPhysicsComponent){
         const v0:Vector = stat.v0;
         const v1:Vector = stat.v1;
@@ -86,14 +87,24 @@ class PhysicsSystem implements System{
         const originDynamic:Vector = dynamic.position.minus(v0);
 
         const projectedScalar:number = VectorMath.projectScalar(originDynamic, originStatic);
-        const projectedVector:Vector = v0.plus(originStatic.unit().times(projectedScalar));
 
-        const overlap:number = dynamic.r - dynamic.position.distanceTo(projectedVector);
+        let closestPoint;
+        //projected vector is the closest point
+        if (projectedScalar < 0){
+            closestPoint = v0;
+        }else if (projectedScalar > originStatic.length()){
+            closestPoint = v1;
+        }else{
+            const projectedVector:Vector = v0.plus(originStatic.unit().times(projectedScalar));
+            closestPoint = projectedVector;
+        }
+
+        const overlap:number = dynamic.r - dynamic.position.distanceTo(closestPoint);
 
         if (overlap > dynamic.r)
             return;
 
-        const overlapVector:Vector = projectedVector.minus(dynamic.position).unitTimes(overlap);
+        const overlapVector:Vector = closestPoint.minus(dynamic.position).unitTimes(overlap);
 
         if(overlapVector.x*-originStatic.y + overlapVector.y*originStatic.x < 0){
             return;
@@ -102,11 +113,11 @@ class PhysicsSystem implements System{
         const projectedSpeed:number = VectorMath.projectScalar(dynamic.speed, originStatic);
         const projectedSpeedVector:Vector = VectorMath.projectVector(dynamic.speed, originStatic);
         const rejectedSpeedVector:Vector = dynamic.speed.minus(projectedSpeedVector);
-
-        if (!overlapVector.unit().equals(rejectedSpeedVector.unit()))
-            return;
-
-        const perpendicularComponent:number = Math.sqrt(dynamic.speed.length() * dynamic.speed.length() - projectedSpeed * projectedSpeed);
+//
+//        if (!overlapVector.unit().equals(rejectedSpeedVector.unit()))
+//            return;
+//
+//        const perpendicularComponent:number = Math.sqrt(dynamic.speed.length() * dynamic.speed.length() - projectedSpeed * projectedSpeed);
 
         if (dynamic.speed.length() > 1 || stat.material.bounce >= 1) {
             dynamic.speed = projectedSpeedVector.plus(rejectedSpeedVector.timesEquals(-1 * stat.material.bounce));
