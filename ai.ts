@@ -16,7 +16,8 @@ class AIMovementSystem implements System{
         AIs.forEach((entity) => {
             const input = entity.get_component<AIInputComponent>(ComponentType.AIInput);
             const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
-            dynamic.speed = input.walk_target.minus(dynamic.position).clampTo(input.max_speed);
+            dynamic.speed.plusEquals(input.walk_target.minus(dynamic.position.plus(dynamic.speed)).clampTo(0.1));
+            dynamic.speed = dynamic.speed.clampTo(input.max_speed);
         });
     }
 }

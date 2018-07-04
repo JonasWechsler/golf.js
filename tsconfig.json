@@ -7,7 +7,6 @@
     }, 
     "files": [
         "lib/d3-voronoi.d.ts",
-        "lib/cookies.ts",
        "tools.ts",
        "resources/colors.ts",
        "noise.ts",
