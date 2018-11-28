@@ -1,0 +1,67 @@
+class BoneComponent{
+  type:ComponentType = ComponentType.Bone;
+  private T:Mat3;
+  private R:Mat3;
+  private L:number;
+  private _parent:BoneComponent;
+  private _id:number;
+  
+  constructor(offset:Vector, parent:BoneComponent, id:number){
+    this.L = offset.length();
+    let origin:Vector3 = new Vector3(0.0, 0.0, 0.0);
+    let parent_transform:Mat3 = MatrixTransform.scale(1.0);//Identity
+    
+    if(parent !== undefined){
+      origin = parent.endpoint();
+      parent_transform = parent.transform();
+    }
+    
+    let origin_transform:Vector3 = parent_transform.inverse().timesVector(origin);
+    this.T = MatrixTransform.translate(origin_transform.x, origin_transform.y);
+    
+    let parent_rotation:Mat3 = MatrixTransform.scale(1.0);//Identity
+    if(parent !== undefined){
+      parent_rotation = this.parent.rotation();
+    }
+    
+    const endpoint:Vector3 = origin.plus(new Vector3(offset, 0.0));
+    const tangent_unnormalized:Vector3 = parent_transform.times(this.T).inverse().timesVector(endpoint);
+    const tangent:Vector = new Vector(tangent_unnormalized).normalized();
+    
+    this.R = new Mat3([[tangent.x, -tangent.y, 0.0], [tangent.y, tangent.x, 0.0], [0.0, 0.0, 1.0]]);
+  }
+  
+  transform():Mat3{
+    if(this.parent === undefined)
+      return this.T*this.R;
+    return parent->transform().times(this.T).times(this.R);
+  }
+  
+  rotation():Mat3{
+    if(this.parent === undefined)
+      return this.R;
+    return parent->rotation().times(this.R);
+  }
+  
+  origin():Vector3{
+    if(this.parent === undefined)
+      return this.T.timesVector(new Vector3(0.0, 0.0, 1.0));
+    return this.parent.transform().times(this.T).timesVector(new Vector3(0.0, 0.0, 1.0));
+  }
+  
+  endpoint():Vector3{
+    return this.transform().times(new Vector3(this.L, 0.0, 1.0));
+  }
+  
+  get length():number{
+    return this.L;
+  }
+  
+  get parent():number{
+    return this._parent._id;
+  }
+  
+  get id():number{
+    return this._id;
+  }
+}
