@@ -3,10 +3,17 @@ class BoneComponent{
   private T:Mat3;
   private R:Mat3;
   private L:number;
+  private _children:BoneComponent[] = [];
   private _parent:BoneComponent;
   private _id:number;
   
   constructor(offset:Vector, parent:BoneComponent, id:number){
+    this._parent = parent;
+    this._id = id;
+    if(parent !== undefined){
+      this._parent._children.push(this);
+    }
+    
     this.L = offset.length();
     let origin:Vector3 = new Vector3(0.0, 0.0, 0.0);
     let parent_transform:Mat3 = MatrixTransform.scale(1.0);//Identity
@@ -29,6 +36,20 @@ class BoneComponent{
     const tangent:Vector = new Vector(tangent_unnormalized).normalized();
     
     this.R = new Mat3([[tangent.x, -tangent.y, 0.0], [tangent.y, tangent.x, 0.0], [0.0, 0.0, 1.0]]);
+  }
+  
+  move_to(x:number, y:number):void{
+    //Move parent
+    //Move self
+    //Move children
+  }
+  
+  private move_self_and_parents(x:number, y:number):void{
+    
+  }
+  
+  private move_self_and_children(x:number, y:number):void{
+    
   }
   
   transform():Mat3{
@@ -59,6 +80,12 @@ class BoneComponent{
   
   get parent():number{
     return this._parent._id;
+  }
+  
+  get children():number[]{
+    const result = [];
+    this._children.forEach((child) => {result.push(child.id);});
+    return result;
   }
   
   get id():number{
