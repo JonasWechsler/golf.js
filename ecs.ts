@@ -27,7 +27,8 @@ enum ComponentType{
     AIInput,
     NavigationMesh,
     Health,
-    NavigationPath
+    NavigationPath,
+    Bone
 }
 
 class ECSEntity{
