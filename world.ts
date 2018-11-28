@@ -174,7 +174,7 @@ class GridParserSystem implements System{
         const settings_entities:ECSEntity[] = EntityManager.current.get_entities([ComponentType.Settings]);
         console.assert(settings_entities.length == 1);
         const settings_entity = settings_entities[0];
-        const settings:SettingsComponent = settings_entity.get_component(ComponentType.Settings);
+        const settings:SettingsComponent = settings_entity.get_component<SettingsComponent>(ComponentType.Settings);
         const cell_width = settings.cell_width;
         const cell_height = settings.cell_height;
 
