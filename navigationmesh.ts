@@ -45,7 +45,11 @@ class NavigationMeshSystem implements System{
                                 new Vector(i - settings.cell_width, j),
                                 new Vector(i + settings.cell_width, j),
                                 new Vector(i, j - settings.cell_height),
-                                new Vector(i, j + settings.cell_height)
+                                new Vector(i, j + settings.cell_height),
+                                new Vector(i - settings.cell_width, j + settings.cell_width),
+                                new Vector(i - settings.cell_width, j - settings.cell_width),
+                                new Vector(i + settings.cell_width, j + settings.cell_width),
+                                new Vector(i + settings.cell_width, j - settings.cell_width)
                             ].forEach((adj) => {
                                 if(adj.x < min_x || adj.x >= max_x || adj.y < min_y || adj.y >= max_y)
                                     return;
@@ -84,7 +88,7 @@ class NavigationMeshSystem implements System{
                      end:Vector,
                      adj: VectorMap<Vector[]>,
                      heuristic: (a:Vector,
-                                 b:Vector) => number = NavigationMeshSystem.L1_NORM){
+                                 b:Vector) => number = NavigationMeshSystem.L2_NORM){
         const closed = new VectorSet();
 
         const fscore = new VectorMap<number>(Number.MAX_VALUE);

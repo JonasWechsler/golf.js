@@ -1,0 +1,7 @@
+There are 35 elements, each is a certain amount acidic and brittle.
+Each element's acidic inverse will combine to a neutral element of equivalent brittleness.
+Aciditiy is additive mod 7, brittleness is multiplicative mod 5.
+There is no zero brittleness.
+
+E(x, y) has an acidity of x and a brittleness of y.
+

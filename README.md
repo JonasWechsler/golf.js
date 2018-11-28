@@ -1,3 +1,4 @@
+### The World
 * Architecture
     * Buildings are desaturated
     * Surroundings are saturated
@@ -25,6 +26,29 @@
         * Chemistry Lab
         * Workshop (concrete floor, wood furniture)
         * Machine room (Pistons + gears + steam + engines...)
+* Primitive architecture but complex technology
+    * Technology created by extinct civilization
+    * Inhabitants are utilizing technological remains
+* Chemistry / alchemy / magic
+    * Elements are a certain amount brittle and acidic
+    * Chemical reactions between elements
+    * These reactions are turing complete
+    * There are "computers" that run on highly brittle elements in a vacuum
+    * Objects have energy that can be used for chemistry
+    * Sun gives energy
+    * Fungi absorb energy from the sun and can be used as sources of high-energy chemicals
+    * Reactions can release energy in the form of e.g. kinetic energy
+    * Highly brittle elements are basically dust
+    * Acidity of -1, 0, 1 are safe for all living organisms
+    * Acidity of 0 are gaseous at typical temperature
+    * There's no liquids at reasonable temps (maybe very acidic ones?)
+* Biomes
+    * Fucking tons of sand
+    * Sand of all different colors
+    * Rocks and stuff
+    * Plants? Maybe no green but plant-like things
+    * Mushrooms?
+### The Mechanics
 * Position optimization of AI
     * AI is state machine
         * States optimize for different properties
