@@ -167,23 +167,6 @@ class Ball {
     }
 }
 
-class VectorMath {
-  static intersectBallBall(ball0, ball1) {
-    if (ball0.position.distanceTo(ball1) < ball0.r + ball1.r) {
-      return true;
-    }
-    return false;
-  }
-
-  static projectScalar(a:Vector, b:Vector) {
-    return a.dot(b.unit());
-  }
-
-  static projectVector(a:Vector, b:Vector) {
-    return b.unit().timesEquals(VectorMath.projectScalar(a, b));
-  }
-}
-
 function randomInt(max: number) {
   return Math.floor(max * Math.random());
 }

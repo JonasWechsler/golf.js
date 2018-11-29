@@ -10,6 +10,7 @@ enum ComponentType{
     FPS,
     EntityInspector,
     KeyInput,
+    MouseInput,
     WorldCell,
     Dungeon,
     FloorTexture,

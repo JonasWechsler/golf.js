@@ -73,6 +73,38 @@ class KeyInputComponent implements Component{
     constructor(){}
 }
 
+class MouseInputComponent implements Component{
+    type:ComponentType = ComponentType.MouseInput;
+    x:number = 0;
+    y:number = 0;
+    left:boolean = false;
+    middle:boolean = false;
+    right:boolean = false;
+    dx:number = 0;
+    dy:number = 0;
+    get position():Vector{
+        return new Vector(this.x, this.y);
+    }
+}
+
+class MouseInputSystem implements System{
+    step(){
+        const self = this;
+        EntityManager.current.get_entities([ComponentType.MouseInput]).forEach(
+            (entity) => {
+                const input = entity.get_component<MouseInputComponent>(ComponentType.MouseInput);
+                input.dx = MouseInfo.x - input.x;
+                input.dy = MouseInfo.y - input.y;
+                input.x = MouseInfo.x;
+                input.y = MouseInfo.y;
+                input.left = MouseInfo.down(1);
+                input.middle = MouseInfo.down(2);
+                input.right = MouseInfo.down(3);
+            }
+        );
+    }
+}
+
 interface MouseListener{
     onclick: (x : number, y : number, which : number) => void;
     ondown: (x : number, y : number, which : number) => void;
@@ -83,7 +115,7 @@ interface MouseListener{
 class MouseInfo{
     private static mouse_x : number = 0;
     private static mouse_y : number = 0;
-    private static mouse_down : boolean[] = [false, false, false];
+    private static _mouse_down : boolean[] = [false, false, false];
 
     private static listeners : MouseListener[] = [];
 
@@ -134,12 +166,12 @@ class MouseInfo{
         }
 
         function handleMouseDown(event: any) {
-            MouseInfo.mouse_down[event.which] = true;
+            MouseInfo._mouse_down[event.which] = true;
             MouseInfo.trigger_downs(event.pageX, event.pageY, event.which);
         }
 
         function handleMouseUp(event: any) {
-            MouseInfo.mouse_down[event.which] = false;
+            MouseInfo._mouse_down[event.which] = false;
             MouseInfo.trigger_ups(event.pageX, event.pageY, event.which);
         }
 
@@ -153,17 +185,22 @@ class MouseInfo{
         document.onclick = handleMouseClick;
     }
 
-    static x() : number{
+    static get x() : number{
         return this.mouse_x;
     }
 
-    static y() : number {
+    static get y() : number {
         return this.mouse_y;
     }
 
     static down(idx : number) : boolean {
-        return this.mouse_down[idx] ? true : false; //undefined -> false
+        return this._mouse_down[idx] ? true : false; //undefined -> false
     }
+
+    static get mouse_down():{[idx:number]:boolean}{
+        return this.mouse_down;
+    }
+
 
     static add_listener(listener : MouseListener){
         MouseInfo.listeners.push(listener);

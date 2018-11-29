@@ -62,8 +62,8 @@ class CameraSystem implements System{
             left = camera.target().x - width/2;
             top = camera.target().y - height/2;
         }else{
-            const left_norm = (width - MouseInfo.x()) / width;
-            const top_norm = MouseInfo.y() / height;
+            const left_norm = (width - MouseInfo.x) / width;
+            const top_norm = MouseInfo.y / height;
 
             const shift_width = ui.content.width - width;
             const shift_height = ui.content.height - height;

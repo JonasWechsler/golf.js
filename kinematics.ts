@@ -38,7 +38,17 @@ class BoneComponent{
     this.R = new Mat3([[tangent.x, -tangent.y, 0.0], [tangent.y, tangent.x, 0.0], [0.0, 0.0, 1.0]]);
   }
   
+  rotate(theta:number):void{
+    this.R = this.R.times(Mat3Transform.rotate(theta));
+  }
+
+  intersects(ball:Ball):boolean{
+    const seg = new LineSegment(new Vector(this.origin()), new Vector(this.endpoint()));
+    return VectorMath.intersectSegBall(seg, ball);
+  }
+
   move_to(x:number, y:number):void{
+    
     //Move parent
     //Move self
     //Move children

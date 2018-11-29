@@ -9,6 +9,7 @@
         "lib/d3-voronoi.d.ts",
        "vector.ts",
        "tools.ts",
+       "vectormath.ts",
        "resources/colors.ts",
        "noise.ts",
        "textures.ts",
