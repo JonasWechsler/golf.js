@@ -57,12 +57,45 @@ class BoneComponent{
     return VectorMath.intersectSegBall(seg, ball);
   }
 
+  private marked:boolean = false;
+
   move_endpoint(x:number, y:number):void{
-    this.move_self_and_parents(x, y);
-    //this.move_self_and_children(x, y);
-    //Move parent
-    //Move self
-    //Move children
+      this.move_self_and_parents(x,y);
+      this.move_self_and_children(x,y);
+      /*
+    this.marked = false;
+    const x0 = new Vector(x, y);
+    const x1 = new Vector(this.origin());
+
+    const L = x1.distanceTo(x0);
+
+    const b = this.length/L;
+    const a = 1-b;
+    const o = x0.times(a).plus(x1.times(b));
+
+    if(this._parent !== undefined){
+        this.marked = true;
+    if(!this._parent.marked){
+        this._parent.move_endpoint(o.x, o.y);
+    }
+    }else{
+        this._root_origin = o;
+    }
+    
+    this.set_offset(x0.minus(o));
+
+    this._children.forEach((bone) => {
+          if(bone.marked)
+              return;
+          const x1 = new Vector(bone.endpoint());
+          const L = x1.distanceTo(x0);
+          const b = this.length/L;
+          const a = 1-b;
+          const o = x0.times(a).plus(x1.times(b));
+          bone.move_endpoint(o.x, o.y);
+     });
+     this.marked = false;
+    */
   }
   
   private move_self_and_parents(x:number, y:number):void{
@@ -75,7 +108,6 @@ class BoneComponent{
     const a = 1-b;
     const o = x0.times(a).plus(x1.times(b));
 
-    if(Math.abs(o.distanceTo(x0) - this.length) > VECTOR_EPS) console.log(o, x0);
     if(this._parent !== undefined){
         this._parent.move_self_and_parents(o.x, o.y);
     }else{
@@ -86,14 +118,14 @@ class BoneComponent{
   }
   
   private move_self_and_children(x:number, y:number):void{
-    const x1 = new Vector(x, y);
+    const x0 = new Vector(x, y);
     if(this._parent !== undefined){
-        this.set_offset(x1.minus(new Vector(this._parent.endpoint())));
-    }else{
-        this.set_offset(x1);
+        const x1 = new Vector(this._parent.endpoint());
+        this.set_offset(x0.minus(x1));
     }
+
     this._children.forEach((bone) => {
-      const x0 = new Vector(bone.endpoint());
+      const x1 = new Vector(bone.endpoint());
       const L = x1.distanceTo(x0);
       const b = this.length/L;
       const a = 1-b;

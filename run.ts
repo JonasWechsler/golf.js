@@ -21,8 +21,9 @@ console.log(mat3rot.timesVector(mat3trans.timesVector(vec3)));
 console.log("inverse transform:", mat3trans.inverse().array);
 console.log("inverse rotation:", mat3rot.inverse().array);
 const root = new BoneComponent(new Vector(100, 50), new Vector(10, 10), 0);
-const a = new BoneComponent(new Vector(50, 50), root, 1);
-const b = new BoneComponent(new Vector(50, 50), a, 2);
+const a = new BoneComponent(new Vector(-50, 50), root, 1);
+const b = new BoneComponent(new Vector(50, 50), root, 2);
+const c = new BoneComponent(new Vector(20, 20), b, 3);
 const add_bone = (x:BoneComponent) => {
     const entity = new ECSEntity();
     entity.add_component(x);
@@ -31,10 +32,10 @@ const add_bone = (x:BoneComponent) => {
 add_bone(root);
 add_bone(a);
 add_bone(b);
-//add_bone(new BoneComponent(new Vector(-20, 20), a, 3));
-//add_bone(new BoneComponent(new Vector(20, 20), a, 3));
-//add_bone(new BoneComponent(new Vector(-20, 20), b, 3));
-//add_bone(new BoneComponent(new Vector(20, 20), b, 3));
+//add_bone(new BoneComponent(new Vector(-20, 20), a, 4));
+//add_bone(new BoneComponent(new Vector(20, 20), a, 5));
+//add_bone(new BoneComponent(new Vector(-20, 20), b, 6));
+//add_bone(c);
 
 console.log(root, a, b);
 console.log("root", root.origin(), root.endpoint());
