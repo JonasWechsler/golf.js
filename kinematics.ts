@@ -6,28 +6,38 @@ class BoneComponent{
   private _children:BoneComponent[] = [];
   private _parent:BoneComponent;
   private _id:number;
+  private _root_origin:Vector;
   
-  constructor(offset:Vector, parent:BoneComponent, id:number){
-    this._parent = parent;
+  constructor(offset:Vector, parent:BoneComponent|Vector, id:number){
+    if(parent instanceof BoneComponent){
+        this._parent = parent;
+    }else if(parent instanceof Vector){
+        this._root_origin = parent;
+    }
     this._id = id;
-    if(parent !== undefined){
+    this.set_offset(offset);
+    if(this._parent !== undefined){
       this._parent._children.push(this);
     }
-    
+  }
+
+  private set_offset(offset:Vector){
     this.L = offset.length();
     let origin:Vector3 = new Vector3(0.0, 0.0, 0.0);
     let parent_transform:Mat3 = Mat3Transform.identity();//Identity
     
-    if(parent !== undefined){
-      origin = parent.endpoint();
-      parent_transform = parent.transform();
+    if(this._parent !== undefined){
+      origin = this._parent.endpoint();
+      parent_transform = this._parent.transform();
+    }else{
+      origin = new Vector3(this._root_origin, 1.0);
     }
     
     let origin_transform:Vector3 = parent_transform.inverse().timesVector(origin);
     this.T = Mat3Transform.translate(origin_transform.x, origin_transform.y);
     
     let parent_rotation:Mat3 = Mat3Transform.identity();//Identity
-    if(parent !== undefined){
+    if(this._parent !== undefined){
       parent_rotation = this._parent.rotation();
     }
     
@@ -47,19 +57,49 @@ class BoneComponent{
     return VectorMath.intersectSegBall(seg, ball);
   }
 
-  move_to(x:number, y:number):void{
-    
+  move_endpoint(x:number, y:number):void{
+    this.move_self_and_parents(x, y);
+    //this.move_self_and_children(x, y);
     //Move parent
     //Move self
     //Move children
   }
   
   private move_self_and_parents(x:number, y:number):void{
+    const x0 = new Vector(x, y);
+    const x1 = new Vector(this.origin());
+
+    const L = x1.distanceTo(x0);
+
+    const b = this.length/L;
+    const a = 1-b;
+    const o = x0.times(a).plus(x1.times(b));
+
+    if(Math.abs(o.distanceTo(x0) - this.length) > VECTOR_EPS) console.log(o, x0);
+    if(this._parent !== undefined){
+        this._parent.move_self_and_parents(o.x, o.y);
+    }else{
+        this._root_origin = o;
+    }
     
+    this.set_offset(x0.minus(o));
   }
   
   private move_self_and_children(x:number, y:number):void{
-    
+    const x1 = new Vector(x, y);
+    if(this._parent !== undefined){
+        this.set_offset(x1.minus(new Vector(this._parent.endpoint())));
+    }else{
+        this.set_offset(x1);
+    }
+    this._children.forEach((bone) => {
+      const x0 = new Vector(bone.endpoint());
+      const L = x1.distanceTo(x0);
+      const b = this.length/L;
+      const a = 1-b;
+      const o = x0.times(a).plus(x1.times(b));
+      bone.move_self_and_children(o.x, o.y);
+    });
   }
   
   transform():Mat3{
@@ -77,7 +117,7 @@ class BoneComponent{
   
   origin():Vector3{
     if(this._parent === undefined)
-      return this.T.timesVector(new Vector3(0.0, 0.0, 1.0));
+        return new Vector3(this._root_origin, 1.0);
     return this._parent.transform().times(this.T).timesVector(new Vector3(0.0, 0.0, 1.0));
   }
   
@@ -90,7 +130,9 @@ class BoneComponent{
   }
   
   get parent():number{
-    return this._parent._id;
+    if(this._parent !== undefined)
+        return this._parent._id;
+    return -1;
   }
   
   get children():number[]{

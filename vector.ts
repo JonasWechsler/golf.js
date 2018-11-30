@@ -74,7 +74,9 @@ class Vector extends Point{
       this.x += v[0];
       this.y += v[1];
     } else {
-      throw "Error: <" + JSON.stringify(v) + "> + <" + this.x + ", " + this.y + "> is not valid";
+      var error = new Error("<" + JSON.stringify(v) + "> += <" + this.x + ", " + this.y + ">");
+      error.message += error.stack;
+      throw error;
     }
     return this;
   }
@@ -87,20 +89,26 @@ class Vector extends Point{
     return this;
   }
   minus(v: Quantity) {
-    if (v instanceof Vector)
+    if (v instanceof Vector){
       return this.plus(v.times(-1));
-    else if(typeof v === "number")
+    }else if(typeof v === "number"){
       return this.plus(v * -1);
-    else
-      throw "<" + JSON.stringify(v) + "> * <" + this.x + ", " + this.y + "> is not valid";
+    }else{
+      var error = new Error("<" + JSON.stringify(v) + "> - <" + this.x + ", " + this.y + ">");
+      error.message += error.stack;
+      throw error;
+    }
   }
   minusEquals(v: Quantity) {
     if (v instanceof Vector)
       return this.plusEquals(v.times(-1));
     else if(typeof v === "number")
       return this.plusEquals(v * -1);
-    else
-      throw "<" + this.x + ", " + this.y + "> -= <" + JSON.stringify(v) + "> is not valid";
+    else{
+      var error = new Error("<" + JSON.stringify(v) + "> -= <" + this.x + ", " + this.y + ">");
+      error.message += error.stack;
+      throw error;
+    }
   }
   divided(scalar: number) {
     return this.times(1 / scalar);
