@@ -20,10 +20,15 @@ const mat3rot = Mat3Transform.rotate(Math.PI/2);
 console.log(mat3rot.timesVector(mat3trans.timesVector(vec3)));
 console.log("inverse transform:", mat3trans.inverse().array);
 console.log("inverse rotation:", mat3rot.inverse().array);
-const root = new BoneComponent(new Vector(100, 50), new Vector(10, 10), 0);
-const a = new BoneComponent(new Vector(-50, 50), root, 1);
-const b = new BoneComponent(new Vector(50, 50), root, 2);
-const c = new BoneComponent(new Vector(20, 20), b, 3);
+const root = new BoneComponent(new Vector(20, 0), new Vector(200, 200), 0);
+const a = new BoneComponent(new Vector(-50, -50), root, 1);//150, 150
+const b = new BoneComponent(new Vector(50, 50), root, 2);//250, 250
+const c = new BoneComponent(new Vector(0, -50), a, 3);//150, 100
+const d = new BoneComponent(new Vector(-50, 0), a, 4);//100, 150
+const e = new BoneComponent(new Vector(0, 50), b, 5);//250, 300
+const f = new BoneComponent(new Vector(50, 0), b, 6);//300, 250
+const g = new BoneComponent(new Vector(0, -50), c, 7);
+const h = new BoneComponent(new Vector(0, -50), d, 8);
 const add_bone = (x:BoneComponent) => {
     const entity = new ECSEntity();
     entity.add_component(x);
@@ -32,15 +37,12 @@ const add_bone = (x:BoneComponent) => {
 add_bone(root);
 add_bone(a);
 add_bone(b);
-//add_bone(new BoneComponent(new Vector(-20, 20), a, 4));
-//add_bone(new BoneComponent(new Vector(20, 20), a, 5));
-//add_bone(new BoneComponent(new Vector(-20, 20), b, 6));
-//add_bone(c);
-
-console.log(root, a, b);
-console.log("root", root.origin(), root.endpoint());
-console.log("a", a.origin(), a.endpoint());
-console.log("b", b.origin(), b.endpoint());
+add_bone(c);
+add_bone(d);
+add_bone(g);
+add_bone(h);
+add_bone(e);
+add_bone(f);
 
 function init_canvas(){
     const canvas = new ECSEntity();
@@ -78,7 +80,11 @@ class BoneSelectSystem implements System{
     public step(){
         const mouse = EntityManager.current.get_entities([ComponentType.MouseInput])[0];
         const mouse_info = mouse.get_component<MouseInputComponent>(ComponentType.MouseInput);
-        b.move_endpoint(mouse_info.x, mouse_info.y);
+        h.move_endpoint(150, 150);
+        g.move_endpoint(200, 100);
+        e.move_endpoint(300, 300);
+        f.move_endpoint(350, 250);
+        a.move_endpoint(mouse_info.x, mouse_info.y);
         if(mouse_info.left){
             if(BoneSelectSystem.current_bone === undefined){
                 const highlighted = BoneSelectSystem.highlighted_bone();
@@ -124,6 +130,7 @@ class BoneRenderSystem implements System{
             context.beginPath();
             context.moveTo(a.x, a.y);
             context.lineTo(b.x, b.y);
+            context.fillRect(b.x, b.y, 10, 10);
             context.lineWidth = 2;
             context.stroke();
         });

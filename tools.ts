@@ -2,8 +2,13 @@ interface Error{
   stack?: string;
 }
 
-function assert(b:boolean){
-    if(!b) throw "Assert failed!";
+function assert(b:boolean, m?:string){
+    if(!b){
+      var error = new Error("Assert failed!");
+      if(m) error.message += m;
+      error.message += error.stack;
+      throw error;
+    }
 }
 
 function cantorPairing(x:number, y:number){

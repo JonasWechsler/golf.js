@@ -161,6 +161,9 @@ class Vector extends Point{
     v.y = ynew + p.y;
     return v;
   }
+  to_string(){
+    return "<" + this.x + "," + this.y + ">";
+  }
 }
 
 class Point3 {

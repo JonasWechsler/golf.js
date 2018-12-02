@@ -107,6 +107,7 @@ const COLOR_SCHEME: { [key:string]:[string,number][]; } = {
     ]
 };
 
+{
 let h,s,v;
 h=s=v=0;
 
@@ -132,6 +133,7 @@ for(let key in COLOR_SCHEME){
 
         COLOR_SCHEME[new_key].push([color.to_hex(), entry[1]]);
     }
+}
 }
 
 
