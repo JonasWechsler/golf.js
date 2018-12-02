@@ -20,7 +20,7 @@ const mat3rot = Mat3Transform.rotate(Math.PI/2);
 console.log(mat3rot.timesVector(mat3trans.timesVector(vec3)));
 console.log("inverse transform:", mat3trans.inverse().array);
 console.log("inverse rotation:", mat3rot.inverse().array);
-const root = new BoneComponent(new Vector(20, 0), new Vector(200, 200), 0);
+const root = new BoneComponent(new Vector(1, 1), new Vector(200, 200), 0);
 const a = new BoneComponent(new Vector(-50, -50), root, 1);//150, 150
 const b = new BoneComponent(new Vector(50, 50), root, 2);//250, 250
 const c = new BoneComponent(new Vector(0, -50), a, 3);//150, 100
@@ -61,6 +61,7 @@ init_canvas();
 
 class BoneSelectSystem implements System{
     static current_bone:ECSEntity;
+    static current_endpoint:ECSEntity;
 
     static highlighted_bone():ECSEntity{
         const mouse = EntityManager.current.get_entities([ComponentType.MouseInput])[0];
@@ -77,6 +78,23 @@ class BoneSelectSystem implements System{
         return undefined;
     }
 
+    static highlighted_endpoint():ECSEntity{
+        const mouse = EntityManager.current.get_entities([ComponentType.MouseInput])[0];
+        const mouse_info = mouse.get_component<MouseInputComponent>(ComponentType.MouseInput);
+        const entities = EntityManager.current.get_entities([ComponentType.Bone]);
+
+        for(let idx = 0; idx < entities.length; idx++){
+            const entity = entities[idx];
+            const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
+            const endpoint = new Ball(bone.endpoint(), 10);
+            const mouse = new Ball(mouse_info.position, 10);
+            if(VectorMath.intersectBallBall(endpoint, mouse)){
+                return entity;
+            }
+        }
+        return undefined;
+    }
+
     public step(){
         const mouse = EntityManager.current.get_entities([ComponentType.MouseInput])[0];
         const mouse_info = mouse.get_component<MouseInputComponent>(ComponentType.MouseInput);
@@ -84,18 +102,26 @@ class BoneSelectSystem implements System{
         g.move_endpoint(200, 100);
         e.move_endpoint(300, 300);
         f.move_endpoint(350, 250);
-        a.move_endpoint(mouse_info.x, mouse_info.y);
         if(mouse_info.left){
-            if(BoneSelectSystem.current_bone === undefined){
-                const highlighted = BoneSelectSystem.highlighted_bone();
-                if(highlighted !== undefined){
-                    BoneSelectSystem.current_bone = highlighted;
+            if(BoneSelectSystem.current_endpoint === undefined){
+                const highlighted_endpoint = BoneSelectSystem.highlighted_endpoint();
+                if(highlighted_endpoint !== undefined){
+                    BoneSelectSystem.current_endpoint = highlighted_endpoint;
+                }else if(BoneSelectSystem.current_bone === undefined){
+                    const highlighted = BoneSelectSystem.highlighted_bone();
+                    if(highlighted !== undefined){
+                        BoneSelectSystem.current_bone = highlighted;
+                    }
+                }else{
+                    const bone = BoneSelectSystem.current_bone.get_component<BoneComponent>(ComponentType.Bone);
+                    bone.rotate(mouse_info.dx/-100);
                 }
             }else{
-                const bone = BoneSelectSystem.current_bone.get_component<BoneComponent>(ComponentType.Bone);
-                bone.rotate(mouse_info.dx/-100);
+                const bone = BoneSelectSystem.current_endpoint.get_component<BoneComponent>(ComponentType.Bone);
+                bone.move_endpoint(mouse_info.x, mouse_info.y);
             }
         }else{
+            BoneSelectSystem.current_endpoint = undefined;
             BoneSelectSystem.current_bone = undefined;
         }
     }
@@ -120,8 +146,9 @@ class BoneRenderSystem implements System{
         bone_entities.forEach((entity) => {
             if(BoneSelectSystem.current_bone === entity){
                 context.strokeStyle = "red";
-            }else if(BoneSelectSystem.highlighted_bone() === entity){
-                context.strokeStyle = "blue";
+            }else if(BoneSelectSystem.highlighted_bone() === entity &&
+                    BoneSelectSystem.highlighted_endpoint() === undefined){
+                context.strokeStyle = "green";
             }else{
                 context.strokeStyle = "black";
             }
@@ -130,9 +157,16 @@ class BoneRenderSystem implements System{
             context.beginPath();
             context.moveTo(a.x, a.y);
             context.lineTo(b.x, b.y);
-            context.fillRect(b.x, b.y, 10, 10);
             context.lineWidth = 2;
             context.stroke();
+            if(BoneSelectSystem.current_endpoint === entity){
+                context.fillStyle = "red";
+            }else if(BoneSelectSystem.highlighted_endpoint() === entity){
+                context.fillStyle = "green";
+            }else{
+                context.fillStyle = "black";
+            }
+            context.fillRect(b.x - 5, b.y - 5, 10, 10);
         });
     }
 }
