@@ -29,7 +29,9 @@ enum ComponentType{
     NavigationMesh,
     Health,
     NavigationPath,
-    Bone
+    Bone,
+    Skeleton,
+    Mesh
 }
 
 class ECSEntity{

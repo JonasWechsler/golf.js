@@ -14,12 +14,6 @@ const mouse_entity = new ECSEntity();
 mouse_entity.add_component(new MouseInputComponent());
 EntityManager.current.add_entity(mouse_entity);
 
-const vec3 = new Vector3(0, 0, 1);
-const mat3trans = Mat3Transform.translate(1, 0);
-const mat3rot = Mat3Transform.rotate(Math.PI/2);
-console.log(mat3rot.timesVector(mat3trans.timesVector(vec3)));
-console.log("inverse transform:", mat3trans.inverse().array);
-console.log("inverse rotation:", mat3rot.inverse().array);
 const root = new BoneComponent(new Vector(1, 1), new Vector(200, 200), 0);
 const a = new BoneComponent(new Vector(-50, -50), root, 1);//150, 150
 const b = new BoneComponent(new Vector(50, 50), root, 2);//250, 250

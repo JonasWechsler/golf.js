@@ -6,8 +6,9 @@ class BoneComponent{
   private _children:BoneComponent[] = [];
   private _parent:BoneComponent;
   private _id:number;
-  public _root_origin:Vector;
+  private _root_origin:Vector;
   private _old_endpoint:Vector;
+  private _marked:boolean = false;
   
   constructor(offset:Vector, parent:BoneComponent|Vector, id:number){
     if(parent instanceof BoneComponent){
@@ -66,17 +67,15 @@ class BoneComponent{
     return VectorMath.intersectSegBall(seg, ball);
   }
 
-  private marked:boolean = false;
-
   move_endpoint(x:number, y:number):void{
-    this.marked = true;
+    this._marked = true;
     const endpoint = new Vector(x, y);
     const origin = this.origin();
     const L = origin.minus(endpoint).unit();
     const o = endpoint.plus(L.times(this.length));
 
     if(this._parent !== undefined){
-        if(!this._parent.marked)
+        if(!this._parent._marked)
             this._parent.move_endpoint(o.x, o.y);
         assert(this._parent.endpoint().equals(o));
     }else{
@@ -90,7 +89,7 @@ class BoneComponent{
 
     for(let idx=0;idx<this._children.length;idx++){
         const bone = this._children[idx];
-        if(bone.marked) continue;
+        if(bone._marked) continue;
         const x0 = endpoint;
         const x1 = bone._old_endpoint;
         const L = x1.minus(x0).unit();
@@ -98,44 +97,8 @@ class BoneComponent{
         bone.move_endpoint(o.x, o.y);
     }
 
-     this.marked = false;
+     this._marked = false;
      this._old_endpoint = this.endpoint();
-  }
-  
-  private move_self_and_parents(x:number, y:number):void{
-    const x0 = new Vector(x, y);
-    const x1 = this.origin();
-
-    const L = x1.distanceTo(x0);
-
-    const b = this.length/L;
-    const a = 1-b;
-    const o = x0.times(a).plus(x1.times(b));
-
-    if(this._parent !== undefined){
-        this._parent.move_self_and_parents(o.x, o.y);
-    }else{
-        this._root_origin = o;
-    }
-    
-    this.set_offset(x0.minus(o));
-  }
-  
-  private move_self_and_children(x:number, y:number):void{
-    const x0 = new Vector(x, y);
-    if(this._parent !== undefined){
-        const x1 = this._parent.endpoint();
-        this.set_offset(x0.minus(x1));
-    }
-
-    this._children.forEach((bone) => {
-      const x1 = bone.endpoint();
-      const L = x1.distanceTo(x0);
-      const b = this.length/L;
-      const a = 1-b;
-      const o = x0.times(a).plus(x1.times(b));
-      bone.move_self_and_children(o.x, o.y);
-    });
   }
   
   transform():Mat3{
