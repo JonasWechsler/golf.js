@@ -21,6 +21,7 @@
        "ai.ts",
        "camera.ts",
        "kinematics.ts",
+       "skeleton.ts",
        "joints.ts",
        "generators.ts",
        "health.ts",
