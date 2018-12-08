@@ -54,3 +54,10 @@ class SkeletonComponent implements Component{
 class MeshComponent implements Component{
     type:ComponentType = ComponentType.Mesh;
 }
+
+class ModelReader{
+    static read(str:string){
+        const lines:string[] = str.split("\n");
+
+    }
+}
