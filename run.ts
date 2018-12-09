@@ -155,6 +155,26 @@ async function main(){
                 }
                 context.fillRect(b.x - 5, b.y - 5, 10, 10);
             });
+
+            const mesh_entities:ECSEntity[] = EntityManager.current.get_entities([ComponentType.Mesh]);
+            mesh_entities.forEach((entity) => {
+                const mesh = entity.get_component<MeshComponent>(ComponentType.Mesh);
+                mesh.update_animation();
+                context.fillStyle = "black";
+                context.lineWidth = 2;
+                context.strokeStyle = "rgba(100, 0, 100, 0.5)";
+                mesh.vertices.forEach((vertex) => {
+                    context.fillRect(vertex.x - 5, vertex.y - 5, 10, 10);
+                });
+                mesh.line_ids.forEach((ids) => {
+                    const v0 = mesh.vertices[ids.x];
+                    const v1 = mesh.vertices[ids.y];
+                    context.beginPath();
+                    context.moveTo(v0.x, v0.y);
+                    context.lineTo(v1.x, v1.y);
+                    context.stroke();
+                });
+            });
         }
     }
 

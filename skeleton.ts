@@ -88,6 +88,44 @@ class SkeletonComponent implements Component{
 
 class MeshComponent implements Component{
     type:ComponentType = ComponentType.Mesh;
+    inverse_reference_pose:Mat3[];
+    reference_pose:Vector3[];
+
+    constructor(public skeleton:SkeletonComponent,
+                public weights:number[][],
+                public vertices:Vector[],
+                public line_ids:Point[]){
+        this.reference_pose = [];
+        for(let vid = 0; vid < vertices.length; vid++){
+            this.reference_pose.push(new Vector3(vertices[vid], 1.0));
+        }
+        this.inverse_reference_pose = [];
+        for(let id = 0; id < skeleton.length; id++){
+            const bone_entity = skeleton.id_to_bone(id);
+            const bone = bone_entity.get_component<BoneComponent>(ComponentType.Bone);
+            this.inverse_reference_pose.push(bone.transform().inverse());
+        }
+    }
+
+    update_animation(){
+        for(let vertex = 0; vertex < this.vertices.length; vertex++){
+            this.vertices[vertex].timesEquals(0);
+        }
+        for(let bone_id = 0; bone_id < this.skeleton.length; bone_id++){
+            const inverse = this.inverse_reference_pose[bone_id];
+            const bone_entity = this.skeleton.id_to_bone(bone_id);
+            const bone = bone_entity.get_component<BoneComponent>(ComponentType.Bone);
+            const B = bone.transform().times(inverse);
+            for(let vid = 0; vid < this.vertices.length; vid++){
+                if(this.weights[bone_id][vid] === 0.0){
+                    continue;
+                }
+                const weight = this.weights[bone_id][vid];
+                const dvec = B.timesVector(this.reference_pose[vid]);
+                this.vertices[vid].plusEquals(new Vector(dvec).times(weight));
+            }
+        }
+    }
 }
 
 class ModelReader{
@@ -96,7 +134,7 @@ class ModelReader{
         await ss.read_async(fn);
 
         const bones = ss.int();
-        const vertices = ss.int();
+        const verts = ss.int();
 
         let parents:number[] = [];
         let offsets:Vector[] = [];
@@ -111,5 +149,32 @@ class ModelReader{
         const skeleton_entity = new ECSEntity();
         skeleton_entity.add_component(skeleton_component);
         EntityManager.current.add_entity(skeleton_entity);
+
+        let vertices:Vector[] = [];
+        for(let vid = 0; vid < verts; vid++){
+            const x = ss.float();
+            const y = ss.float();
+            vertices.push(new Vector(x, y));
+        }
+
+        let lines:Point[] = [];
+        for(let line = 0; line < verts; line++){
+            const vid0 = ss.int();
+            const vid1 = ss.int();
+            lines.push(new Point(vid0, vid1));
+        }
+
+        let weights:number[][] = [];
+        for(let bone = 0; bone < bones; bone++){
+            weights[bone] = [];
+            for(let vid = 0; vid < verts; vid++){
+                weights[bone][vid] = ss.float();
+            }
+        }
+
+        const mesh_component = new MeshComponent(skeleton_component, weights, vertices, lines);
+        const mesh_entity = new ECSEntity();
+        mesh_entity.add_component(mesh_component);
+        EntityManager.current.add_entity(mesh_entity);
     }
 }
