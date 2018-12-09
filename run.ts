@@ -54,14 +54,14 @@ async function main(){
         static highlighted_bone():ECSEntity{
             const mouse = EntityManager.current.get_entities([ComponentType.MouseInput])[0];
             const mouse_info = mouse.get_component<MouseInputComponent>(ComponentType.MouseInput);
-            const entities = EntityManager.current.get_entities([ComponentType.Bone]);
+            const entities = EntityManager.current.get_entities([ComponentType.Skeleton]);
 
             for(let idx = 0; idx < entities.length; idx++){
                 const entity = entities[idx];
-                const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
-                if(bone.intersects(new Ball(mouse_info.position, 10))){
-                    return entity;
-                }
+                const skeleton = entity.get_component<SkeletonComponent>(ComponentType.Skeleton);
+                const intersection:number = skeleton.get_bone_by_intersection(mouse_info.position, 10);
+                if(intersection != -1)
+                    return skeleton.id_to_bone(intersection);
             }
             return undefined;
         }
@@ -69,15 +69,14 @@ async function main(){
         static highlighted_endpoint():ECSEntity{
             const mouse = EntityManager.current.get_entities([ComponentType.MouseInput])[0];
             const mouse_info = mouse.get_component<MouseInputComponent>(ComponentType.MouseInput);
-            const entities = EntityManager.current.get_entities([ComponentType.Bone]);
+            const entities = EntityManager.current.get_entities([ComponentType.Skeleton]);
 
             for(let idx = 0; idx < entities.length; idx++){
                 const entity = entities[idx];
-                const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
-                const endpoint = new Ball(bone.endpoint(), 10);
-                const mouse = new Ball(mouse_info.position, 10);
-                if(VectorMath.intersectBallBall(endpoint, mouse)){
-                    return entity;
+                const bone = entity.get_component<SkeletonComponent>(ComponentType.Skeleton);
+                const intersection = bone.get_bone_by_endpoint_intersection(mouse_info.position, 20);
+                if(intersection !== -1){
+                    return bone.id_to_bone(intersection);
                 }
             }
             return undefined;

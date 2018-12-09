@@ -14,7 +14,6 @@ class SkeletonComponent implements Component{
                 children[parents[id]] = [];
             children[parents[id]].push(id);
         }
-        console.log(children);
 
         const root:number = children[-1][0];
         assert(children[-1].length == 1);
@@ -45,6 +44,33 @@ class SkeletonComponent implements Component{
         }
 
         this._root = this._id_to_bone[root];
+    }
+
+    get_bone_by_intersection(position:Vector, radius:number):number{
+        const ball = new Ball(position, radius);
+
+        for(let id = 0; id < this.length; id++){
+            const bone = this._id_to_bone[id].get_component<BoneComponent>([ComponentType.Bone]);
+            if(bone.intersects(ball)){
+                return id;
+            }
+        }
+
+        return -1;
+    }
+
+    get_bone_by_endpoint_intersection(position:Vector, radius:number):number{
+        const ball = new Ball(position, radius);
+
+        for(let id = 0; id < this.length; id++){
+            const bone = this._id_to_bone[id].get_component<BoneComponent>([ComponentType.Bone]);
+            const endpoint = new Ball(bone.endpoint(), VECTOR_EPS);
+            if(VectorMath.intersectBallBall(endpoint, ball)){
+                return id;
+            }
+        }
+
+        return -1;
     }
 
     get length():number{
