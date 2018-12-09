@@ -10,16 +10,15 @@ class BoneComponent{
   private _old_endpoint:Vector;
   private _marked:boolean = false;
   
-  constructor(offset:Vector, parent:BoneComponent|Vector, id:number){
-    if(parent instanceof BoneComponent){
-        this._parent = parent;
-    }else if(parent instanceof Vector){
-        this._root_origin = parent;
-    }
+  constructor(offset:Vector, id:number, parent?:BoneComponent){
     this._id = id;
-    this.set_offset(offset);
-    if(this._parent !== undefined){
-      this._parent._children.push(this);
+    if(parent === undefined){
+       this._root_origin = offset;
+       this.set_offset(new Vector(VECTOR_EPS, VECTOR_EPS));
+    }else{
+       this._parent = parent;
+       this.set_offset(offset);
+       this._parent._children.push(this);
     }
     this._old_endpoint = this.endpoint();
   }

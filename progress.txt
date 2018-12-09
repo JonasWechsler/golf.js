@@ -1,0 +1,12 @@
+I'm starting with an ECS-based "engine" that I made for an independent project.
+
+For this project, I have implemented:
+* Vector math, matrix multiplication and inversion
+* Skeletons / rigs
+* The ability to "drag" joints and have adjacent joints update accordingly
+* Inverse Kinematics via FABRIK
+
+I have not completed:
+* Linear blend skinning
+* A way to read / write models with rigs
+* Animations

@@ -540,3 +540,73 @@ class PriorityQueue<T> {
     }
 }
 
+class StringStream{
+    private _text:string;
+    private idx:number = 0;
+    read(fn:string):Promise<string>{
+        return new Promise<string>(resolve => {
+            const raw = new XMLHttpRequest();
+            raw.open("GET", fn, false);
+            raw.onreadystatechange = () => {
+                if(raw.readyState === 4){
+                    if(raw.status === 200 || raw.status === 0){
+                        resolve(raw.responseText);
+                    }
+                }
+            };
+            raw.send(null);
+        });
+    }
+
+    async read_async(fn:string){
+        const text = await this.read(fn);
+        this.read_raw(text);
+    }
+    read_raw(text:string){
+        this._text = text;
+    }
+    next(delim?:string):string{
+        let nidx = -1;
+        if(!delim){
+            const space_idx = this._text.indexOf(" ", this.idx + 1);
+            const newline_idx = this._text.indexOf("\n", this.idx + 1);
+            const tab_idx = this._text.indexOf("\t", this.idx + 1);
+
+            nidx = Math.max(space_idx, Math.max(newline_idx, tab_idx));
+
+            if(space_idx != -1) nidx = Math.min(space_idx, nidx);
+            if(newline_idx != -1) nidx = Math.min(newline_idx, nidx);
+            if(tab_idx != -1) nidx = Math.min(tab_idx, nidx);
+        }else{
+            nidx = this._text.indexOf(delim, this.idx + 1);
+        }
+
+        if(nidx === -1){
+            nidx = this._text.length;
+        }
+
+        const result = this._text.substring(this.idx, nidx);
+        this.idx = nidx;
+        return result.trim();
+    }
+
+    line():string{
+        return this.next("\n");
+    }
+
+    int():number{
+        return parseInt(this.next());
+    }
+
+    float():number{
+        return parseFloat(this.next());
+    }
+
+    has_next():boolean{
+        return this.idx < this._text.length;
+    }
+
+    get text():string{
+        return this._text;
+    }
+}

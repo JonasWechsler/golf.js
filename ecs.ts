@@ -115,7 +115,10 @@ class EntityManager{
 
 class SystemManager{
     private systems:System[] = [];
-    constructor(public entity_manager:EntityManager){}
+    public static current:SystemManager;
+    constructor(public entity_manager:EntityManager){
+        SystemManager.current = this;
+    }
 
     add(system:System){
         this.systems.push(system);

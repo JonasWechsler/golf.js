@@ -2,7 +2,7 @@
     "compilerOptions": {
         "out": "built/out.js", 
         "sourceMap": true, 
-        "target": "es5",
+        "target": "es6",
         "module": "system"
     }, 
     "files": [

@@ -25,7 +25,7 @@ class GolfInit{
 
         for(let i=0;ComponentType[i];i++)
             console.log(i, ComponentType[i]);
-        console.log(system_manager);
+        console.log(SystemManager.current);
     }
 
     public static init_cell_map():void{
@@ -271,24 +271,24 @@ function on_complete(){
     fps.add_component(new FPSComponent());
     fps.add_component(new UIComponent(0, 0, document.createElement("canvas")));
 
-    system_manager.entity_manager.add_entity(camera);
-    system_manager.entity_manager.add_entity(fps);
+    SystemManager.current.entity_manager.add_entity(camera);
+    SystemManager.current.entity_manager.add_entity(fps);
     if(!DISCRETE_SCREENS)
-        system_manager.entity_manager.add_entity(GolfInit.init_player_joints());
-    system_manager.add(new KeySystem());
-    system_manager.add(new ControlSystem());
-    system_manager.add(new NavigationMeshSystem());
-    system_manager.add(new AIMovementSystem());
-    system_manager.add(new AIGuidanceSystem());
-    system_manager.add(new StupidAISystem());
-    system_manager.add(new PhysicsRenderSystem(false));
-    system_manager.add(new JointMovementSystem());
-    system_manager.add(new JointRenderSystem());
-    system_manager.add(new HealthRenderingSystem());
-    system_manager.add(new CameraSystem());
-    system_manager.add(new UIRenderSystem());
-    system_manager.add(new FPSSystem());
-    system_manager.add(new EntityInspectorRenderSystem());
-    system_manager.add(new PhysicsSystem());
-    system_manager.start();
+        SystemManager.current.entity_manager.add_entity(GolfInit.init_player_joints());
+    SystemManager.current.add(new KeySystem());
+    SystemManager.current.add(new ControlSystem());
+    SystemManager.current.add(new NavigationMeshSystem());
+    SystemManager.current.add(new AIMovementSystem());
+    SystemManager.current.add(new AIGuidanceSystem());
+    SystemManager.current.add(new StupidAISystem());
+    SystemManager.current.add(new PhysicsRenderSystem(false));
+    SystemManager.current.add(new JointMovementSystem());
+    SystemManager.current.add(new JointRenderSystem());
+    SystemManager.current.add(new HealthRenderingSystem());
+    SystemManager.current.add(new CameraSystem());
+    SystemManager.current.add(new UIRenderSystem());
+    SystemManager.current.add(new FPSSystem());
+    SystemManager.current.add(new EntityInspectorRenderSystem());
+    SystemManager.current.add(new PhysicsSystem());
+    SystemManager.current.start();
 }
