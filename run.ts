@@ -17,21 +17,6 @@ async function main(){
 
     await ModelReader.read('model.xrig');
 
-    const add_bone = (x:BoneComponent) => {
-        const entity = new ECSEntity();
-        entity.add_component(x);
-        EntityManager.current.add_entity(entity);
-    }
-    //add_bone(root);
-    //add_bone(a);
-    //add_bone(b);
-    //add_bone(c);
-    //add_bone(d);
-    //add_bone(g);
-    //add_bone(h);
-    //add_bone(e);
-    //add_bone(f);
-
     function init_canvas(){
         const canvas = new ECSEntity();
         const c = document.createElement("canvas");
@@ -89,6 +74,21 @@ async function main(){
             //g.move_endpoint(200, 100);
             //e.move_endpoint(300, 300);
             //f.move_endpoint(350, 250);
+            if(mouse_info.right && !mouse_info.left){
+                if(BoneSelectSystem.current_endpoint === undefined){
+                    const highlighted_endpoint = BoneSelectSystem.highlighted_endpoint();
+                    if(highlighted_endpoint !== undefined &&
+                       highlighted_endpoint.has_component(ComponentType.FixableEndpoint)){
+                        const fixable_endpoint = highlighted_endpoint.get_component<FixableEndpointComponent>(ComponentType.FixableEndpoint);
+                        const bone = highlighted_endpoint.get_component<BoneComponent>(ComponentType.Bone);
+                        const endpoint = bone.endpoint();
+                        fixable_endpoint.x = endpoint.x;
+                        fixable_endpoint.y = endpoint.y;
+                        fixable_endpoint.fixed = !fixable_endpoint.fixed;
+                        BoneSelectSystem.current_endpoint = highlighted_endpoint;
+                    }
+                }
+            }
             if(mouse_info.left){
                 if(BoneSelectSystem.current_endpoint === undefined){
                     const highlighted_endpoint = BoneSelectSystem.highlighted_endpoint();
@@ -107,7 +107,8 @@ async function main(){
                     const bone = BoneSelectSystem.current_endpoint.get_component<BoneComponent>(ComponentType.Bone);
                     bone.move_endpoint(mouse_info.x, mouse_info.y);
                 }
-            }else{
+            }
+            if(!mouse_info.left && !mouse_info.right){
                 BoneSelectSystem.current_endpoint = undefined;
                 BoneSelectSystem.current_bone = undefined;
             }
@@ -146,7 +147,15 @@ async function main(){
                 context.lineTo(b.x, b.y);
                 context.lineWidth = 2;
                 context.stroke();
-                if(BoneSelectSystem.current_endpoint === entity){
+                if(entity.has_component(ComponentType.FixableEndpoint)){
+                    if(entity.get_component<FixableEndpointComponent>(ComponentType.FixableEndpoint).fixed){
+                        context.fillStyle = "indigo";
+                    }else if(BoneSelectSystem.current_bone === entity){
+                        context.fillStyle = "pink";
+                    }else{
+                        context.fillStyle = "darkgreen";
+                    }
+                }else if(BoneSelectSystem.current_endpoint === entity){
                     context.fillStyle = "red";
                 }else if(BoneSelectSystem.highlighted_endpoint() === entity){
                     context.fillStyle = "green";
@@ -178,6 +187,20 @@ async function main(){
         }
     }
 
+    class FABRIKSystem implements System{
+        step(){
+            const fixed_endpoints = EntityManager.current.get_entities([ComponentType.FixableEndpoint,
+                                                                       ComponentType.Bone]);
+            fixed_endpoints.forEach((entity) => {
+                const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
+                const fixable = entity.get_component<FixableEndpointComponent>(ComponentType.FixableEndpoint);
+                if(fixable.fixed)
+                    bone.move_endpoint(fixable.x, fixable.y);
+            });
+        }
+    }
+
+    SystemManager.current.add(new FABRIKSystem());
     SystemManager.current.add(new MouseInputSystem());
     SystemManager.current.add(new BoneSelectSystem());
     SystemManager.current.add(new BoneRenderSystem());

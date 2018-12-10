@@ -30,6 +30,7 @@ enum ComponentType{
     Health,
     NavigationPath,
     Bone,
+    FixableEndpoint,
     Skeleton,
     Mesh
 }

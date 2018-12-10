@@ -1,3 +1,8 @@
+class FixableEndpointComponent{
+  type:ComponentType = ComponentType.FixableEndpoint;
+  constructor(public x:number, public y:number, public fixed:boolean = false){}
+}
+
 class SkeletonComponent implements Component{
     type:ComponentType = ComponentType.Skeleton;
     private _id_to_bone:{[id:number]:ECSEntity};
@@ -33,14 +38,17 @@ class SkeletonComponent implements Component{
             }
             const bone_entity = new ECSEntity();
             bone_entity.add_component(bone_component);
-            EntityManager.current.add_entity(bone_entity);
-            this._id_to_bone[id] = bone_entity;
-
             if(children[id]){
                 for(let idx = 0; idx < children[id].length; idx++){
                     id_queue.push(children[id][idx]);
                 }
+            }else{
+                const endpoint = bone_component.endpoint();
+                bone_entity.add_component(new FixableEndpointComponent(endpoint.x, endpoint.y));
             }
+            EntityManager.current.add_entity(bone_entity);
+            this._id_to_bone[id] = bone_entity;
+
         }
 
         this._root = this._id_to_bone[root];
