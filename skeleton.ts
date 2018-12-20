@@ -137,7 +137,7 @@ class MeshComponent implements Component{
 }
 
 class ModelReader{
-    static async read(fn:string){
+    static async read(fn:string):Promise<ECSEntity>{
         const ss = new StringStream();
         await ss.read_async(fn);
 
@@ -184,5 +184,6 @@ class ModelReader{
         const mesh_entity = new ECSEntity();
         mesh_entity.add_component(mesh_component);
         EntityManager.current.add_entity(mesh_entity);
+        return mesh_entity;
     }
 }

@@ -15,7 +15,9 @@ async function main(){
     mouse_entity.add_component(new MouseInputComponent());
     EntityManager.current.add_entity(mouse_entity);
 
+    await ModelReader.read('bones.xrig');
     await ModelReader.read('model.xrig');
+    await ModelReader.read('long.xrig');
 
     function init_canvas(){
         const canvas = new ECSEntity();
@@ -70,10 +72,6 @@ async function main(){
         public step(){
             const mouse = EntityManager.current.get_entities([ComponentType.MouseInput])[0];
             const mouse_info = mouse.get_component<MouseInputComponent>(ComponentType.MouseInput);
-            //h.move_endpoint(150, 150);
-            //g.move_endpoint(200, 100);
-            //e.move_endpoint(300, 300);
-            //f.move_endpoint(350, 250);
             if(mouse_info.right && !mouse_info.left){
                 if(BoneSelectSystem.current_endpoint === undefined){
                     const highlighted_endpoint = BoneSelectSystem.highlighted_endpoint();
