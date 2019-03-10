@@ -39,9 +39,10 @@ class ECSEntity{
     private components:Component[];
     private component_types:{ [key:number]:any };
     
-    constructor(){
+    constructor(components:Component[] = []){
         this.components = [];
         this.component_types = {};
+        components.forEach((c) => this.add_component(c));
     }
 
     public add_component(c:Component):void{
@@ -73,8 +74,10 @@ interface System{
 class EntityManager{
     private entities:NumberTreeMap<ECSEntity[]> = new NumberTreeMap<ECSEntity[]>();
     public static current:EntityManager;
-    constructor(){
-        EntityManager.current = this;
+    constructor(set_current:boolean = true){
+        if(set_current){
+            EntityManager.current = this;
+        }
     }
     public add_entity(e:ECSEntity):void{
         const types = [];

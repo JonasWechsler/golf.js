@@ -134,12 +134,12 @@ class NumberTreeMap<T>{
 
 /*Tools*/
 class LineSegment {
-    v0: Vector;
-    v1: Vector;
+    private _v0: Vector;
+    private _v1: Vector;
 
     constructor(v0: Vector, v1: Vector) {
-        this.v0 = v0;
-        this.v1 = v1;
+        this._v0 = v0;
+        this._v1 = v1;
     }
 
     bounding_box() : Square{
@@ -148,6 +148,22 @@ class LineSegment {
         const w = Math.max(this.v0.x, this.v1.x) - l;
         const h = Math.max(this.v0.y, this.v1.y) - t;
         return new Square(l, t, w, h);
+    }
+
+    get v0():Vector{
+        return this._v0;
+    }
+
+    get v1():Vector{
+        return this._v1;
+    }
+
+    set v0(v:Vector){
+        this._v0 = v;
+    }
+
+    set v1(v:Vector){
+        this._v1 = v;
     }
 }
 
@@ -258,6 +274,27 @@ class Square{
 
     public contains_line_partially(line:LineSegment){
         return this.contains(line.v0) || this.contains(line.v1);
+    }
+
+    public position() : Vector{
+        return new Vector(this.left, this.top);
+    }
+
+    public size() : Vector{
+        return new Vector(this.width, this.height);
+    }
+
+    public pad(px: number): Square{
+        return new Square(this.left - px, this.top - px, this.width + px*2, this.height + px*2);
+    }
+
+    public union(sq:Square):Square{
+        const left = Math.min(sq.left, this.left);
+        const top = Math.min(sq.top, this.top);
+        const right = Math.max(sq.left + sq.width, this.left + this.width);
+        const bot = Math.max(sq.top + sq.height, this.top + this.height);
+
+        return new Square(left, top, right-left, bot-top);
     }
 
     public intersects(sq:Square){

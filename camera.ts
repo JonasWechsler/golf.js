@@ -39,7 +39,7 @@ class CameraComponent implements Component{
 
 class CameraSystem implements System{
     private canvas_cache:CanvasCache = new CanvasCache();
-    private static SCALE:number = 6;
+    private static SCALE:number = 1;
 
     public static get WIDTH() : number{
         return Math.floor(DOMManager.canvas.width/CameraSystem.SCALE);

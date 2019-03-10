@@ -41,7 +41,7 @@ interface TimeListener{
 }
 
 class DynamicRenderComponent implements Component{
-    constructor(public x:number, public y:number, public content:HTMLCanvasElement, public visible:boolean = true){}
+    constructor(public x:number = 0, public y:number = 0, public content:HTMLCanvasElement = document.createElement("canvas"), public visible:boolean = true){}
     type:ComponentType = ComponentType.DynamicRender;
 }
 

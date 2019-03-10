@@ -2,6 +2,7 @@ class BoneComponent{
   type:ComponentType = ComponentType.Bone;
   private T:Mat3;
   private R:Mat3;
+  private TR:Mat3;
   private L:number;
   private _children:BoneComponent[] = [];
   private _parent:BoneComponent;
@@ -66,16 +67,16 @@ class BoneComponent{
     return VectorMath.intersectSegBall(seg, ball);
   }
 
-  move_endpoint(x:number, y:number):void{
+  move_endpoint(endpoint:Vector):void{
+    endpoint = endpoint.clone();
     this._marked = true;
-    const endpoint = new Vector(x, y);
     const origin = this.origin();
     const L = origin.minus(endpoint).unit();
     const o = endpoint.plus(L.times(this.length));
 
     if(this._parent !== undefined){
         if(!this._parent._marked)
-            this._parent.move_endpoint(o.x, o.y);
+            this._parent.move_endpoint(o);
         assert(this._parent.endpoint().equals(o));
     }else{
         this._root_origin = o;
@@ -93,7 +94,7 @@ class BoneComponent{
         const x1 = bone._old_endpoint;
         const L = x1.minus(x0).unit();
         const o = x0.plus(L.times(bone.length));
-        bone.move_endpoint(o.x, o.y);
+        bone.move_endpoint(o);
     }
 
      this._marked = false;
@@ -121,6 +122,10 @@ class BoneComponent{
   
   endpoint():Vector{
     return new Vector(this.transform().timesVector(new Vector3(this.L, 0.0, 1.0)));
+  }
+
+  bounding_box():Square{
+    return new LineSegment(this.origin(), this.endpoint()).bounding_box();
   }
   
   get length():number{
