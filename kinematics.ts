@@ -1,9 +1,11 @@
-class BoneComponent{
+class BoneComponent implements Component{
   type:ComponentType = ComponentType.Bone;
   private T:Mat3;
   private R:Mat3;
   private TR:Mat3;
   private L:number;
+  private _old_L:number;
+  private max_L:number;
   private _children:BoneComponent[] = [];
   private _parent:BoneComponent;
   private _id:number;
@@ -17,6 +19,7 @@ class BoneComponent{
        this._root_origin = offset;
        this.set_offset(new Vector(VECTOR_EPS, VECTOR_EPS));
     }else{
+       this.max_L = offset.length();
        this._parent = parent;
        this.set_offset(offset);
        this._parent._children.push(this);
@@ -38,6 +41,10 @@ class BoneComponent{
     }
     
     let origin_transform:Vector3 = parent_transform.inverse().timesVector(origin);
+    if(this._parent !== undefined){
+        assert(Math.abs(origin_transform.x - this._parent.L) < VECTOR_EPS, origin_transform.x + " neq " + this._parent.L);
+        assert(origin_transform.y < VECTOR_EPS, "" + origin_transform.y);
+    }
     this.T = Mat3Transform.translate(origin_transform.x, origin_transform.y);
     
     let parent_rotation:Mat3 = Mat3Transform.identity();//Identity
@@ -52,10 +59,10 @@ class BoneComponent{
     this.R = new Mat3([[tangent.x, -tangent.y, 0.0], [tangent.y, tangent.x, 0.0], [0.0, 0.0, 1.0]]);
 
     if(this._parent !== undefined)
-        assert(this._parent.endpoint().equals(this.origin()));
+        assert(this._parent.endpoint().equals(this.origin()), "Parent endpoint neq origin");
     else
-        assert(this.origin().equals(this._root_origin));
-    assert(this.endpoint().minus(this.origin()).equals(offset));
+        assert(this.origin().equals(this._root_origin), "Origin neq root origin");
+    assert(this.endpoint().minus(this.origin()).equals(offset), "Endpoint minus origin neq offset: " + this.endpoint().to_string() + " - " + this.origin().to_string() + " != " + offset.to_string());
   }
   
   rotate(theta:number):void{
@@ -70,30 +77,47 @@ class BoneComponent{
   move_endpoint(endpoint:Vector):void{
     endpoint = endpoint.clone();
     this._marked = true;
-    const origin = this.origin();
-    const L = origin.minus(endpoint).unit();
-    const o = endpoint.plus(L.times(this.length));
+    let origin;
+    if(this._parent !== undefined){
+      origin = this._parent.endpoint();
+    }else{
+      origin = this._root_origin;
+    }
+    const L = origin.minus(endpoint);
+    let len = this.L;
+    //let len = L.length();
+    //    //this.L = this.max_L;
+    const new_origin = endpoint.plus(L.unitTimes(len));
+    //assert(new_origin.equals(origin));
 
     if(this._parent !== undefined){
-        if(!this._parent._marked)
-            this._parent.move_endpoint(o);
-        assert(this._parent.endpoint().equals(o));
+        if(!this._parent._marked){
+            this._parent.move_endpoint(new_origin);
+            assert(this._parent.endpoint().equals(new_origin), "Parent incongruous " + this._parent.endpoint().to_string() + " != " + new_origin.to_string());
+        }
     }else{
-        this._root_origin = o;
+        this._root_origin = new_origin;
     }
+//    assert(this.origin().equals(new_origin), "* Origin incongruous " + this.origin().to_string() + " " + new_origin.to_string());
 
-    this.set_offset(endpoint.minus(o));
+    //if(this._parent !== undefined)assert(this._parent.endpoint().equals(new_origin), "* " + (this.depth()) + this.T.to_string() + " " + this._parent.L);
+    this.set_offset(endpoint.minus(new_origin));
+    if(this._parent !== undefined)assert(this._parent.endpoint().equals(new_origin), this.T.to_string() + " " + this._parent.L);
 
-    assert(this.origin().equals(o), this.origin().to_string() + " " + o.to_string());
-    assert(this.endpoint().equals(endpoint), this.endpoint().to_string() + " != " + endpoint.to_string());
+    assert(this.origin().equals(new_origin), "Origin incongruous " + this.origin().to_string() + " " + new_origin.to_string());
+    assert(this.endpoint().equals(endpoint), "Endpoint incongruous " + this.endpoint().to_string() + " != " + endpoint.to_string());
 
     for(let idx=0;idx<this._children.length;idx++){
         const bone = this._children[idx];
         if(bone._marked) continue;
         const x0 = endpoint;
         const x1 = bone._old_endpoint;
-        const L = x1.minus(x0).unit();
-        const o = x0.plus(L.times(bone.length));
+        const L = x1.minus(x0);
+        const len = bone.L;
+        //const len = L.length();
+        //bone.L = L.length();
+        //bone.L = bone.max_L;
+        const o = x0.plus(L.unitTimes(len));
         bone.move_endpoint(o);
     }
 
@@ -126,6 +150,12 @@ class BoneComponent{
 
   bounding_box():Square{
     return new LineSegment(this.origin(), this.endpoint()).bounding_box();
+  }
+
+  private depth():number{
+    if(this._parent === undefined)
+          return 0;
+    return this._parent.depth() + 1;
   }
   
   get length():number{
