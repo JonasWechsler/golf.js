@@ -12,12 +12,14 @@ class BoneComponent implements Component{
   private _root_origin:Vector;
   private _old_endpoint:Vector;
   private _marked:boolean = false;
+  private _rope:boolean = true;
   
   constructor(offset:Vector, id:number, parent?:BoneComponent){
     this._id = id;
     if(parent === undefined){
        this._root_origin = offset;
        this.set_offset(new Vector(VECTOR_EPS, VECTOR_EPS));
+       this.max_L = this.L;
     }else{
        this.max_L = offset.length();
        this._parent = parent;
@@ -28,7 +30,7 @@ class BoneComponent implements Component{
   }
 
   private set_offset(offset:Vector){
-    assert(!isNaN(offset.x) && !isNaN(offset.y));
+    assert(!isNaN(offset.x) && !isNaN(offset.y), "NaN in offset: " + offset.to_string());
     this.L = offset.length();
     let origin:Vector3 = new Vector3(0.0, 0.0, 0.0);
     let parent_transform:Mat3 = Mat3Transform.identity();//Identity
@@ -44,6 +46,8 @@ class BoneComponent implements Component{
     if(this._parent !== undefined){
         assert(Math.abs(origin_transform.x - this._parent.L) < VECTOR_EPS, origin_transform.x + " neq " + this._parent.L);
         assert(origin_transform.y < VECTOR_EPS, "" + origin_transform.y);
+    }else{
+        assert(origin_transform.equals(new Vector3(this._root_origin, 1.0)));
     }
     this.T = Mat3Transform.translate(origin_transform.x, origin_transform.y);
     
@@ -84,11 +88,8 @@ class BoneComponent implements Component{
       origin = this._root_origin;
     }
     const L = origin.minus(endpoint);
-    let len = this.L;
-    //let len = L.length();
-    //    //this.L = this.max_L;
+    let len = this._rope?Math.min(L.length(), this.max_L):this.max_L;
     const new_origin = endpoint.plus(L.unitTimes(len));
-    //assert(new_origin.equals(origin));
 
     if(this._parent !== undefined){
         if(!this._parent._marked){
@@ -98,9 +99,7 @@ class BoneComponent implements Component{
     }else{
         this._root_origin = new_origin;
     }
-//    assert(this.origin().equals(new_origin), "* Origin incongruous " + this.origin().to_string() + " " + new_origin.to_string());
 
-    //if(this._parent !== undefined)assert(this._parent.endpoint().equals(new_origin), "* " + (this.depth()) + this.T.to_string() + " " + this._parent.L);
     this.set_offset(endpoint.minus(new_origin));
     if(this._parent !== undefined)assert(this._parent.endpoint().equals(new_origin), this.T.to_string() + " " + this._parent.L);
 
@@ -113,10 +112,7 @@ class BoneComponent implements Component{
         const x0 = endpoint;
         const x1 = bone._old_endpoint;
         const L = x1.minus(x0);
-        const len = bone.L;
-        //const len = L.length();
-        //bone.L = L.length();
-        //bone.L = bone.max_L;
+        const len = this._rope?Math.min(L.length(), bone.max_L):bone.max_L;
         const o = x0.plus(L.unitTimes(len));
         bone.move_endpoint(o);
     }
