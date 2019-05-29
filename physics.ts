@@ -16,16 +16,9 @@ class StaticPhysicsComponent extends LineSegment implements Component{
 
 class DynamicPhysicsComponent extends Ball implements Component{
     type:ComponentType = ComponentType.DynamicPhysics;
-    speed:Vector;
-    constructor(position: Vector, r: number, speed: Vector = new Vector(0, 0)){
+    constructor(position: Vector, r: number, public speed: Vector = new Vector(0, 0), public mass:number = 1, public mu:number = 0.01){
         super(position, r);
-        this.speed = speed;
     }
-}
-
-class ProjectileComponent implements Component{
-    type:ComponentType = ComponentType.Projectile;
-    constructor(public damage:number){}
 }
 
 class PhysicsSystem implements System{
@@ -67,15 +60,6 @@ class PhysicsSystem implements System{
             }
         }
         return true;
-    }
-
-    private static stepDynamics() {
-        const dynamics = EntityManager.current.get_entities([ComponentType.DynamicPhysics]);
-        dynamics.forEach((entity) => {
-            const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
-            dynamic.speed = dynamic.speed.clampTo(dynamic.r);
-            dynamic.position.plusEquals(dynamic.speed);
-        });
     }
 
     //http://doswa.com/2009/07/13/circle-segment-intersectioncollision.html
@@ -126,24 +110,37 @@ class PhysicsSystem implements System{
         dynamic.speed.timesEquals(1 - stat.material.friction);
     }
 
-    private static processBall(ball_entity: ECSEntity){
+    private static processBall(ball_entity: ECSEntity):boolean{
         if(!ball_entity.has_component(ComponentType.DynamicPhysics)){
             throw "Entity must have DynamicPhysics component";
         }
         const ball = ball_entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
         const statics = EntityManager.current.get_entities([ComponentType.StaticPhysics]);
         const dynamics = EntityManager.current.get_entities([ComponentType.DynamicPhysics]);
+        let projectile:ProjectileComponent;
+        if(ball_entity.has_component(ComponentType.Projectile)){
+            projectile = ball_entity.get_component<ProjectileComponent>(ComponentType.Projectile);
+        }
 
+        let any_collision = false;
         statics.forEach((entity) => {
             const stat = entity.get_component<StaticPhysicsComponent>(ComponentType.StaticPhysics);
-            var collision = VectorMath.intersectSegBall(stat, ball);
+            let collision = VectorMath.intersectSegBall(stat, ball);
             if (collision) {
+                any_collision = true;
                 PhysicsSystem.resolveCollision(ball, stat);
-                if(ball_entity.has_component(ComponentType.Projectile)){
-                    EntityManager.current.remove_entity(ball_entity);
+                if(projectile){
+                    projectile.contact = entity;
+                    if(projectile.destroy_on_contact){
+                        EntityManager.current.remove_entity(ball_entity);
+                    }
+                    if(projectile.stick_on_contact){
+                        ball.speed.timesEquals(0);
+                    }
                 }
             }
         });
+
         dynamics.forEach((entity) => {
             const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
             if(dynamic == ball)
@@ -159,19 +156,59 @@ class PhysicsSystem implements System{
                 entity.get_component<HealthComponent>(ComponentType.Health).hp -= dmg;
             }
         });
+        return any_collision;
     }
     private static processDynamics():void{
         const dynamics = EntityManager.current.get_entities([ComponentType.DynamicPhysics]);
         dynamics.forEach((entity:ECSEntity) => PhysicsSystem.processBall(entity));
     }
 
+    private static stepDynamic(entity:ECSEntity, depth:number = 0):void{
+        if(depth > 4)
+            return;
+        const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+        const speed = dynamic.speed.length();
+        const unit = dynamic.speed.divided(speed);
+        const iterations = Math.ceil(speed/dynamic.r);
+        const remainder = speed % dynamic.r;
+        //dynamic.speed = dynamic.speed.clampTo(dynamic.r);
+        for(let _=0;_<iterations;_++){
+            dynamic.position.plusEquals(unit.times(dynamic.r));
+            const collision = PhysicsSystem.processBall(entity);
+            if(collision){
+                return PhysicsSystem.stepDynamic(entity, depth+1);
+            }
+        }
+        dynamic.position.plusEquals(unit.times(remainder));
+        PhysicsSystem.processBall(entity);
+
+        const normal = dynamic.mass;
+        const friction = dynamic.speed.times(-1).unitTimes(normal*dynamic.mu);
+        dynamic.speed.plusEquals(friction);
+    }
+
     public step():void {
         /**
          * 1 move all dynamics according to level rules. This includes momentum, friction, and other forces
          * 2 check for dynamic on static collisions
-         * 3 move all fixeds according to their specific rules.
+         * 3 if speed is greater than the radius of the ball, iterate 1 and 2 with lower speed
          */
-        PhysicsSystem.stepDynamics();
-        PhysicsSystem.processDynamics();
+        const dynamics = EntityManager.current.get_entities([ComponentType.DynamicPhysics]);
+        dynamics.forEach((entity:ECSEntity) => PhysicsSystem.stepDynamic(entity));
+
+        //    PhysicsSystem.stepDynamic(entity);
+            //if(entity.has_component(ComponentType.Bone)){
+            //    const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+            //    const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
+            //    const endpoint = bone.endpoint();
+            //    dynamic.speed.plusEquals(endpoint.minus(dynamic.position));
+            //}
+            //if(entity.has_component(ComponentType.Bone)){
+            //    const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+            //    const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
+            //    const endpoint = bone.endpoint();
+            //    bone.move_endpoint(dynamic.position);
+            //}
+        //});
     }
 }

@@ -1,3 +1,13 @@
+class DynamicRenderComponent implements Component{
+    constructor(public x:number = 0, public y:number = 0, public content:HTMLCanvasElement = document.createElement("canvas"), public visible:boolean = true){}
+    type:ComponentType = ComponentType.DynamicRender;
+}
+
+class StaticRenderComponent implements Component{
+    constructor(public x:number = 0, public y:number = 0, public content:HTMLCanvasElement = document.createElement("canvas"), public z_index:number = 0){}
+    type:ComponentType = ComponentType.StaticRender;
+}
+
 class PhysicsRenderSystem implements System{
     constructor(render_statics:boolean=true){
         if(render_statics) this.render_statics();
@@ -12,23 +22,21 @@ class PhysicsRenderSystem implements System{
             const o = content.v1.minus(content.v0);
             const p = new LineSegment(new Vector(0, 0), new Vector(-o.y, o.x));
             const bbp = p.bounding_box();
-            const bb = content.bounding_box();
-            target.x = bb.left-3;
-            target.y = bb.top-3;
-            target.content.width = bb.width + 6;
-            target.content.height = bb.height + 6;
+            const bb = content.bounding_box().pad(3);
+            target.x = bb.left;
+            target.y = bb.top;
+            target.content.width = bb.width;
+            target.content.height = bb.height;
             const ctx = target.content.getContext("2d");
             disableImageSmoothing(ctx);
             ctx.fillStyle = "black";
             ctx.strokeStyle = "black";
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(3, 3);
-            ctx.lineTo(bb.width+3, bb.height+3);
+            ctx.moveTo(content.v0.x - bb.left, content.v0.y - bb.top);
+            ctx.lineTo(content.v1.x - bb.left, content.v1.y - bb.top);
             ctx.closePath();
             ctx.stroke();
-            ctx.fillRect(1, 1, 5, 5);
-            ctx.fillRect(bb.width+1, bb.height+1, 5, 5);
         });
     }
 
@@ -49,7 +57,8 @@ class PhysicsRenderSystem implements System{
         if(e.has_component(ComponentType.DynamicPhysics)){
             const content = e.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
             ball_bb = content.bounding_box();
-            bb = bb.union(ball_bb);
+            if(bb) bb = bb.union(ball_bb.pad(5));
+            else bb = ball_bb.pad(5);
         }
 
         target.x = bb.left;
@@ -84,7 +93,7 @@ class PhysicsRenderSystem implements System{
             const pt = content.position.minus(bb.position());
             context.beginPath();
             context.arc(pt.x, pt.y, content.r, 0, 2*Math.PI);
-            context.fill();
+            context.stroke();
         }
     }
 
@@ -99,6 +108,7 @@ class MouseRenderSystem{
         const mouse = EntityManager.current.get_entities([ComponentType.MouseInput,
             ComponentType.DynamicRender]);
         if(mouse.length == 0) return;
+        MouseInfo.hide_mouse();
         assert(mouse.length == 1);
         const pos = mouse[0].get_component<MouseInputComponent>(ComponentType.MouseInput).position;
         const target = mouse[0].get_component<DynamicRenderComponent>(ComponentType.DynamicRender);

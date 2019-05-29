@@ -32,7 +32,10 @@ enum ComponentType{
     Bone,
     FixableEndpoint,
     Skeleton,
-    Mesh
+    Mesh,
+    Inventory,
+    GrapplingHook,
+    InventoryState
 }
 
 class ECSEntity{

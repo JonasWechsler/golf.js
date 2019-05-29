@@ -275,7 +275,7 @@ function on_complete(){
     SystemManager.current.entity_manager.add_entity(fps);
     if(!DISCRETE_SCREENS)
         SystemManager.current.entity_manager.add_entity(GolfInit.init_player_joints());
-    SystemManager.current.add(new KeySystem());
+    SystemManager.current.add(new KeyInputSystem());
     SystemManager.current.add(new ControlSystem());
     SystemManager.current.add(new NavigationMeshSystem());
     SystemManager.current.add(new AIMovementSystem());

@@ -32,30 +32,34 @@ class BoneComponent implements Component{
   private set_offset(offset:Vector){
     assert(!isNaN(offset.x) && !isNaN(offset.y), "NaN in offset: " + offset.to_string());
     this.L = offset.length();
+    
+    if(this._parent === undefined){
+        this.T = Mat3Transform.translate(this._root_origin.x, this._root_origin.y);
+    }else{
+        this.T = Mat3Transform.translate(this._parent.L, 0);
+    }
+
+    //let origin_transform:Vector3 = parent_transform.inverse().timesVector(origin);
+    //if(this._parent !== undefined){
+    //    assert(Math.abs(origin_transform.x - this._parent.L) < VECTOR_EPS, origin_transform.x + " neq " + this._parent.L);
+    //    assert(origin_transform.y < VECTOR_EPS, "" + origin_transform.y);
+    //}else{
+    //    assert(origin_transform.equals(new Vector3(this._root_origin, 1.0)));
+    //}
+    //this.T = Mat3Transform.translate(origin_transform.x, origin_transform.y);
+    
     let origin:Vector3 = new Vector3(0.0, 0.0, 0.0);
     let parent_transform:Mat3 = Mat3Transform.identity();//Identity
-    
+    let parent_rotation:Mat3 = Mat3Transform.identity();//Identity
+
     if(this._parent !== undefined){
+      parent_rotation = this._parent.rotation();
       origin = new Vector3(this._parent.endpoint(), 1.0);
       parent_transform = this._parent.transform();
     }else{
       origin = new Vector3(this._root_origin, 1.0);
     }
-    
-    let origin_transform:Vector3 = parent_transform.inverse().timesVector(origin);
-    if(this._parent !== undefined){
-        assert(Math.abs(origin_transform.x - this._parent.L) < VECTOR_EPS, origin_transform.x + " neq " + this._parent.L);
-        assert(origin_transform.y < VECTOR_EPS, "" + origin_transform.y);
-    }else{
-        assert(origin_transform.equals(new Vector3(this._root_origin, 1.0)));
-    }
-    this.T = Mat3Transform.translate(origin_transform.x, origin_transform.y);
-    
-    let parent_rotation:Mat3 = Mat3Transform.identity();//Identity
-    if(this._parent !== undefined){
-      parent_rotation = this._parent.rotation();
-    }
-    
+
     const endpoint:Vector3 = origin.plus(new Vector3(offset, 0.0));
     const tangent_unnormalized:Vector3 = parent_transform.times(this.T).inverse().timesVector(endpoint);
     const tangent:Vector = new Vector(tangent_unnormalized).unit();

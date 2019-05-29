@@ -7,17 +7,24 @@ class ControlSystem{
         entities.forEach((entity) => {
             const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
             const keys = entity.get_component<KeyInputComponent>(ComponentType.KeyInput);
-            const speed = new Vector(0, 0);
-            speed.x -= keys.left?.5:0;
-            speed.x += keys.right?.5:0;
-            speed.y -= keys.up?.5:0;
-            speed.y += keys.down?.5:0;
-            dynamic.speed = speed;
+            const speed = dynamic.speed;
+            const accel = dynamic.r;
+            if(speed.x >-accel)
+            speed.x -= keys.left?accel:0;
+            if(speed.x <accel)
+            speed.x += keys.right?accel:0;
+            if(speed.y >-accel)
+            speed.y -= keys.up?accel:0;
+            if(speed.y <accel)
+            speed.y += keys.down?accel:0;
+            if(!keys.up && !keys.down && !keys.left && !keys.right){
+                speed.timesEquals(0);
+            }
         });
     }
 }
 
-class KeySystem implements System{
+class KeyInputSystem implements System{
     private static keys_down: boolean[] = [];
     private static has_setup: boolean = false;
     static is_down(code: number): boolean{
@@ -25,10 +32,11 @@ class KeySystem implements System{
     }
 
     static code(str: string): number{
+        if(str.toLowerCase() == 'ctrl') return 17;
         return str.charCodeAt(0);
     }
     public static setup(){
-        if(KeySystem.has_setup) return;
+        if(KeyInputSystem.has_setup) return;
         const self = this;
         function handle_down(event: KeyboardEvent){
             event.preventDefault();
@@ -44,21 +52,22 @@ class KeySystem implements System{
         }
         document.addEventListener('keydown', handle_down, false);
         document.addEventListener('keyup', handle_up, false);
-        KeySystem.has_setup = true;
+        KeyInputSystem.has_setup = true;
     }
 
     constructor(){
-        KeySystem.setup();
+        KeyInputSystem.setup();
     }
     step(){
         const self = this;
         EntityManager.current.get_entities([ComponentType.KeyInput]).forEach(
             (entity) => {
                 const input = entity.get_component<KeyInputComponent>(ComponentType.KeyInput);
-                input.up = KeySystem.is_down(KeySystem.code('W'));
-                input.left = KeySystem.is_down(KeySystem.code('A'));
-                input.down = KeySystem.is_down(KeySystem.code('S'));
-                input.right = KeySystem.is_down(KeySystem.code('D'));
+                input.up = KeyInputSystem.is_down(KeyInputSystem.code('W'));
+                input.left = KeyInputSystem.is_down(KeyInputSystem.code('A'));
+                input.down = KeyInputSystem.is_down(KeyInputSystem.code('S'));
+                input.right = KeyInputSystem.is_down(KeyInputSystem.code('D'));
+                input.next_item = KeyInputSystem.is_down(KeyInputSystem.code('ctrl'));
             }
         );
     }
@@ -70,6 +79,8 @@ class KeyInputComponent implements Component{
     down:boolean = false;
     left:boolean = false;
     right:boolean = false;
+    use:boolean = false;
+    next_item:boolean = false;
     constructor(){}
 }
 
@@ -77,6 +88,7 @@ class MouseInputComponent implements Component{
     type:ComponentType = ComponentType.MouseInput;
     x:number = 0;
     y:number = 0;
+    direction:number = 0;
     left:boolean = false;
     middle:boolean = false;
     right:boolean = false;
@@ -100,6 +112,15 @@ class MouseInputSystem implements System{
                 input.left = MouseInfo.down(1);
                 input.middle = MouseInfo.down(2);
                 input.right = MouseInfo.down(3);
+            }
+        );
+        EntityManager.current.get_entities([ComponentType.KeyInput]).forEach(
+            (entity) => {
+                const input = entity.get_component<KeyInputComponent>(ComponentType.KeyInput);
+                input.use = MouseInfo.down(1);
+                //input.left = MouseInfo.down(1);
+                //input.middle = MouseInfo.down(2);
+                //input.right = MouseInfo.down(3);
             }
         );
     }
@@ -208,5 +229,13 @@ class MouseInfo{
 
     static remove_listener(listener : MouseListener){
         MouseInfo.listeners.splice(MouseInfo.listeners.indexOf(listener), 1);
+    }
+
+    static hide_mouse(){
+        document.body.style.cursor = 'none';
+    }
+
+    static show_mouse(){
+        document.body.style.cursor = 'default';
     }
 }

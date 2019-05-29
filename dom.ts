@@ -40,16 +40,6 @@ interface TimeListener{
     execute: (time: number) => void;
 }
 
-class DynamicRenderComponent implements Component{
-    constructor(public x:number = 0, public y:number = 0, public content:HTMLCanvasElement = document.createElement("canvas"), public visible:boolean = true){}
-    type:ComponentType = ComponentType.DynamicRender;
-}
-
-class StaticRenderComponent implements Component{
-    constructor(public x:number, public y:number, public content:HTMLCanvasElement, public z_index:number = 0){}
-    type:ComponentType = ComponentType.StaticRender;
-}
-
 class UIComponent implements Component{
     constructor(public x:number, public y:number, public content:HTMLCanvasElement,
                public width:number = content.width, public height:number = content.height){}

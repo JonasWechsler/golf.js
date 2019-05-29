@@ -146,7 +146,53 @@ class SkeletonSystem implements System{
         return skeleton_component;
     }
     step(){
-        
+        /* 1. Move fixed points to balls (so that 2 doesn't change bone position)
+         * 2. Move bones to all balls
+         * 3. Move bones to fixed points
+         * 4. Move balls to bones
+         *
+         * 2, 3 are essentially FABRIK
+         *
+         */
+
+         const endpoint_physics = EntityManager.current.get_entities([ComponentType.FixableEndpoint,
+             ComponentType.DynamicPhysics]);
+         endpoint_physics.forEach((entity) => {
+             const fixable = entity.get_component<FixableEndpointComponent>(ComponentType.FixableEndpoint);
+             if(!fixable.fixed) return;
+             const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+             fixable.p = dynamic.position;
+         });
+
+        const bone_physics_endpoints = EntityManager.current.get_entities([ComponentType.Bone,
+            ComponentType.DynamicPhysics]);
+        bone_physics_endpoints.forEach((entity) => {
+            const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
+            const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+            bone.move_endpoint(dynamic.position);
+        });
+
+        const fixed_endpoints = EntityManager.current.get_entities([ComponentType.FixableEndpoint,
+                                                                   ComponentType.Bone]);
+        fixed_endpoints.forEach((entity) => {
+            const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
+            const fixable = entity.get_component<FixableEndpointComponent>(ComponentType.FixableEndpoint);
+            if(fixable.fixed){
+                bone.move_endpoint(fixable.p);
+            }
+        });
+
+        bone_physics_endpoints.forEach((entity, idx) => {
+            if(entity.has_component(ComponentType.FixableEndpoint)){
+                const fixable = entity.get_component<FixableEndpointComponent>(ComponentType.FixableEndpoint);
+                if(fixable.fixed) return;
+            }
+
+            const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
+            const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+            const endpoint = bone.endpoint();
+            dynamic.speed.plusEquals(endpoint.minus(dynamic.position));
+        });
     }
 }
 
@@ -288,4 +334,61 @@ class BoneSelectSystem implements System{
         }
     }
 }
+
+
+    class PhysicsFixerSystem implements System{
+        step(){
+            const bone_physics_endpoints = EntityManager.current.get_entities([ComponentType.FixableEndpoint,
+                ComponentType.DynamicPhysics]);
+            bone_physics_endpoints.forEach((entity) => {
+                const fixable = entity.get_component<FixableEndpointComponent>(ComponentType.FixableEndpoint);
+                if(!fixable.fixed) return;
+                const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+                fixable.p = dynamic.position;
+            });
+        }
+    }
+
+    class PhysicsBoneSystem implements System{
+        step(){
+            const bone_physics_endpoints = EntityManager.current.get_entities([ComponentType.Bone,
+                ComponentType.DynamicPhysics]);
+            bone_physics_endpoints.forEach((entity) => {
+                const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
+                const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+                bone.move_endpoint(dynamic.position);
+            });
+        }
+    }
+
+    class FABRIKSystem implements System{
+        step(){
+            const fixed_endpoints = EntityManager.current.get_entities([ComponentType.FixableEndpoint,
+                                                                       ComponentType.Bone]);
+            fixed_endpoints.forEach((entity) => {
+                const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
+                const fixable = entity.get_component<FixableEndpointComponent>(ComponentType.FixableEndpoint);
+                if(fixable.fixed)
+                    bone.move_endpoint(fixable.p);
+            });
+        }
+    }
+
+    class BonePhysicsSystem implements System{
+        step(){
+            const bone_physics_endpoints = EntityManager.current.get_entities([ComponentType.Bone,
+                ComponentType.DynamicPhysics]);
+            bone_physics_endpoints.forEach((entity, idx) => {
+                if(entity.has_component(ComponentType.FixableEndpoint)){
+                    const fixable = entity.get_component<FixableEndpointComponent>(ComponentType.FixableEndpoint);
+                    if(fixable.fixed) return;
+                }
+
+                const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
+                const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+                const endpoint = bone.endpoint();
+                dynamic.speed.plusEquals(endpoint.minus(dynamic.position));
+            });
+        }
+    }
 

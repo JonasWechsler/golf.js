@@ -23,8 +23,8 @@ class Vector extends Point{
   clone() {
     return new Vector(this.x, this.y);
   }
-  equals(v: Vector) {
-    return Math.abs(this.x - v.x) < VECTOR_EPS && Math.abs(this.y - v.y) < VECTOR_EPS;
+  equals(v: Vector, diff:number = VECTOR_EPS) {
+    return Math.abs(this.x - v.x) < diff && Math.abs(this.y - v.y) < diff;
   }
   length() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
@@ -187,10 +187,10 @@ class Vector3 extends Point3{
         return new Vector3(this.x, this.y, this.z);
     }
 
-    equals(v: Vector3):boolean{
-        return Math.abs(this.x - v.x) < VECTOR_EPS &&
-            Math.abs(this.y - v.y) < VECTOR_EPS &&
-            Math.abs(this.z - v.z) < VECTOR_EPS;
+    equals(v: Vector3, diff:number = VECTOR_EPS):boolean{
+        return Math.abs(this.x - v.x) < diff &&
+            Math.abs(this.y - v.y) < diff &&
+            Math.abs(this.z - v.z) < diff;
     }
 
     length():number{
@@ -255,13 +255,22 @@ class Matrix{
         }
         return C;
     }
+    to_string():string{
+        return "[" + this.size() + "] [" + this.array + "]";
+    }
 }
 
 class Mat3 extends Matrix{
+    private _2d:boolean;
+    private _translation_only:boolean;
     constructor(A?:number[][]){
         if(A) super(A);
         else super(3,3);
+        this._2d = this.array[2][0] === 0.0 &&
+            this.array[2][1] === 0.0 &&
+            this.array[2][2] === 1.0;
     }
+
     laderman_times(mat:Mat3):Mat3{
         const a = this.array;
         const b = mat.array;
