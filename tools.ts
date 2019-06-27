@@ -297,6 +297,15 @@ class Square{
         return new Square(left, top, right-left, bot-top);
     }
 
+    public union_vector(v:Vector):Square{
+        const left = Math.min(v.x, this.left);
+        const top = Math.min(v.y, this.top);
+        const right = Math.max(v.x, this.left + this.width);
+        const bot = Math.max(v.y, this.top + this.height);
+
+        return new Square(left, top, right-left, bot-top);
+    }
+
     public intersects(sq:Square){
         if(this.left > sq.left + sq.width || sq.left > this.left + this.width)
             return false;

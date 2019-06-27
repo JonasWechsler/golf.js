@@ -35,7 +35,8 @@ enum ComponentType{
     Mesh,
     Inventory,
     GrapplingHook,
-    InventoryState
+    InventoryState,
+    ProjectileLauncher
 }
 
 class ECSEntity{
@@ -96,7 +97,22 @@ class EntityManager{
             }
         );
     }
+    public has_entity(e:ECSEntity):boolean{
+        const types = [];
+        e.get_components().forEach((c) => types.push(c.type));
+        let has = false;
+        combinations(types).forEach(
+            (arr) => {
+                const entry = this.entities.get(arr);
+                const idx = entry.indexOf(e);
+                if(has) assert(idx != -1);
+                has = has || (idx != -1);
+            }
+        );
+        return has;
+    }
     public remove_entity(e:ECSEntity):void{
+        assert(this.has_entity(e));
         const types = [];
         e.get_components().forEach((c) => types.push(c.type));
         combinations(types).forEach(
@@ -107,6 +123,7 @@ class EntityManager{
                 entry.splice(idx, 1);
             }
         );
+        assert(!this.has_entity(e));
     }
     public get_entities(types:ComponentType[]):ECSEntity[]{
         const entities = this.entities.get(types);
@@ -122,6 +139,7 @@ class EntityManager{
 
 class SystemManager{
     private systems:System[] = [];
+    private static frames:number = 0;
     public static current:SystemManager;
     constructor(public entity_manager:EntityManager){
         SystemManager.current = this;
@@ -131,7 +149,12 @@ class SystemManager{
         this.systems.push(system);
     }
 
+    static frame_time():number{
+        return SystemManager.frames;
+    }
+
     static frame(self:SystemManager){
+        SystemManager.frames++;
         self.systems.forEach((system) => {
             system.step(self.entity_manager);
         });

@@ -110,6 +110,36 @@ class PhysicsSystem implements System{
         dynamic.speed.timesEquals(1 - stat.material.friction);
     }
 
+    private static resolveProjectileStaticCollision(projectile:ECSEntity, entity:ECSEntity){
+        const projectile_component = projectile.get_component<ProjectileComponent>(ComponentType.Projectile);
+        const physics_component = projectile.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+        projectile_component.contact = entity;
+        if(projectile_component.destroy_on_contact){
+            EntityManager.current.remove_entity(projectile);
+        }
+        if(projectile_component.stick_on_contact){
+            physics_component.speed.timesEquals(0);
+        }
+    }
+
+    private static resolveProjectileDynamicCollision(projectile:ECSEntity, entity:ECSEntity):boolean{
+        if(entity.has_component(ComponentType.Projectile)){
+            return false;
+        }
+
+        const projectile_component = projectile.get_component<ProjectileComponent>(ComponentType.Projectile);
+        if(projectile_component.owner == entity){
+            return false;
+        }
+        PhysicsSystem.resolveProjectileStaticCollision(projectile, entity);
+
+        if(entity.has_component(ComponentType.Health)){
+            const dmg = projectile.get_component<ProjectileComponent>(ComponentType.Projectile).damage;
+            entity.get_component<HealthComponent>(ComponentType.Health).hp -= dmg;
+        }
+        return true;
+    }
+
     private static processBall(ball_entity: ECSEntity):boolean{
         if(!ball_entity.has_component(ComponentType.DynamicPhysics)){
             throw "Entity must have DynamicPhysics component";
@@ -123,39 +153,41 @@ class PhysicsSystem implements System{
         }
 
         let any_collision = false;
-        statics.forEach((entity) => {
+        for(let idx=0; idx < statics.length; idx++){
+            const entity = statics[idx];
             const stat = entity.get_component<StaticPhysicsComponent>(ComponentType.StaticPhysics);
             let collision = VectorMath.intersectSegBall(stat, ball);
             if (collision) {
                 any_collision = true;
                 PhysicsSystem.resolveCollision(ball, stat);
                 if(projectile){
-                    projectile.contact = entity;
-                    if(projectile.destroy_on_contact){
-                        EntityManager.current.remove_entity(ball_entity);
-                    }
-                    if(projectile.stick_on_contact){
-                        ball.speed.timesEquals(0);
-                    }
+                    PhysicsSystem.resolveProjectileStaticCollision(ball_entity, entity);
+                    return any_collision;
                 }
             }
-        });
+        }
 
-        dynamics.forEach((entity) => {
-            const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
-            if(dynamic == ball)
-                return;
+        if(projectile){
+            projectile.contact = false;
+            for(let idx = 0; idx < dynamics.length; idx++){
+                const entity = dynamics[idx];
+                const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
+                if(dynamic == ball)
+                    continue;
 
-            if(ball_entity.has_component(ComponentType.Projectile) && entity.has_component(ComponentType.Health)){
-                const dmg = ball_entity.get_component<ProjectileComponent>(ComponentType.Projectile).damage;
-                entity.get_component<HealthComponent>(ComponentType.Health).hp -= dmg;
+                const collision = VectorMath.intersectBallBall(ball, dynamic);
+                if(collision){
+                    const double_check = PhysicsSystem.resolveProjectileDynamicCollision(ball_entity, entity);
+                    if(double_check){
+                        projectile.contact = entity;
+                        return true;
+                    }
+                    //any_collision = PhysicsSystem.resolveProjectileDynamicCollision(ball_entity, entity);
+                    //projectile.contact = entity;
+                    //return any_collision;
+                }
             }
-
-            if(entity.has_component(ComponentType.Projectile) && ball_entity.has_component(ComponentType.Health)){
-                const dmg = ball_entity.get_component<ProjectileComponent>(ComponentType.Projectile).damage;
-                entity.get_component<HealthComponent>(ComponentType.Health).hp -= dmg;
-            }
-        });
+        }
         return any_collision;
     }
     private static processDynamics():void{
@@ -168,14 +200,16 @@ class PhysicsSystem implements System{
             return;
         const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
         const speed = dynamic.speed.length();
-        const unit = dynamic.speed.divided(speed);
-        const iterations = Math.ceil(speed/dynamic.r);
+        const unit = dynamic.speed.unit();
+        const iterations = Math.floor(speed/dynamic.r);
         const remainder = speed % dynamic.r;
         //dynamic.speed = dynamic.speed.clampTo(dynamic.r);
         for(let _=0;_<iterations;_++){
             dynamic.position.plusEquals(unit.times(dynamic.r));
             const collision = PhysicsSystem.processBall(entity);
             if(collision){
+                if(entity.has_component(ComponentType.Projectile))
+                    return;
                 return PhysicsSystem.stepDynamic(entity, depth+1);
             }
         }
@@ -183,7 +217,7 @@ class PhysicsSystem implements System{
         PhysicsSystem.processBall(entity);
 
         const normal = dynamic.mass;
-        const friction = dynamic.speed.times(-1).unitTimes(normal*dynamic.mu);
+        const friction = dynamic.speed.times(-1).unitTimes(normal*dynamic.mu).clampTo(dynamic.speed.length());
         dynamic.speed.plusEquals(friction);
     }
 

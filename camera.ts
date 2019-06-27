@@ -78,7 +78,7 @@ class CameraSystem implements System{
         return new Square(left, top, width, height);
     }
 
-    public static screen_to_camera(x : number, y : number) : Vector {
+    public static screen_to_camera(position:Vector) : Vector {
         const entity_manager = EntityManager.current;
         const targets = entity_manager.get_entities([ComponentType.UI, ComponentType.Camera]);
         console.assert(targets.length == 1);
@@ -87,8 +87,8 @@ class CameraSystem implements System{
         const cam = target.get_component<CameraComponent>(ComponentType.Camera);
         const info = this.camera_info();
         return new Vector(
-            (x / DOMManager.canvas.width) * info.width + info.left,
-            (y / DOMManager.canvas.height) * info.height + info.top
+            (position.x / DOMManager.canvas.width) * info.width + info.left,
+            (position.y / DOMManager.canvas.height) * info.height + info.top
         );
     }
 

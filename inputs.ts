@@ -8,7 +8,7 @@ class ControlSystem{
             const dynamic = entity.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);
             const keys = entity.get_component<KeyInputComponent>(ComponentType.KeyInput);
             const speed = dynamic.speed;
-            const accel = dynamic.r;
+            const accel = dynamic.r*.25;
             if(speed.x >-accel)
             speed.x -= keys.left?accel:0;
             if(speed.x <accel)
@@ -67,7 +67,9 @@ class KeyInputSystem implements System{
                 input.left = KeyInputSystem.is_down(KeyInputSystem.code('A'));
                 input.down = KeyInputSystem.is_down(KeyInputSystem.code('S'));
                 input.right = KeyInputSystem.is_down(KeyInputSystem.code('D'));
-                input.next_item = KeyInputSystem.is_down(KeyInputSystem.code('ctrl'));
+                const next_item = KeyInputSystem.is_down(KeyInputSystem.code('ctrl'));
+                input.just_next_item = !input.next_item && next_item;
+                input.next_item = next_item;
             }
         );
     }
@@ -80,7 +82,11 @@ class KeyInputComponent implements Component{
     left:boolean = false;
     right:boolean = false;
     use:boolean = false;
+    alt_use:boolean = false;
     next_item:boolean = false;
+    just_used:boolean = false;
+    just_alt_used:boolean = false;
+    just_next_item:boolean = false;
     constructor(){}
 }
 
@@ -88,12 +94,12 @@ class MouseInputComponent implements Component{
     type:ComponentType = ComponentType.MouseInput;
     x:number = 0;
     y:number = 0;
-    direction:number = 0;
+    dx:number = 0;
+    dy:number = 0;
+    //direction:number = 0;
     left:boolean = false;
     middle:boolean = false;
     right:boolean = false;
-    dx:number = 0;
-    dy:number = 0;
     get position():Vector{
         return new Vector(this.x, this.y);
     }
@@ -105,10 +111,11 @@ class MouseInputSystem implements System{
         EntityManager.current.get_entities([ComponentType.MouseInput]).forEach(
             (entity) => {
                 const input = entity.get_component<MouseInputComponent>(ComponentType.MouseInput);
-                input.dx = MouseInfo.x - input.x;
-                input.dy = MouseInfo.y - input.y;
-                input.x = MouseInfo.x;
-                input.y = MouseInfo.y;
+                const position = CameraSystem.screen_to_camera(MouseInfo.position);
+                input.dx = position.x - input.x;
+                input.dy = position.y - input.y;
+                input.x = position.x;
+                input.y = position.y;
                 input.left = MouseInfo.down(1);
                 input.middle = MouseInfo.down(2);
                 input.right = MouseInfo.down(3);
@@ -117,7 +124,12 @@ class MouseInputSystem implements System{
         EntityManager.current.get_entities([ComponentType.KeyInput]).forEach(
             (entity) => {
                 const input = entity.get_component<KeyInputComponent>(ComponentType.KeyInput);
-                input.use = MouseInfo.down(1);
+                const use = MouseInfo.down(1);
+                input.just_used = use && !input.use;
+                input.use = use;
+                const alt_use = MouseInfo.down(2);
+                input.just_alt_used = alt_use && !input.alt_use;
+                input.alt_use = alt_use;
                 //input.left = MouseInfo.down(1);
                 //input.middle = MouseInfo.down(2);
                 //input.right = MouseInfo.down(3);
@@ -212,6 +224,10 @@ class MouseInfo{
 
     static get y() : number {
         return this.mouse_y;
+    }
+
+    static get position() : Vector {
+        return new Vector(this.x, this.y);
     }
 
     static down(idx : number) : boolean {

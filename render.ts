@@ -103,7 +103,7 @@ class PhysicsRenderSystem implements System{
     }
 }
 
-class MouseRenderSystem{
+class MouseRenderSystem implements System{
     constructor(){
         const mouse = EntityManager.current.get_entities([ComponentType.MouseInput,
             ComponentType.DynamicRender]);
@@ -131,5 +131,39 @@ class MouseRenderSystem{
         const target = mouse[0].get_component<DynamicRenderComponent>(ComponentType.DynamicRender);
         target.x = pos.x;
         target.y = pos.y;
+    }
+}
+
+class MeshRenderSystem implements System{
+    step(){
+        const meshes = EntityManager.current.get_entities([ComponentType.DynamicRender,
+            ComponentType.Mesh]);
+        meshes.forEach((mesh_entity) => {
+            const mesh = mesh_entity.get_component<MeshComponent>(ComponentType.Mesh);
+            const bb = mesh.bounding_box().pad(5);
+            const dynamic = mesh_entity.get_component<DynamicRenderComponent>(ComponentType.DynamicRender);
+            mesh.update_animation();
+            dynamic.x = bb.left;
+            dynamic.y = bb.top;
+            dynamic.content.width = bb.width;
+            dynamic.content.height = bb.height;
+            dynamic.visible = true;
+            const context = dynamic.content.getContext("2d");
+            context.fillStyle = "black";
+            context.lineWidth = 2;
+            context.strokeStyle = "rgba(100, 0, 100, 0.5)";
+            mesh.vertices.forEach((vertex) => {
+                context.fillRect(vertex.x - 5 - bb.left, vertex.y - 5 - bb.top, 10, 10);
+            });
+
+            mesh.line_ids.forEach((ids) => {
+                const v0 = mesh.vertices[ids.x];
+                const v1 = mesh.vertices[ids.y];
+                context.beginPath();
+                context.moveTo(v0.x - bb.left, v0.y - bb.top);
+                context.lineTo(v1.x - bb.left, v1.y - bb.top);
+                context.stroke();
+            });
+        });
     }
 }

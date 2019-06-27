@@ -41,7 +41,7 @@ interface TimeListener{
 }
 
 class UIComponent implements Component{
-    constructor(public x:number, public y:number, public content:HTMLCanvasElement,
+    constructor(public x:number = 0, public y:number = 0, public content:HTMLCanvasElement = document.createElement("canvas"),
                public width:number = content.width, public height:number = content.height){}
     type:ComponentType = ComponentType.UI;
 }

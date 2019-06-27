@@ -97,6 +97,20 @@ class MeshComponent implements Component{
             }
         }
     }
+
+    bounding_box():Square{
+        if(this.vertices.length == 0){
+            return new Square(0,0,1,1);
+        }
+
+        let bb:Square = new Square(this.vertices[0].x, this.vertices[0].y, 1, 1);;
+        
+        for(let vid = 1; vid < this.vertices.length; vid++){
+            bb = bb.union_vector(this.vertices[vid]);
+        }
+
+        return bb;
+    }
 }
 
 class SkeletonSystem implements System{
