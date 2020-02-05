@@ -53,6 +53,10 @@ class SkeletonComponent implements Component{
     root():ECSEntity{
         return this._root;
     }
+
+    position():Vector{
+        return this._root.get_component<BoneComponent>(ComponentType.Bone).endpoint();
+    }
 }
 
 class MeshComponent implements Component{
@@ -114,7 +118,7 @@ class MeshComponent implements Component{
 }
 
 class SkeletonSystem implements System{
-    static make_skeleton(offsets:Vector[], parents:number[]):SkeletonComponent{
+    static make_skeleton(offsets:Vector[], parents:number[], cw_constraints:number[], ccw_constraints:number[]):SkeletonComponent{
         const id_to_bone:{[id:number]:ECSEntity} = {};
 
         const children:{[id:number]:number[]} = {};
@@ -125,12 +129,14 @@ class SkeletonSystem implements System{
         }
 
         const root_id:number = children[-1][0];
-        assert(children[-1].length == 1);
+        assert(children[-1].length == 1, "Too many roots");
 
         const id_queue:number[] = [root_id];
         while(id_queue.length != 0){
             const id = id_queue.shift();
             const offset:Vector = offsets[id];
+            const cw_constraint = cw_constraints[id];
+            const ccw_constraint = ccw_constraints[id];
             let bone_component;
             if(id === root_id){
                 bone_component = new BoneComponent(offset, id);
@@ -138,7 +144,7 @@ class SkeletonSystem implements System{
                 const parent:number = parents[id];
                 const parent_entity:ECSEntity = id_to_bone[parent];
                 const parent_bone = parent_entity.get_component<BoneComponent>(ComponentType.Bone);
-                bone_component = new BoneComponent(offset, id, parent_bone);
+                bone_component = new BoneComponent(offset, id, cw_constraint, ccw_constraint, parent_bone);
             }
             const bone_entity = new ECSEntity();
             bone_entity.add_component(bone_component);
@@ -220,14 +226,26 @@ class ModelReader{
 
         let parents:number[] = [];
         let offsets:Vector[] = [];
+        let cw_constraints:number[] = [];
+        let ccw_constraints:number[] = [];
         for(let bone_idx = 0; bone_idx < bones; bone_idx++){
-            const parent_id = ss.int();
-            const offset_x = ss.float();
-            const offset_y = ss.float();
+            const bone_args = ss.line().split(' ');
+            const parent_id = parseInt(bone_args[0]);
+            const offset_x = parseFloat(bone_args[1]);
+            const offset_y = parseFloat(bone_args[2]);
+            if(bone_args.length > 3){
+                const cw_constraint = parseFloat(bone_args[3]);
+                const ccw_constraint = parseFloat(bone_args[4]);
+                cw_constraints.push(cw_constraint);
+                ccw_constraints.push(ccw_constraint);
+            }else{
+                cw_constraints.push(undefined);
+                ccw_constraints.push(undefined);
+            }
             parents.push(parent_id);
             offsets.push(new Vector(offset_x, offset_y));
         }
-        const skeleton_component = SkeletonSystem.make_skeleton(offsets, parents);
+        const skeleton_component = SkeletonSystem.make_skeleton(offsets, parents, cw_constraints, ccw_constraints);
         const skeleton_entity = new ECSEntity();
         skeleton_entity.add_component(skeleton_component);
 
@@ -349,6 +367,7 @@ class BoneSelectSystem implements System{
     }
 }
 
+/*
 
     class PhysicsFixerSystem implements System{
         step(){
@@ -406,3 +425,4 @@ class BoneSelectSystem implements System{
         }
     }
 
+*/

@@ -15,6 +15,7 @@
        "textures.ts",
        "ecs.ts",
        "settings.ts",
+       "animate.ts",
        "weapons.ts",
        "physics.ts",
        "dom.ts",

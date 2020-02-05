@@ -45,16 +45,30 @@ executes the "drag" done by FABRIK, where it updates the entire kinematic chain
 
 For models, I made a new file type called .xrig. The first line contains two
 integers, B and V, where B is the number of bones and V is the number of vertices.
-The next B lines contain 3 numbers: the parent ID of the bone and the x and y
-offset of the bone. If the bone's parent ID is -1, then it is the root, and its offset
+The next B lines contain 3 or 5 numbers: the parent ID of the bone, the x and y
+offset of the bone, and optionally a clockwise and counterclockwise constraint on
+the angle of the bone. If the bone's parent ID is -1, then it is the root, and its offset
 represents the skeleton's position in world coordinates. The nth bone has ID
-n-1, i.e. the first bone that's defined has id 0. The next V lines contain 2 numbers:
+n-1, i.e. the first bone that's defined has id 0. Constraints are limited to [-PI, PI]
+
+The next V lines contain 2 numbers:
 the x and y position of each vertex. Vertices are assigned IDs in the same way.
 The next V lines after that contain two integers, which are the IDs of the endpoints of
 a side of the polygon. After that is a B x V matrix which describes the bone-vertex
 weights of the model for linear blend skinning.
 
 If V = 0, the model is just a skeleton.
+
+## .xani file type
+
+For animations, I mad ea new file type called .xani. The first line describes the type
+of interpolation used, e.g. "Linear". The second is the format of the animation, e.g.
+"InverseKinematics", "Absolute", or "Relative". The third is the number of times the
+animation should loop, or -1 or "Loop" if it should go forever. The following lines
+contain the keyframes of animation. If the animation is absolute or relative,
+the first number is the bone ID, the second is the angle of the bone, and the third is
+the time the bone reaches this angle. If the animation uses inverse kinematics, the same
+is true but the second two numbers are a vector for the bone's position.
 
 ## Description of FABRIK
 

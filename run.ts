@@ -22,9 +22,18 @@ async function main(){
         new DynamicRenderComponent()
     ]));
 
-
-    const model_entity:ECSEntity = await ModelReader.read('model.xrig', false);
+    const model_entity:ECSEntity = await ModelReader.read('long.xrig', false);
     const mesh_component = model_entity.get_component<MeshComponent>(ComponentType.Mesh);
+
+    //const animation = new Animation(
+    //    [new AnimationKeyFrame(6, 0, 0),
+    //        new AnimationKeyFrame(6, 3.14, 100),
+    //        new AnimationKeyFrame(6, 6.28, 200)],
+    //    KeyframeInterpolation.Linear,
+    //    -1, 200, AnimationType.Absolute);
+    //const animation_component = new AnimationComponent({0:animation}, 0);
+    //mesh_component.skeleton.add_component(animation_component);
+
     model_entity.add_component(new DynamicRenderComponent());
     const skeleton = mesh_component.skeleton.get_component<SkeletonComponent>(ComponentType.Skeleton);
     EntityManager.current.add_entity(model_entity);
@@ -32,7 +41,7 @@ async function main(){
     for(let bone_id = 0; bone_id < skeleton.length; bone_id++){
         const entity = skeleton.id_to_bone(bone_id);
         const bone = entity.get_component<BoneComponent>(ComponentType.Bone);
-        if(bone_id == 1){
+        if(bone_id == 2999){
             const weapon = new ECSEntity([
                 //new ProjectileLauncherComponent(1, false, true, 5, 5),
                 new InventoryStateComponent(20),
@@ -53,7 +62,7 @@ async function main(){
             EntityManager.current.add_entity(weapon);
             entity.add_component(new DynamicPhysicsComponent(bone.endpoint(), 10, new Vector(0,0), 1, 5));
         }else if(bone_id%5 == 0){
-            entity.add_component(new DynamicPhysicsComponent(bone.endpoint(), 10, new Vector(0,0), 1, 5));
+            //entity.add_component(new DynamicPhysicsComponent(bone.endpoint(), 10, new Vector(0,0), 1, 5));
         }
         entity.add_component(new DynamicRenderComponent());
         EntityManager.current.add_entity(entity);
@@ -102,8 +111,8 @@ async function main(){
 
     SystemManager.current.add(new ControlSystem());
 
+    SystemManager.current.add(new AnimationSystem());
     SystemManager.current.add(new SkeletonSystem());
-    SystemManager.current.add(new MouseInputSystem());
     SystemManager.current.add(new BoneSelectSystem());
 
     SystemManager.current.add(new InventoryControlSystem());

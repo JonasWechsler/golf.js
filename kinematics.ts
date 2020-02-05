@@ -11,11 +11,40 @@ class BoneComponent implements Component{
   private _id:number;
   private _root_origin:Vector;
   private _old_endpoint:Vector;
+  private _new_endpoint:Vector;
   private _marked:boolean = false;
-  private _rope:boolean = true;
+  private _rope:boolean = false;
+  private _constraints:boolean = true;
+
+  private _cw_constraint:number;
+  private _ccw_constraint:number;
+
+  /*We store constraints as their horizontal and vertical parts for faster comparison. */
+  private _cos_cw_constraint:number = Math.cos(Math.PI*2/3);
+  private _cos_ccw_constraint:number = Math.cos(Math.PI*1/3);
+  private _sin_cw_constraint:number = Math.sin(Math.PI*2/3);
+  private _sin_ccw_constraint:number = Math.sin(Math.PI*1/3);
   
-  constructor(offset:Vector, id:number, parent?:BoneComponent){
+  /* Constraints are in radians from -pi to pi.
+   */
+  constructor(offset:Vector, id:number, cw_constraint?:number, ccw_constraint?:number, parent?:BoneComponent){
     this._id = id;
+    if(cw_constraint !== undefined && ccw_constraint !== undefined){
+        this._constraints = true;
+        assert(cw_constraint >= ccw_constraint, cw_constraint + " is not >= " + ccw_constraint);
+        assert(cw_constraint >= -Math.PI, cw_constraint + " is not >= " + -Math.PI);
+        assert(cw_constraint <= Math.PI, cw_constraint + " is not <= " + Math.PI);
+        assert(ccw_constraint >= -Math.PI, ccw_constraint + " is not >= " + -Math.PI);
+        assert(ccw_constraint <= Math.PI, ccw_constraint + " is not <= " + Math.PI);
+        this._cw_constraint = cw_constraint;
+        this._ccw_constraint = ccw_constraint;
+        this._cos_ccw_constraint = Math.cos(ccw_constraint);
+        this._cos_cw_constraint = Math.cos(cw_constraint);
+        this._sin_ccw_constraint = Math.sin(ccw_constraint);
+        this._sin_cw_constraint = Math.sin(cw_constraint);
+    }else{
+        this._constraints = false;
+    }
     if(parent === undefined){
        this._root_origin = offset;
        this.set_offset(new Vector(VECTOR_EPS, VECTOR_EPS));
@@ -27,6 +56,71 @@ class BoneComponent implements Component{
        this._parent._children.push(this);
     }
     this._old_endpoint = this.endpoint();
+    this._new_endpoint = this.endpoint();
+    if(this.depth() < 2)this._constraints = false;
+  }
+
+  private constrain2(unconstrained:Vector, constrained:Vector, cw:number, ccw:number):Vector{
+    const theta0 = Math.atan2(unconstrained.y, unconstrained.x);
+    const theta1 = Math.atan2(constrained.y, constrained.x);
+    let theta = theta1 - theta0;
+    if(theta > Math.PI) theta -= 2*Math.PI;
+    if(theta < -Math.PI) theta += 2*Math.PI;
+    theta = Math.min(theta, Math.max(cw, ccw));
+    theta = Math.max(theta, Math.min(cw, ccw));
+    const theta2 = theta + theta0;
+    return new Vector(Math.cos(theta2), Math.sin(theta2)).times(constrained.length());
+  }
+
+  private safeconstrain(v:Vector):Vector{
+    let theta = Math.atan2(v.y, v.x);
+    if(theta > this._ccw_constraint){
+        const x = Math.cos(this._ccw_constraint);
+        const y = Math.sin(this._ccw_constraint);
+        return new Vector(x,y).timesEquals(v.length());
+    }else if(theta < this._cw_constraint){
+        const x = Math.cos(this._cw_constraint);
+        const y = Math.sin(this._cw_constraint);
+        return new Vector(x,y).timesEquals(v.length());
+    }
+    return v;
+  }
+
+  private constrain(v:Vector):Vector{
+      assert(Math.abs(v.lengthSquared() - 1) < VECTOR_EPS, "" + v.lengthSquared());
+      if(this._sin_ccw_constraint > 0 && this._sin_cw_constraint > 0){
+        if(v.y < 0){
+            return new Vector(this._cos_ccw_constraint, this._sin_ccw_constraint);
+        }else{
+            if(v.x < this._cos_cw_constraint){
+                return new Vector(this._cos_cw_constraint, this._sin_cw_constraint);
+            }else if(v.x > this._cos_ccw_constraint){
+                return new Vector(this._cos_ccw_constraint, this._sin_ccw_constraint);
+            }else{
+                return v;
+            }
+        }
+      }else if(this._sin_ccw_constraint < 0 && this._sin_cw_constraint < 0){
+        if(v.y > 0){
+            return new Vector(this._cos_cw_constraint, this._sin_cw_constraint);
+        }else{
+            if(v.x < this._cos_ccw_constraint){
+                return new Vector(this._cos_ccw_constraint, this._sin_ccw_constraint);
+            }else if(v.x > this._cos_cw_constraint){
+                return new Vector(this._cos_cw_constraint, this._sin_cw_constraint);
+            }else{
+                return v;
+            }
+        }
+      }else{
+        if(v.y > 0 && v.x < this._cos_cw_constraint){
+            return new Vector(this._cos_cw_constraint, this._sin_cw_constraint);
+        }else if(v.y < 0 && v.x < this._cos_ccw_constraint){
+            return new Vector(this._cos_ccw_constraint, this._sin_ccw_constraint);
+        }else{
+            return v;
+        }
+      }
   }
 
   private set_offset(offset:Vector){
@@ -62,19 +156,33 @@ class BoneComponent implements Component{
 
     const endpoint:Vector3 = origin.plus(new Vector3(offset, 0.0));
     const tangent_unnormalized:Vector3 = parent_transform.times(this.T).inverse().timesVector(endpoint);
-    const tangent:Vector = new Vector(tangent_unnormalized).unit();
+    let tangent:Vector = new Vector(tangent_unnormalized).unit();
+      //if(this._constraints){
+      //  tangent = this.safeconstrain(tangent);
+      //}
     
     this.R = new Mat3([[tangent.x, -tangent.y, 0.0], [tangent.y, tangent.x, 0.0], [0.0, 0.0, 1.0]]);
 
-    if(this._parent !== undefined)
-        assert(this._parent.endpoint().equals(this.origin()), "Parent endpoint neq origin");
-    else
-        assert(this.origin().equals(this._root_origin), "Origin neq root origin");
-    assert(this.endpoint().minus(this.origin()).equals(offset), "Endpoint minus origin neq offset: " + this.endpoint().to_string() + " - " + this.origin().to_string() + " != " + offset.to_string());
+      if(!this._constraints){
+          if(this._parent !== undefined){
+              assert(this._parent.endpoint().equals(this.origin()), "Parent endpoint neq origin");
+          }else{
+              assert(this.origin().equals(this._root_origin), "Origin neq root origin");
+          }
+          assert(this.endpoint().minus(this.origin()).equals(offset), "Endpoint minus origin neq offset: " + this.endpoint().to_string() + " - " + this.origin().to_string() + " != " + offset.to_string());
+      }
   }
   
+  set_angle(theta:number):void{
+    this.R = Mat3Transform.rotate(theta);
+  }
+
   rotate(theta:number):void{
     this.R = this.R.times(Mat3Transform.rotate(theta));
+  }
+
+  angle():number{
+    return this.R.angle();
   }
 
   intersects(ball:Ball):boolean{
@@ -83,41 +191,60 @@ class BoneComponent implements Component{
   }
 
   move_endpoint(endpoint:Vector):void{
-    endpoint = endpoint.clone();
+    this._new_endpoint = endpoint.clone();
     this._marked = true;
+
+    let marked_child = -1;
+    for(let idx=0;idx<this._children.length;idx++){
+        if(marked_child != -1)assert(!this._children[idx]._marked);
+        if(this._children[idx]._marked) marked_child=idx;
+    }
+    
     let origin;
     if(this._parent !== undefined){
       origin = this._parent.endpoint();
     }else{
       origin = this._root_origin;
     }
-    const L = origin.minus(endpoint);
+    const L = origin.minus(this._new_endpoint);
     let len = this._rope?Math.min(L.length(), this.max_L):this.max_L;
-    const new_origin = endpoint.plus(L.unitTimes(len));
+    let new_origin = this._new_endpoint.plus(L.unitTimes(len));
+
+    if(marked_child != -1){// && this._constraints){
+      const child_endpoint = this._children[marked_child]._new_endpoint;
+      const v0 = this._new_endpoint.minus(child_endpoint);
+      const v1 = new_origin.minus(this._new_endpoint);//constrained
+      new_origin = this.constrain2(v0, v1, -2*Math.PI*30/360, 2*Math.PI*30/360).plus(this._new_endpoint);
+      if(this._parent === undefined) console.log(new_origin);
+      //v1 constrained by v0
+    }
 
     if(this._parent !== undefined){
-        if(!this._parent._marked){
+        if(this._parent._marked){
+            //propogating from parent
+            //new_origin = this._parent.endpoint();
+            const v0 = this._parent.endpoint().minus(this._parent.origin());
+            const v1 = endpoint.minus(new_origin);
+            this._new_endpoint = this.constrain2(v0, v1, -2*Math.PI*30/360, 2*Math.PI*30/360).plus(new_origin);
+        }else{
+            //TODO make sure new origin is in constraints
             this._parent.move_endpoint(new_origin);
-            assert(this._parent.endpoint().equals(new_origin), "Parent incongruous " + this._parent.endpoint().to_string() + " != " + new_origin.to_string());
         }
     }else{
         this._root_origin = new_origin;
     }
 
-    this.set_offset(endpoint.minus(new_origin));
-    if(this._parent !== undefined)assert(this._parent.endpoint().equals(new_origin), this.T.to_string() + " " + this._parent.L);
-
-    assert(this.origin().equals(new_origin), "Origin incongruous " + this.origin().to_string() + " " + new_origin.to_string());
-    assert(this.endpoint().equals(endpoint), "Endpoint incongruous " + this.endpoint().to_string() + " != " + endpoint.to_string());
+    this.set_offset(this._new_endpoint.minus(new_origin));
 
     for(let idx=0;idx<this._children.length;idx++){
         const bone = this._children[idx];
         if(bone._marked) continue;
-        const x0 = endpoint;
+        const x0 = this._new_endpoint;
         const x1 = bone._old_endpoint;
         const L = x1.minus(x0);
         const len = this._rope?Math.min(L.length(), bone.max_L):bone.max_L;
         const o = x0.plus(L.unitTimes(len));
+        //TODO make sure new endpoint is in constraints
         bone.move_endpoint(o);
     }
 

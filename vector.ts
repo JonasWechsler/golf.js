@@ -26,8 +26,11 @@ class Vector extends Point{
   equals(v: Vector, diff:number = VECTOR_EPS) {
     return Math.abs(this.x - v.x) < diff && Math.abs(this.y - v.y) < diff;
   }
+  lengthSquared() {
+    return this.x * this.x + this.y * this.y;
+  }
   length() {
-    return Math.sqrt(this.x * this.x + this.y * this.y);
+    return Math.sqrt(this.lengthSquared());
   }
   distanceToSquared(v: Vector):number {
     var dx = v.x - this.x;
@@ -269,6 +272,27 @@ class Mat3 extends Matrix{
         this._2d = this.array[2][0] === 0.0 &&
             this.array[2][1] === 0.0 &&
             this.array[2][2] === 1.0;
+    }
+
+    is_rotation():boolean{
+        const equals = (a,b) => Math.abs(a-b)<VECTOR_EPS;
+        const cos = this.array[0][0];
+        const sin = this.array[0][1];
+        return equals(cos, this.array[1][1]) &&
+        equals(sin, -1*this.array[1][0]) &&
+        equals(cos*cos + sin*sin, 1) &&
+        equals(this.array[0][2], 0) &&
+        equals(this.array[1][2], 0) &&
+        equals(this.array[2][0], 0) &&
+        equals(this.array[2][1], 0) &&
+        equals(this.array[2][2], 1);
+    }
+
+    angle():number{
+        const cos = this.array[0][0];
+        const sin = this.array[0][1];
+        assert(this.is_rotation());
+        return Math.atan2(sin, cos);
     }
 
     laderman_times(mat:Mat3):Mat3{

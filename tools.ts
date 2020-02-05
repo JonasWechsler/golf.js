@@ -11,13 +11,13 @@ function assert(b:boolean, m?:string){
     }
 }
 
-function cantorPairing(x:number, y:number){
+function cantorPairing(x:number, y:number):number{
     const px = (x >= 0)?x*2:-x*2-1;
     const py = (y >= 0)?y*2:-y*2-1;
     return .5*(px+py)*(px+py+1)+py;
 }
 
-function modulus(a:number, b:number){
+function modulus(a:number, b:number):number{
     return ((a % b) + b) % b;
 }
 

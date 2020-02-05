@@ -54,11 +54,21 @@ class ProjectileSystem implements System{
     }
 }
 
+enum GrapplingHookState{
+    Ready,
+    Deploying,
+    DeployedNoContact,
+    Returning,
+    Anchored,
+    UserToAnchor
+}
+
 class GrapplingHookComponent implements Component{
     type:ComponentType = ComponentType.GrapplingHook;
     constructor(public owner:ECSEntity,
     public anchor:ECSEntity,
-    public speed:number = 30){}
+    public speed:number = 30,
+    public state:GrapplingHookState = GrapplingHookState.Ready){}
 }
 
 /* 1. User presses use key, KeyboardInput picks up
@@ -72,6 +82,7 @@ class GrapplingHookComponent implements Component{
 class GrapplingHookSystem implements System{
     public static launch_grappling_hook(grappling_hook_entity:ECSEntity){
         const hook = grappling_hook_entity.get_component<GrapplingHookComponent>(ComponentType.GrapplingHook);
+        hook.state = GrapplingHookState.Deploying;
         const anchor = hook.anchor;
         const owner_position = hook.owner.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics).position;
         const mouse = grappling_hook_entity.get_component<MouseInputComponent>(ComponentType.MouseInput);
@@ -114,8 +125,21 @@ class GrapplingHookSystem implements System{
 
             const item_state = entity.get_component<InventoryStateComponent>(ComponentType.InventoryState);
             if(item_state.state == InventoryState.JustUsed){
-                item_state.start_cooldown();
-                GrapplingHookSystem.launch_grappling_hook(entity);
+                if(hook.state == GrapplingHookState.Ready){
+                    item_state.start_cooldown();
+                    GrapplingHookSystem.launch_grappling_hook(entity);
+                }else{
+                    item_state.state = InventoryState.Equipped;
+                }
+            }
+
+            switch(hook.state){
+                case GrapplingHookState.Deploying:{
+                    break;
+                }
+                case GrapplingHookState.Deploying:{
+                    break;
+                }
             }
 
             const destination = hook.anchor.get_component<DynamicPhysicsComponent>(ComponentType.DynamicPhysics);

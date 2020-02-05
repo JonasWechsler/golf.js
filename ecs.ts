@@ -36,7 +36,8 @@ enum ComponentType{
     Inventory,
     GrapplingHook,
     InventoryState,
-    ProjectileLauncher
+    ProjectileLauncher,
+    Animation
 }
 
 class ECSEntity{
